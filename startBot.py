@@ -53,18 +53,18 @@ def replyCommand(bot,update):
         newchatmember = bot.getChatMember(BNB48, newmemberid)
         if newchatmember.status == 'restricted':
             bot.restrictChatMember(update.message.chat_id,user_id=newmemberid,can_send_messages=True,can_send_media_messages=True,can_send_other_messages=True, can_add_web_page_previews=True)
-            bot.sendMessage(newmemberid, text="您已通过审核，成为BNB48 Club正式会员")
-            bot.sendMessage(update.message.chat_id, text="欢迎新成员"+newmember.full_name)#, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(newmemberid, text=u"您已通过审核，成为BNB48 Club正式会员")
+            bot.sendMessage(update.message.chat_id, text=u"欢迎新成员"+newmember.full_name)#, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         else:
             bot.sendMessage(update.message.chat_id, text=newchatmember.status+u"该成员之前已经通过审核或已经离开本群", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
             
 
     elif update.message.text == 'unblock':
         BLACKLIST.remove(newmemberid)
-        bot.sendMessage(update.message.chat_id, text="移出申请黑名单", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text=u"移出申请黑名单", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     elif update.message.text == 'block':
         BLACKLIST.add(newmemberid)
-        bot.sendMessage(update.message.chat_id, text="加入申请黑名单", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text=u"加入申请黑名单", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     else:
         bot.sendMessage(newmemberid, text=update.message.text)
         #原样转发管理员的消息
@@ -78,10 +78,14 @@ def photoHandler(bot,update):
     logger.warning(chatmember.can_send_messages)
     if None != chatmember.can_send_messages and True != chatmember.can_send_messages:
         forward = bot.forwardMessage(BNB48,update.effective_user.id,update.message.message_id)
-        bot.sendMessage(update.message.chat_id, text="已提交持仓证明，请关注群内审批情况，耐心等待。如无必要，无需频繁重复发送。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text=u"已提交持仓证明，请关注群内审批情况，耐心等待。如无必要，无需频繁重复发送。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         #bot.sendMessage(BNB48, text=NOTIFYADMINS, reply_to_message_id=forward.message_id)
 
     
+def onleft(bot,update):
+    if u"拉人" in update.message.left_chat_member.full_name or "Deleted Account" in update.message.left_chat_member.full_name :
+        bot.deleteMessage(update.message.chat_id,update.message.message_id)
+
 def welcome(bot, update):
     '''
     usernameMention = f"[{update.message.from_user.first_name}](tg://user?id={update.message.from_user.id})"
@@ -91,9 +95,23 @@ def welcome(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text=text, parse_mode=ParseMode.MARKDOWN,reply_markup=reply_markup2)
     bot.sendMessage(update.message.chat_id, text=update.effective_user.full_name, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     '''
-    bot.sendMessage(update.message.chat_id, text="欢迎。新成员默认禁言，请私聊 @coinrumorbot 发送#SellBNBAt48BTC 的挂单截图(100BNB或以上)，审核通过后开启权限成为正式会员。持仓截图会被机器人自动转发进群，请注意保护个人隐私。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+    #首先筛选垃圾消息
+    isSpam = False
     for newUser in update.message.new_chat_members:
-        bot.restrictChatMember(update.message.chat_id,user_id=newUser.id, can_send_messages=False)
+        if u"拉人" in update.message.left_chat_member.full_name or "Deleted Account" in update.message.left_chat_member.full_name :
+            isSpam = True
+            break;
+
+    if isSpam:
+        bot.deleteMessage(update.message.chat_id,update.message.message_id)
+        for newUser in update.message.new_chat_members:
+            bot.kickChatMember(update.message.chat_id,newUser.id)
+            logger.warning('%s|%s is kicked because of spam',newUser.id,newUser.full_name)
+            
+    if update.message.chat_id == BNB48:
+        bot.sendMessage(update.message.chat_id, text=u"欢迎。新成员默认禁言，请私聊 [BNB48 - 静静](tg://user?id=571331274)  发送#SellBNBAt48BTC 的挂单截图(500BNB或以上)，审核通过后开启权限成为正式会员。持仓截图会被机器人自动转发进群，请注意保护个人隐私。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        for newUser in update.message.new_chat_members:
+            bot.restrictChatMember(update.message.chat_id,user_id=newUser.id, can_send_messages=False)
 
 
 def error(bot, update, error):
@@ -118,6 +136,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.text and Filters.private, callback=botcommandhandler))#'''处理私聊文字'''
     dp.add_handler(MessageHandler(Filters.photo & Filters.private, callback=photoHandler))#'''处理私发的图片'''
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
+    dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
 
     # log all errors
     dp.add_error_handler(error)
