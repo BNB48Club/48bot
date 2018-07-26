@@ -24,12 +24,16 @@ coinrumorbot=405689392
 bnb48_bot=571331274
 NOTIFYADMINS="有新成员加入，需要审批:) "
 
+COIN_BALANCES={};
 
 def help(bot, update):
     """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
 
 
+def digcoin(bot,update):
+    return
+    
 def botcommandhandler(bot, update):
     message_text = update.message.text
     if "#SellBNBAt48BTC" in message_text:
@@ -145,9 +149,10 @@ def welcome(bot, update):
             logger.warning('%s|%s is kicked because of spam',newUser.id,newUser.full_name)
             
     if update.message.chat_id == BNB48:
-        bot.sendMessage(update.message.chat_id, text=u"欢迎。新成员默认禁言，请私聊 [BNB48 - 静静](tg://user?id=571331274)  发送#SellBNBAt48BTC 的挂单截图(500BNB或以上，Photo形式，别发File形式)，审核通过后开启权限成为正式会员。持仓截图会被机器人自动转发进群，请注意保护个人隐私。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        for newUser in update.message.new_chat_members:
-            bot.restrictChatMember(update.message.chat_id,user_id=newUser.id, can_send_messages=False)
+        bot.sendMessage(update.message.chat_id, text=u"欢迎。新成员默认禁言，请私聊 [BNB48 - 静静](tg://user?id=571331274)  发送持仓截图(1583BNB或以上，Photo形式，非File形式)，审核通过后开启权限成为正式会员。持仓截图会被机器人自动转发进群，请注意保护个人隐私。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        #for newUser in update.message.new_chat_members:
+        #    bot.restrictChatMember(update.message.chat_id,user_id=newUser.id, can_send_messages=False)
+        #使用Groupbutler完成这一功能，自己不写了
 
 
 def error(bot, update, error):
@@ -172,8 +177,8 @@ def main():
     dp.add_handler(MessageHandler(Filters.photo & Filters.private, callback=photoHandler))#'''处理私发的图片'''
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
-    dp.add_handler(MessageHandler(Filters.group & Filters.reply, replyCommand))# '''处理大群中的回复'''
-    dp.add_handler(MessageHandler(Filters.group & (~Filters.reply),botcommandhandler))# '''处理大群中的普通消息'''
+    dp.add_handler(MessageHandler(Filters.group & Filters.text & Filters.reply, replyCommand))# '''处理大群中的回复'''
+    dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.reply) & (~Filters.status_update),botcommandhandler))# '''处理大群中的直接消息'''
 
     # log all errors
     dp.add_error_handler(error)
