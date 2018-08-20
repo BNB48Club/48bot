@@ -30,6 +30,7 @@ file.close()
 
 SirIanM=420909210
 Gui=434121211
+BNB48YIYAN=540550477
 coinrumorbot=405689392
 bnb48_bot=571331274
 NOTIFYADMINS="有新成员加入，需要审批:) "
@@ -40,20 +41,66 @@ def help(bot, update):
     """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
 
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+    return False
+
+
+def unmute(bot, chatid, user, targetuser, reply_to_message):
+    admins = bot.get_chat_administrators(chatid)
+    if reply_to_message is None:
+        reply_to_id = None
+    else:
+        reply_to_id = reply_to_message.message_id 
+    if user != None and not bot.getChatMember(chatid,user.id) in admins:
+        bot.sendMessage(chatid, text=u"No sufficient privilege", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        return
+    if bot.getChatMember(chatid,targetuser.id) in admins:
+        bot.sendMessage(chatid, text=u"Don't need to unmute an admin", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        return
+    bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
+    bot.sendMessage(chatid, text=u"[{}](tg://user?id={}) is unmuted".format(targetuser.full_name,targetuser.id), reply_to_message_id=reply_to_message.message_id,parse_mode=ParseMode.MARKDOWN)
+
+    
+def mute(bot, chatid, user, targetuser, duration, reply_to_message):
+    admins = bot.get_chat_administrators(chatid)
+    if reply_to_message is None:
+        reply_to_id = None
+    else:
+        reply_to_id = reply_to_message.message_id 
+    if user != None and not bot.getChatMember(chatid,user.id) in admins:
+        bot.sendMessage(chatid, text=u"No sufficient privilege", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        return
+    if bot.getChatMember(chatid,targetuser.id) in admins:
+        bot.sendMessage(chatid, text=u"Can't restrict an admin", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        return
+    bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*3600))
+    bot.sendMessage(chatid, text=u"[{}](tg://user?id={}) is muted for {} hour(s)".format(targetuser.full_name,targetuser.id,duration), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
 
-    if ("/unmute" == things[0] or "/mute" == things[0] or "/ban" == things[0] or "/kick" ==  things[0]) and "from_user" in  dir(update.message.reply_to_message):
-        if not bot.getChatMember(update.message.chat_id,update.message.from_user.id) in bot.get_chat_administrators(update.message.chat_id):
-            return
-        targetid = update.message.reply_to_message.from_user.id
-        if "/mute" == things[0]:
-            bot.restrictChatMember(update.message.chat_id,user_id=targetid,can_send_messages=False,until_date=time.time()+int(float(things[1])*3600))
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is muted for {} hour(s)".format(update.message.reply_to_message.from_user.full_name,targetid,things[1]), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        elif "/unmute" == things[0]:
-            bot.restrictChatMember(update.message.chat_id,user_id=targetid,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is unmuted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+    if ("/unmute" == things[0] or "/mute" == things[0] ) and "from_user" in  dir(update.message.reply_to_message):
+        
+        user = update.message.from_user
+        targetuser = update.message.reply_to_message.from_user
 
+
+        if "/mute" == things[0]:
+            duration = 0.01
+            if len(things) > 1 and is_number(things[1]):
+                duration = things[1]
+            mute(bot,update.message.chat_id,user,targetuser,duration,update.message)
+
+        elif "/unmute" == things[0]:
+            unmute(bot,update.message.chat_id,user,targetuser,update.message)
+
+        ''' Let groupbutler to handle ban and kick
         else: 
             try:
                 bot.kickChatMember(update.message.chat_id,user_id=targetid)
@@ -62,6 +109,7 @@ def botcommandhandler(bot,update):
             if "/kick" == things[0]:
                 bot.unbanChatMember(update.message.chat_id,user_id=targetid)
             bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is {}".format(update.message.reply_to_message.from_user.full_name,targetid,things[0]+"ed"), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        '''
         
     elif ("/promote" == things[0] or "/demote" == things[0]) and "from_user" in  dir(update.message.reply_to_message):
         if update.message.from_user.id != SirIanM:
@@ -117,18 +165,19 @@ def botmessagehandler(bot, update):
         bot.sendMessage(update.message.chat_id, text=response, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         file.close()
         return
-
+    elif update.message.chat_id != BNB48 and update.message.from_user.id == BNB48YIYAN:
+        #eface evidence
+        bot.deleteMessage( update.message.chat_id, update.message.message_id)
 
     else:
         #things = message_text.split(' ')
         #logger.warning(things)
         words = update.message.text.split(' ')
+        chatid = update.message.chat_id
         for FLUSHWORD in FLUSHWORDS:
             if FLUSHWORD in update.message.text:
-                bot.restrictChatMember(update.message.chat_id,user_id=update.message.from_user.id,can_send_messages=False,until_date=time.time()+600)
-                bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is muted for 10 minutes because of \"{}\"".format(update.message.from_user.full_name,update.message.from_user.id,FLUSHWORD), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-                bot.deleteMessage(update.message.chat_id,update.message.message_id)
-                logger.warning(newUser.full_name+u" muted because of " + update.message.text);
+                mute(bot, update.message.chat_id, None, update.message.from_user, 0.1, update.message)
+                logger.warning(update.message.from_user.full_name+u" muted because of " + update.message.text);
                 return
 
 
