@@ -3,17 +3,19 @@ import logging
 import json
 import time
 import codecs
+import random
+import ConfigParser
 
 from telegram import KeyboardButton, ParseMode, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from selectBot import selectBot
 from botsapi import bots
+from koge48 import Koge48
 
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
@@ -30,12 +32,17 @@ file.close()
 
 SirIanM=420909210
 Gui=434121211
-BNB48YIYAN=540550477
 coinrumorbot=405689392
 bnb48_bot=571331274
-NOTIFYADMINS="有新成员加入，需要审批:) "
 
-COIN_BALANCES={};
+kogeconfig = ConfigParser.ConfigParser()
+kogeconfig.read("koge48.conf")
+koge48core = Koge48(
+  kogeconfig.get("mysql","host"),
+  kogeconfig.get("mysql","user"),
+  kogeconfig.get("mysql","passwd"),
+  kogeconfig.get("mysql","database")
+)
 
 def help(bot, update):
     """Send a message when the command /help is issued."""
@@ -82,34 +89,49 @@ def mute(bot, chatid, user, targetuser, duration, reply_to_message):
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*3600))
     bot.sendMessage(chatid, text=u"[{}](tg://user?id={}) is muted for {} hour(s)".format(targetuser.full_name,targetuser.id,duration), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
 
+
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
 
-    if ("/unmute" == things[0] or "/mute" == things[0] ) and "from_user" in  dir(update.message.reply_to_message):
+    if "/sync" in things[0] and not update.message.reply_to_message is None:
+        if u"💰" in update.message.reply_to_message.text:
+            bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+
+    elif "/bal" in things[0]:
+        user = update.message.from_user
+
+        if update.message.reply_to_message is None:
+            targetuser = user
+        else:
+            targetuser = update.message.reply_to_message.from_user
+
+        bot.sendMessage(update.message.chat_id, text="{} Koge48".format(koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+
+    elif ("/unmute" in things[0] or "/mute" in things[0] ) and not update.message.reply_to_message is None:
         
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
 
-        if "/mute" == things[0]:
+        if "/mute" in things[0]:
             duration = 0.01
             if len(things) > 1 and is_number(things[1]):
                 duration = things[1]
             mute(bot,update.message.chat_id,user,targetuser,duration,update.message)
 
-        elif "/unmute" == things[0]:
+        elif "/unmute" in things[0]:
             unmute(bot,update.message.chat_id,user,targetuser,update.message)
 
-        ''' Let groupbutler to handle ban and kick
-        else: 
-            try:
-                bot.kickChatMember(update.message.chat_id,user_id=targetid)
-            except:
-                logger.warning("except when kicking")
-            if "/kick" == things[0]:
-                bot.unbanChatMember(update.message.chat_id,user_id=targetid)
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is {}".format(update.message.reply_to_message.from_user.full_name,targetid,things[0]+"ed"), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        '''
+    elif ("/ban" in things[0] or "/kick" in things[0] ) and "from_user" in  dir(update.message.reply_to_message):
+        if update.message.from_user.id != SirIanM:
+            return
+        try:
+            bot.kickChatMember(update.message.chat_id,user_id=targetid)
+        except:
+            logger.warning("except when kicking")
+        if "/kick" == things[0]:
+            bot.unbanChatMember(update.message.chat_id,user_id=targetid)
+        bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is {}".format(update.message.reply_to_message.from_user.full_name,targetid,things[0]+"ed"), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         
     elif ("/promote" == things[0] or "/demote" == things[0]) and "from_user" in  dir(update.message.reply_to_message):
         if update.message.from_user.id != SirIanM:
@@ -151,7 +173,6 @@ def botcommandhandler(bot,update):
         file.flush()
         file.close()
         logger.warning("flushwords updated")
-
     return
 
 def botmessagehandler(bot, update):
@@ -165,13 +186,13 @@ def botmessagehandler(bot, update):
         bot.sendMessage(update.message.chat_id, text=response, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         file.close()
         return
-    elif update.message.chat_id != BNB48 and update.message.from_user.id == BNB48YIYAN:
+    #elif update.message.chat_id != BNB48 and update.message.from_user.id == :
         #eface evidence
-        bot.deleteMessage( update.message.chat_id, update.message.message_id)
+        #time.sleep(5)
+    #    bot.deleteMessage( update.message.chat_id, update.message.message_id)
 
     else:
-        #things = message_text.split(' ')
-        #logger.warning(things)
+        # anti flush
         words = update.message.text.split(' ')
         chatid = update.message.chat_id
         for FLUSHWORD in FLUSHWORDS:
@@ -179,7 +200,10 @@ def botmessagehandler(bot, update):
                 mute(bot, update.message.chat_id, None, update.message.from_user, 0.1, update.message)
                 logger.warning(update.message.from_user.full_name+u" muted because of " + update.message.text);
                 return
-
+        #mining
+        user = update.message.from_user
+        if koge48core.mine(user.id):
+            bot.sendMessage(chatid, text=u"_{}_挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
 
 '''
@@ -319,7 +343,9 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     #dp.add_handler(MessageHandler(Filters.group & Filters.text & Filters.reply, replyCommand))# '''处理大群中的回复'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
-    dp.add_handler(CommandHandler(["promote","demote","deflush","flush","mute","unmute","ban","kick"],botcommandhandler))# '''处理大群中的直接消息'''
+    dp.add_handler(CommandHandler(
+        ["bal","ban","kick","promote","demote","deflush","flush","mute","unmute","sync"],
+        botcommandhandler))# '''处理大群中的直接消息'''
 
     # log all errors
     dp.add_error_handler(error)
