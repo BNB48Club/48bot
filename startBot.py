@@ -6,7 +6,8 @@ import codecs
 import random
 import ConfigParser
 
-from telegram import KeyboardButton, ParseMode, ReplyKeyboardMarkup
+from telegram import *
+#KeyboardButton, ParseMode, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from selectBot import selectBot
 from botsapi import bots
@@ -96,7 +97,12 @@ def botcommandhandler(bot,update):
     if "/sync" in things[0] and not update.message.reply_to_message is None:
         if u"💰" in update.message.reply_to_message.text:
             bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-
+    elif "/casino" in things[0]:
+        #开始赌场
+        btn1 = InlineKeyboardButton('Homepage', url='http://bnb48.club')
+        btn2 = InlineKeyboardButton('Action', callback_data='Act Now')
+        markup = InlineKeyboardMarkup(btn1,bt2)
+        bot.send_message(message.chat.id, "InlineKeyboard: ", reply_markup=markup)
     elif "/bal" in things[0]:
         user = update.message.from_user
 
@@ -173,6 +179,33 @@ def botcommandhandler(bot,update):
         file.flush()
         file.close()
         logger.warning("flushwords updated")
+    elif "/spam"==things[0] or "/despam"==things[0]:
+        if update.message.from_user.id != SirIanM:
+            return
+            #SirIanM only
+        thekeyword=""
+
+        if "text" in dir(update.message.reply_to_message):
+            thekeyword = update.message.reply_to_message.text
+        else:
+            thekeyword = things[1]
+
+        if "/spam"==things[0]:
+            if thekeyword in SPAMWORDS:
+                return
+            SPAMWORDS.append(thekeyword)
+            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为垃圾账号关键词", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        else:
+            if not thekeyword in SPAMWORDS:
+                return
+            SPAMWORDS.remove(thekeyword)
+            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+
+        file = codecs.open("spamwords.json","w","utf-8")
+        file.write(json.dumps({"words":SPAMWORDS}))
+        file.flush()
+        file.close()
+        logger.warning("spamwords updated")
     return
 
 def botmessagehandler(bot, update):
@@ -344,7 +377,21 @@ def main():
     #dp.add_handler(MessageHandler(Filters.group & Filters.text & Filters.reply, replyCommand))# '''处理大群中的回复'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(CommandHandler(
-        ["bal","ban","kick","promote","demote","deflush","flush","mute","unmute","sync"],
+        [
+            "bal",
+            "casino",
+            "spam",
+            "despam",
+            "ban",
+            "kick",
+            "promote",
+            "demote",
+            "deflush",
+            "flush",
+            "mute",
+            "unmute",
+            "sync"
+        ],
         botcommandhandler))# '''处理大群中的直接消息'''
 
     # log all errors
