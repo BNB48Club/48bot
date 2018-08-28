@@ -21,8 +21,12 @@ class Koge48:
 
         self._prob = 0.06
         self._tries = 0
+        self._cache = {}
         return
     def changeBalance(self,userid,number,memo=""):
+        strid = str(userid)
+        balance = self.getBalance(strid)
+        assert balance + float(number) > -0.001
         newblocksql = "INSERT INTO changelog (uid,differ,memo) VALUES (%s,%s,%s)"
         self._mycursor.execute(newblocksql,(userid,number,memo))
         self._mydb.commit()
@@ -31,19 +35,32 @@ class Koge48:
         self._mycursor.execute(updatebalsql,(userid,number,number))
         self._mydb.commit()
 
-    def getBalance(self,userid):
-        self._mycursor.execute("SELECT `bal` FROM `balance` WHERE `uid` = {}".format(userid))
+        self._cache[strid]=balance + float(number)
+        return self._cache[strid]
+
+    def _getBalanceFromDb(self,strid):
+        self._mycursor.execute("SELECT `bal` FROM `balance` WHERE `uid` = {}".format(strid))
         res = self._mycursor.fetchone()
         if res is None:
             return 0
         else:
             return res[0]
+
+    def getBalance(self,userid):
+        strid = str(userid)
+        if strid in self._cache:
+            return self._cache[strid]
+        else:
+            balance = self._getBalanceFromDb(strid)
+            self._cache[strid]=balance
+            return balance
     def mine(self,minerid):
+        strid = str(minerid)
         self._tries+=1;
         if random.random()<self._prob:
-            self.changeBalance(minerid,1,"mining")            
+            self.changeBalance(strid,1,"mining")            
             self._tries = 0
-            logger.warning("{} mined one".format(minerid))
+            logger.warning("{} mined one".format(strid))
             return True
         else:
             return False

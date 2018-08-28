@@ -19,7 +19,7 @@ def deleteandmute(bot, update):
     #bot.restrictChatMember(update.message.chat_id,user_id=update.message.from_user.id,can_send_messages=False,until_date=time.time()+300)
     #bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is muted for 5 minutes".format(update.message.from_user.full_name,update.message.from_user.id), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     bot.deleteMessage(update.message.chat_id,update.message.message_id)
-    #logger.warning(update.message.from_user.full_name+u" muted");
+    logger.warning(str(update.message.chat_id)+" "+str(update.message.message_id)+" "+str(update.message.from_user.id));
     return
 
 def error(bot, update, error):
