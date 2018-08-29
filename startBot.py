@@ -117,7 +117,7 @@ def callbackhandler(bot,update):
     thedata = update.callback_query.data
     activeuser = update.callback_query.from_user
 
-    if thedata in ["LONG","HE","HU"]:
+    if thedata in ["LONG","HE","HU"] and CASINO_ID in global_longhu_casinos:
         if koge48core.getBalance(activeuser.id) < CASINO_BETSIZE:
             update.callback_query.answer(text=u"余额不足",show_alert=True)
         koge48core.changeBalance(activeuser.id,-CASINO_BETSIZE,"bet on casino")        
@@ -130,6 +130,7 @@ def callbackhandler(bot,update):
         )
         update.callback_query.answer(text=u"押注成功")
     else:
+        bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
         update.callback_query.answer(text=u"不存在的押注信息")
 
 
