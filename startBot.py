@@ -152,7 +152,13 @@ def startcasino(bot=None):
         CASINO_BOT = bot
     CASINO_ID = None
     CASINO_LOG = CASINO_DESCRIPTION
-    message = CASINO_BOT.send_message(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup())
+    try:
+        message = CASINO_BOT.send_message(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup())
+    except:
+        thread = Thread(target = startcasino)
+        time.sleep(10)
+        thread.start()
+        return
     CASINO_ID = str(message.message_id)
     global_longhu_casinos[CASINO_ID]=LonghuCasino(CASINO_ID)
     thread = Thread(target = releaseandstartcasino)
@@ -168,11 +174,15 @@ def releaseandstartcasino():
     results = thecasino.release()
     for each in results['payroll']:
         koge48core.changeBalance(each,results['payroll'][each],"casino pay")
-    CASINO_BOT.edit_message_text(
-        chat_id=BNB48CASINO,
-        message_id=CASINO_ID,
-        text=CASINO_LOG+"\n------------\n"+results['result']+u"\n{}人押中".format(len(results['payroll'])),
-    )
+    try:
+        CASINO_BOT.edit_message_text(
+            chat_id=BNB48CASINO,
+            message_id=CASINO_ID,
+            text=CASINO_LOG+"\n------------\n"+results['result']+u"\n{}人押中".format(len(results['payroll'])),
+        )
+    except:
+        log.warning("releaseandstartcasino exception: maybe a timeout")
+        pass
     del global_longhu_casinos[CASINO_ID]
     thread = Thread(target=startcasino)
     thread.start()
