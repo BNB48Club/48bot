@@ -52,7 +52,7 @@ koge48core = Koge48(
 
 global_longhu_casinos = {}
 
-CASINO_BETSIZE = 10
+CASINO_BETSIZE = 2
 CASINO_DESCRIPTION=u"龙虎斗\n各发一张比点数 A最大\n每次押注{}Koge\n------------".format(CASINO_BETSIZE)
 CASINO_TARGETS={"LONG":u"龙","HU":u"虎","HE":u"和"}
 
@@ -161,6 +161,10 @@ def startcasino(bot=None):
 def releaseandstartcasino():
     time.sleep(300)
     thecasino = global_longhu_casinos[CASINO_ID]
+
+    while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0:
+        time.sleep(30)
+
     results = thecasino.release()
     for each in results['payroll']:
         koge48core.changeBalance(each,results['payroll'][each],"casino pay")
