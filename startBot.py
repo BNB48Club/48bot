@@ -203,7 +203,7 @@ def botcommandhandler(bot,update):
 
         assert koge48core.getBalance(user.id) > float(things[1])
         
-        koge48core.changeBalance(user.id,-float(things[1]),"trans to "+str(targetuser.full_name))
+        koge48core.changeBalance(user.id,-float(things[1]),u"trans to "+targetuser.full_name)
         latestbalance = koge48core.changeBalance(targetuser.id,float(things[1]),"trans from "+str(user.full_name))
         bot.sendMessage(update.message.chat_id, text="Trans executed", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     elif ("/bnbairdrop" in things[0]  or "/koinex" in things[0] )and update.message.from_user.id == SirIanM:
