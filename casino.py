@@ -23,8 +23,21 @@ class Casino:
         self._active = False
     def isActive(self):
         return self._active
+    @staticmethod
+    def getRule(key):
+        return u""
 
 class LonghuCasino(Casino):
+    TARGET_TEXTS={"LONG":u"龙","HU":u"虎","HE":u"和"}
+    @staticmethod
+    def getRule(key=None):
+        if key == "FULL" or key is None:
+            return u"龙虎各发一张比大小 A最大"
+        elif key in ["LONG","HU"]:
+            return "押中拿回本金再得1倍奖励"
+        elif key == "HE":
+            return "押中拿回本金再得8倍奖励"
+            
     def __init__(self,id):
         Casino.__init__(self,id)
         self._bets={"LONG":{},"HU":{},"HE":{}}
@@ -55,14 +68,19 @@ class LonghuCasino(Casino):
 
         if longdianshu>hudianshu and hudianshu != 0:
             result = "LONG"
+            win="龙"
         elif hudianshu>longdianshu and longdianshu != 0:
             result = "HU"
+            win="虎"
         elif longdianshu == hudianshu:
             result = "HE"
+            win="和"
         elif longdianshu == 0:
             result = "LONG"
+            win="龙"
         else:
             result = "HU"
+            win="虎"
 
         times = 2
         if result == "HE":
@@ -74,9 +92,10 @@ class LonghuCasino(Casino):
 
         self.deActive()
 
-        return {"result":u"龙:{}{},虎:{}{}".format(
-                        huase[longpai/13],
-                        dianshu[longdianshu],
-                        huase[hupai/13],
-                        dianshu[hudianshu]
-                        ),"payroll":payroll}
+        return {"result":[
+                            "{}{}".format( huase[longpai/13], dianshu[longdianshu]),
+                            "{}{}".format( huase[hupai/13], dianshu[hudianshu])
+                        ],
+                "payroll":payroll,
+                "win":win
+                }

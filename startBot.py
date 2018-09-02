@@ -14,6 +14,10 @@ from selectBot import selectBot
 from botsapi import bots
 from koge48 import Koge48
 from casino import LonghuCasino
+import sys  
+
+reload(sys)  
+sys.setdefaultencoding('utf8')
 
 
 # Enable logging
@@ -22,7 +26,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
-
+PRICES={"promote":500}
 BNB48=-1001136778297
 
 file=open("flushwords.json","r")
@@ -37,6 +41,7 @@ SirIanM=420909210
 Gui=434121211
 coinrumorbot=405689392
 bnb48_bot=571331274
+BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
 
@@ -52,11 +57,10 @@ koge48core = Koge48(
 
 global_longhu_casinos = {}
 
-CASINO_BETSIZE = 2
-CASINO_DESCRIPTION=u"龙虎斗\n各发一张比点数 A最大\n每次押注{}Koge\n------------".format(CASINO_BETSIZE)
-CASINO_TARGETS={"LONG":u"龙","HU":u"虎","HE":u"和"}
+#casino_betsize = 2
+CASINO_INTERVAL = 30
 
-CASINO_ID = None
+#casino_id = None
 CASINO_LOG = ""
 CASINO_MARKUP = None
 CASINO_BOT = None
@@ -108,22 +112,32 @@ def mute(bot, chatid, user, targetuser, duration, reply_to_message):
 
 
 def callbackhandler(bot,update):
-    global CASINO_ID, CASINO_LOG, CASINO_MARKUP
-    if not CASINO_ID in global_longhu_casinos:
+    #global casino_id
+    global CASINO_LOG, CASINO_MARKUP
+    casino_id = str(update.callback_query.message.message_id)
+    activeuser = update.callback_query.from_user
+    if not casino_id in global_longhu_casinos:
         update.callback_query.answer(text=u"该局不存在或已经开牌",show_alert=True);
+        bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
         return
 
-    thecasino = global_longhu_casinos[CASINO_ID]
-    thedata = update.callback_query.data
-    activeuser = update.callback_query.from_user
+    thecasino = global_longhu_casinos[casino_id]
 
-    if thedata in ["LONG","HE","HU"] and CASINO_ID in global_longhu_casinos:
-        if koge48core.getBalance(activeuser.id) < CASINO_BETSIZE:
+    if not "#" in update.callback_query.data:
+        answer=LonghuCasino.getRule(update.callback_query.data) + "\n你的可用余额:{}Koge".format(koge48core.getBalance(activeuser.id))
+        update.callback_query.answer(answer)
+        return
+
+    thedatas = update.callback_query.data.split('#')
+    bet_target = thedatas[0]
+    casino_betsize = float(thedatas[1])
+
+    if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
+        if koge48core.getBalance(activeuser.id) < casino_betsize:
             update.callback_query.answer(text=u"余额不足",show_alert=True)
-        koge48core.changeBalance(activeuser.id,-CASINO_BETSIZE,"bet on casino")        
-        global_longhu_casinos[CASINO_ID].bet(activeuser.id,thedata,CASINO_BETSIZE)
-        CASINO_LOG+=u"\n{} 押注 {} {} Koge".format(activeuser.full_name,CASINO_TARGETS[thedata],CASINO_BETSIZE)
-        logger.warning(CASINO_MARKUP)
+        koge48core.changeBalance(activeuser.id,-casino_betsize,"bet on casino")        
+        global_longhu_casinos[casino_id].bet(activeuser.id,bet_target,casino_betsize)
+        CASINO_LOG+=u"\n{} 押注 {} {} Koge".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
         update.callback_query.edit_message_text(
             text=CASINO_LOG,
             reply_markup=CASINO_MARKUP
@@ -136,78 +150,114 @@ def callbackhandler(bot,update):
 
 
 
-def buildcasinomarkup(laststr=None):
-    global CASINO_ID, CASINO_LOG, CASINO_MARKUP
-    btn1 = InlineKeyboardButton(u'龙 1倍', callback_data='LONG')
-    btn2 = InlineKeyboardButton(u'虎 1倍', callback_data='HU')
-    btn3 = InlineKeyboardButton(u'和 8倍', callback_data='HE')
-    CASINO_MARKUP = InlineKeyboardMarkup([[btn1,btn3,btn2]])
+def buildcasinomarkup(result=["",""]):
+    global CASINO_MARKUP
+    CASINO_MARKUP = InlineKeyboardMarkup(
+        [
+            
+            [
+                InlineKeyboardButton(u'龙牌:'+result[0],callback_data="FULL"),
+                InlineKeyboardButton(u'虎牌:'+result[1],callback_data="FULL")
+            ],
+            [
+                InlineKeyboardButton(u'押龙:', callback_data='LONG'),
+                InlineKeyboardButton(u'1 Koge', callback_data='LONG#1'),
+                InlineKeyboardButton(u'10 Koge', callback_data='LONG#10'),
+                InlineKeyboardButton(u'100 Koge', callback_data='LONG#100'),
+                InlineKeyboardButton(u'1000 Koge', callback_data='LONG#1000'),
+            ],
+            [
+                InlineKeyboardButton(u'押和:', callback_data='HE'),
+                InlineKeyboardButton(u'1 Koge', callback_data='HE#1'),
+                InlineKeyboardButton(u'10 Koge', callback_data='HE#10'),
+                InlineKeyboardButton(u'100 Koge', callback_data='HE#100'),
+                InlineKeyboardButton(u'1000 Koge', callback_data='HE#1000'),
+            ],
+            [
+                InlineKeyboardButton(u'押虎:', callback_data='HU'),
+                InlineKeyboardButton(u'1 Koge', callback_data='HU#1'),
+                InlineKeyboardButton(u'10 Koge', callback_data='HU#10'),
+                InlineKeyboardButton(u'100 Koge', callback_data='HU#100'),
+                InlineKeyboardButton(u'1000 Koge', callback_data='HU#1000'),
+            ]
+        ]
+    )
     return CASINO_MARKUP
 
 
 def startcasino(bot=None):
+    logger.warning("try to start starting")
     if not CASINO_CONTINUE:
         return
-    global CASINO_ID, CASINO_LOG, CASINO_MARKUP, CASINO_BOT
+    global CASINO_LOG, CASINO_MARKUP, CASINO_BOT
+    #global casino_id
     if not bot is None:
         CASINO_BOT = bot
-    CASINO_ID = None
-    CASINO_LOG = CASINO_DESCRIPTION
-    try:
-        message = CASINO_BOT.send_message(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup())
-    except:
-        thread = Thread(target = startcasino)
-        time.sleep(10)
-        thread.start()
-        return
-    CASINO_ID = str(message.message_id)
-    global_longhu_casinos[CASINO_ID]=LonghuCasino(CASINO_ID)
-    thread = Thread(target = releaseandstartcasino)
+    CASINO_LOG = "龙虎斗\n------------"
+    #try:
+    message = CASINO_BOT.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup(),parse_mode=ParseMode.MARKDOWN)
+    #except:
+    #    thread = Thread(target = startcasino)
+    #    time.sleep(10)
+    #    thread.start()
+    #    return
+    casino_id = str(message.message_id)
+    global_longhu_casinos[casino_id]=LonghuCasino(casino_id)
+    thread = Thread(target = releaseandstartcasino, args=[casino_id])
     thread.start()
     
-def releaseandstartcasino():
-    time.sleep(300)
-    thecasino = global_longhu_casinos[CASINO_ID]
+def releaseandstartcasino(casino_id):
+    time.sleep(CASINO_INTERVAL)
+    thecasino = global_longhu_casinos[casino_id]
+    logger.warning("start releasing")
 
     while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0:
-        time.sleep(30)
+        time.sleep(CASINO_INTERVAL)
 
     results = thecasino.release()
     for each in results['payroll']:
         koge48core.changeBalance(each,results['payroll'][each],"casino pay")
-    try:
-        CASINO_BOT.edit_message_text(
+
+    del global_longhu_casinos[casino_id]
+
+    #try:
+    logger.warning(results['win'])
+    CASINO_BOT.edit_message_text(
             chat_id=BNB48CASINO,
-            message_id=CASINO_ID,
-            text=CASINO_LOG+"\n------------\n"+results['result']+u"\n{}人押中".format(len(results['payroll'])),
+            message_id=casino_id,
+            text=CASINO_LOG+u"\n------------"+u"\n{}人押中{}".format(len(results['payroll']),results['win']),
+            reply_markup=buildcasinomarkup(result=results['result'])
         )
-    except:
-        log.warning("releaseandstartcasino exception: maybe a timeout")
-        pass
-    del global_longhu_casinos[CASINO_ID]
+    #except:
+    #    logger.warning("releaseandstartcasino exception: maybe a timeout")
+    #    pass
+
     thread = Thread(target=startcasino)
     thread.start()
     
 
 def botcommandhandler(bot,update):
-    global CASINO_ID, CASINO_LOG, CASINO_MARKUP
+    global CASINO_CONTINUE, CASINO_LOG, CASINO_MARKUP
     things = update.message.text.split(' ')
 
     if "/sync" in things[0] and not update.message.reply_to_message is None:
         if u"💰" in update.message.reply_to_message.text:
             bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     elif "/trans" in things[0] and not update.message.reply_to_message is None:
-        assert float(things[1]) > 0
+        if float(things[1]) <= 0:
+            return
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
-        assert koge48core.getBalance(user.id) > float(things[1])
+        if not koge48core.getBalance(user.id) > float(things[1]):
+            return
         
         koge48core.changeBalance(user.id,-float(things[1]),u"trans to "+targetuser.full_name)
-        latestbalance = koge48core.changeBalance(targetuser.id,float(things[1]),"trans from "+str(user.full_name))
+        latestbalance = koge48core.changeBalance(targetuser.id,float(things[1]),u"trans from "+user.full_name)
         bot.sendMessage(update.message.chat_id, text="Trans executed", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     elif ("/bnbairdrop" in things[0]  or "/koinex" in things[0] )and update.message.from_user.id == SirIanM:
-        assert float(things[1]) > 0
+        if float(things[1]) <= 0:
+            return
         user = update.message.from_user
         if update.message.reply_to_message is None:
             targetuser = user
@@ -218,9 +268,9 @@ def botcommandhandler(bot,update):
         bot.sendMessage(update.message.chat_id, text="Bonus distributed, {} Koge48 now".format(latestbalance), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
     elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
+        CASINO_CONTINUE = True
         startcasino(bot)
     elif "/nocasino" in things[0] and update.message.from_user.id == SirIanM:
-        global CASINO_CONTINUE
         CASINO_CONTINUE = False
         bot.sendMessage(update.message.chat_id, text="Casino stoped")
     elif "/bal" in things[0]:
@@ -259,17 +309,19 @@ def botcommandhandler(bot,update):
             bot.unbanChatMember(update.message.chat_id,user_id=targetid)
         bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is {}".format(update.message.reply_to_message.from_user.full_name,targetid,things[0]+"ed"), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         
-    elif ("/promote" == things[0] or "/demote" == things[0]) and "from_user" in  dir(update.message.reply_to_message):
-        if update.message.from_user.id != SirIanM:
+    elif ("/promote" == things[0] or "/demote" == things[0]) and not update.message.reply_to_message is None:
+        if koge48core.getBalance(update.message.from_user.id) < PRICES['promote']:
+            bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{}Koge,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
             return
         targetid = update.message.reply_to_message.from_user.id
 
         if things[0] == "/promote":
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
+            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'])
             bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is promoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         if things[0] == "/demote":
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
-            #bot.promoteChatMember(update.message.chat_id, targetid, can_delete_messages=None)
+            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'])
             bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is demoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
     elif "/flush"==things[0] or "/deflush"==things[0]:
@@ -355,7 +407,7 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if update.message.chat_id != BNB48CASINO and koge48core.mine(user.id):
+        if update.message.chat_id != BNB48CASINO and update.message.chat_id != BinanceCN and koge48core.mine(user.id):
             bot.sendMessage(chatid, text=u"_{}_挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
 
@@ -421,7 +473,6 @@ def photoHandler(bot,update):
         return
 
     chatmember = bot.getChatMember(BNB48,userid)
-    logger.warning(chatmember.can_send_messages)
     sayingmember = bot.getChatMember(BNB48, userid)
     if sayingmember.status == 'restricted' or userid == SirIanM:
         forward = bot.forwardMessage(BNB48,update.effective_user.id,update.message.message_id)
@@ -430,7 +481,7 @@ def photoHandler(bot,update):
         admins = bot.getChatAdministrators(BNB48)
         for eachadmin in admins:
             try:
-                bot.sendMessage(eachadmin.user.id, text=NOTIFYADMINS,parse_mode ="Markdown")
+                bot.sendMessage(eachadmin.user.id, text=NOTIFYADMINS,parse_mode=ParseMode.MARKDOWN)
             except TelegramError:
                 print('TelegramError, could be while send private message to admins')
                 continue
@@ -463,7 +514,7 @@ def welcome(bot, update):
         bot.deleteMessage(update.message.chat_id,update.message.message_id)
         for newUser in update.message.new_chat_members:
             bot.kickChatMember(update.message.chat_id,newUser.id)
-            logger.warning('%s|%s is kicked because of spam',newUser.id,newUser.full_name)
+            logger.warning('%s|%s is kicked from %s because of spam',newUser.id,newUser.full_name,update.message.chat.title)
             
     #if update.message.chat_id == BNB48:
         #bot.sendMessage(update.message.chat_id, text=u"欢迎。新成员默认禁言，请私聊 [BNB48 - 静静](tg://user?id=571331274)  发送持仓截图(1583BNB或以上，Photo形式，非File形式)，审核通过后开启权限成为正式会员。持仓截图会被机器人自动转发进群，请注意保护个人隐私。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
