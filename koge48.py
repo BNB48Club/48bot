@@ -5,10 +5,32 @@ import ConfigParser
 import mysql.connector
 import logging
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+from binance.client import Client
+
+
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class Koge48:
+    @staticmethod
+    def getBNBAmount(key,secret):
+        try:
+            client = Client(key,secret)
+            bnb = client.get_asset_balance(asset='BNB')
+            return float(bnb['locked']) + float(bnb['free'])
+        except:
+            return 0
+    def BNBAirDrop(self):
+        self._mycursor.execute("SELECT * FROM `apikey`")
+        res = self._mycursor.fetchall()
+        for each in res:
+            bnbamount = Koge48.getBNBAmount(each[1],each[2])
+            if bnbamount > 0:
+                if bnbamount > 50000:
+                    bnbamount = 50000
+                self.changeBalance(each[0],bnbamount,'bnbairdrop')
+        
     def __init__(self,host,user,passwd,database):
 
         self._mydb = mysql.connector.connect(
@@ -23,6 +45,13 @@ class Koge48:
         self._tries = 0
         self._cache = {}
         return
+
+
+    def setApiKey(self,userid,apikey,apisecret):
+        updatesql = "INSERT INTO apikey (uid,apikey,apisecret) VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE apikey=%s,apisecret=%s"
+        self._mycursor.execute(updatesql,(userid,apikey,apisecret,apikey,apisecret))
+        self._mydb.commit()
+        
     def changeBalance(self,userid,number,memo=""):
         strid = str(userid)
         balance = self.getBalance(strid)

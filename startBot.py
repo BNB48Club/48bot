@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import logging
 import json
 import time
@@ -243,6 +244,20 @@ def botcommandhandler(bot,update):
     if "/sync" in things[0] and not update.message.reply_to_message is None:
         if u"💰" in update.message.reply_to_message.text:
             bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+    elif "/bind" in things[0] and update.message.chat_id == update.message.from_user.id:
+        bot.sendMessage(update.message.chat_id,
+            text="绑定APIKEY须知：\n"+
+            "我们是此Telegram机器人的第三方授权开发商\n"+
+            "你充分了解API原理、充分了解权限设置流程和方法并已经进行了安全设置\n"+
+            "你提交的APIKEY可以访问你的账户持仓、交易、提现、充值等所有信息\n"+
+            "你提交的APIKEY可能可以操作你的账户进行交易、提现等所有操作\n"+
+            "我们无法从技术层面保证存储你的APIKEY的服务器不被攻击\n"+
+            "我们无法从道德层面保证内部员工绝不会滥用你提交的APIKEY\n"+
+            "因此你的APIKEY完全有可能泄露\n"+
+            "你的APIKEY一旦泄露，最坏的情况下你的资产可能全部丢失\n"+
+            "你充分了解上述风险并愿意完全承担上述风险\n"+
+            "如果对此无异议，请输入你的apikey和apisecret进行绑定，以#分隔",
+            parse_mode=ParseMode.MARKDOWN)
     elif "/trans" in things[0] and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
@@ -305,26 +320,26 @@ def botcommandhandler(bot,update):
             bot.kickChatMember(update.message.chat_id,user_id=targetid)
         except:
             logger.warning("except when kicking")
-        if "/kick" == things[0]:
+        if "/kick" in things[0]:
             bot.unbanChatMember(update.message.chat_id,user_id=targetid)
         bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is {}".format(update.message.reply_to_message.from_user.full_name,targetid,things[0]+"ed"), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         
-    elif ("/promote" == things[0] or "/demote" == things[0]) and not update.message.reply_to_message is None:
+    elif ("/promote" in things[0] or "/demote" in things[0]) and not update.message.reply_to_message is None:
         if koge48core.getBalance(update.message.from_user.id) < PRICES['promote']:
             bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{}Koge,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
             return
         targetid = update.message.reply_to_message.from_user.id
 
-        if things[0] == "/promote":
+        if "/promote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'])
             bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is promoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        if things[0] == "/demote":
+        if "/demote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'])
             bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is demoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
-    elif "/flush"==things[0] or "/deflush"==things[0]:
+    elif "/flush" in things[0] or "/deflush" in things[0]:
         if update.message.from_user.id != SirIanM:
             return
             #SirIanM only
@@ -335,7 +350,7 @@ def botcommandhandler(bot,update):
         else:
             thekeyword = things[1]
 
-        if "/flush"==things[0]:
+        if "/flush" in things[0]:
             if thekeyword in FLUSHWORDS:
                 return
             FLUSHWORDS.append(thekeyword)
@@ -351,7 +366,7 @@ def botcommandhandler(bot,update):
         file.flush()
         file.close()
         logger.warning("flushwords updated")
-    elif "/spam"==things[0] or "/despam"==things[0]:
+    elif "/spam" in things[0] or "/despam" in things[0]:
         if update.message.from_user.id != SirIanM:
             return
             #SirIanM only
@@ -362,7 +377,7 @@ def botcommandhandler(bot,update):
         else:
             thekeyword = things[1]
 
-        if "/spam"==things[0]:
+        if "/spam" in things[0]:
             if thekeyword in SPAMWORDS:
                 return
             SPAMWORDS.append(thekeyword)
@@ -380,6 +395,14 @@ def botcommandhandler(bot,update):
         logger.warning("spamwords updated")
     return
 
+def regexmessagehandler(bot,update):
+    message_text = update.message.text
+    api = message_text.split("#")
+    koge48core.setApiKey(update.message.from_user.id,api[0],api[1])
+    bnb = koge48core.getBNBAmount(api[0],api[1])
+    bot.sendMessage(update.message.chat_id,"apikey绑定完成，您的账户BNB余额为{}。\n如果您提交的apikey不正确，上述余额查询结果会为0，如有异议请自行检查。".format(bnb))
+    return
+
 def botmessagehandler(bot, update):
     message_text = update.message.text
     #logger.warning(message_text)
@@ -395,7 +418,6 @@ def botmessagehandler(bot, update):
         #eface evidence
         #time.sleep(5)
     #    bot.deleteMessage( update.message.chat_id, update.message.message_id)
-
     else:
         # anti flush
         words = update.message.text.split(' ')
@@ -548,8 +570,10 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     #dp.add_handler(MessageHandler(Filters.group & Filters.text & Filters.reply, replyCommand))# '''处理大群中的回复'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
+    dp.add_handler(RegexHandler("^\w{64}#\w{64}$",regexmessagehandler))
     dp.add_handler(CommandHandler(
         [
+            "bind",
             "trans",
             "koinex",
             "bnbairdrop",
