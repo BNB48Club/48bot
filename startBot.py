@@ -195,13 +195,13 @@ def startcasino(bot=None):
     if not bot is None:
         CASINO_BOT = bot
     CASINO_LOG = "龙虎斗\n------------"
-    #try:
-    message = CASINO_BOT.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup(),parse_mode=ParseMode.MARKDOWN)
-    #except:
-    #    thread = Thread(target = startcasino)
-    #    time.sleep(10)
-    #    thread.start()
-    #    return
+    try:
+        message = CASINO_BOT.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup(),parse_mode=ParseMode.MARKDOWN)
+    except:
+        thread = Thread(target = startcasino)
+        time.sleep(10)
+        thread.start()
+        return
     casino_id = str(message.message_id)
     global_longhu_casinos[casino_id]=LonghuCasino(casino_id)
     thread = Thread(target = releaseandstartcasino, args=[casino_id])
@@ -221,17 +221,17 @@ def releaseandstartcasino(casino_id):
 
     del global_longhu_casinos[casino_id]
 
-    #try:
-    logger.warning(results['win'])
-    CASINO_BOT.edit_message_text(
+    try:
+        logger.warning(results['win'])
+        CASINO_BOT.edit_message_text(
             chat_id=BNB48CASINO,
             message_id=casino_id,
             text=CASINO_LOG+u"\n------------"+u"\n{}人押中{}".format(len(results['payroll']),results['win']),
             reply_markup=buildcasinomarkup(result=results['result'])
         )
-    #except:
-    #    logger.warning("releaseandstartcasino exception: maybe a timeout")
-    #    pass
+    except:
+        logger.warning("releaseandstartcasino exception: maybe a timeout")
+        pass
 
     thread = Thread(target=startcasino)
     thread.start()
@@ -263,25 +263,14 @@ def botcommandhandler(bot,update):
             return
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
+        transamount = float(things[1])
 
         if not koge48core.getBalance(user.id) > float(things[1]):
             return
         
-        koge48core.changeBalance(user.id,-float(things[1]),u"trans to "+targetuser.full_name)
-        latestbalance = koge48core.changeBalance(targetuser.id,float(things[1]),u"trans from "+user.full_name)
-        bot.sendMessage(update.message.chat_id, text="Trans executed", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-    elif ("/bnbairdrop" in things[0]  or "/koinex" in things[0] )and update.message.from_user.id == SirIanM:
-        if float(things[1]) <= 0:
-            return
-        user = update.message.from_user
-        if update.message.reply_to_message is None:
-            targetuser = user
-        else:
-            targetuser = update.message.reply_to_message.from_user
-        
-        latestbalance = koge48core.changeBalance(targetuser.id,float(things[1]),"bnbairdrop or koinex")
-        bot.sendMessage(update.message.chat_id, text="Bonus distributed, {} Koge48 now".format(latestbalance), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-
+        koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name)
+        latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name)
+        bot.sendMessage(update.message.chat_id, text="{} 向 {} 转账 {} Koge48".format(user.full_name,targetuser.full_name,transamount), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
     elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
         CASINO_CONTINUE = True
         startcasino(bot)
@@ -332,11 +321,11 @@ def botcommandhandler(bot,update):
 
         if "/promote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
-            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'])
+            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'promote')
             bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is promoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         if "/demote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
-            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'])
+            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'demote')
             bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is demoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
     elif "/flush" in things[0] or "/deflush" in things[0]:
@@ -575,8 +564,6 @@ def main():
         [
             "bind",
             "trans",
-            "koinex",
-            "bnbairdrop",
             "bal",
             "casino",
             "nocasino",
