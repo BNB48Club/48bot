@@ -27,7 +27,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
-PRICES={"promote":500}
+PRICES={"promote":500,"mute":10,"unmute":100}
 BNB48=-1001136778297
 
 file=open("flushwords.json","r")
@@ -36,6 +36,10 @@ file.close()
 
 file=open("spamwords.json","r")
 SPAMWORDS=json.load(file)["words"]
+file.close()
+
+file=open("silents.json","r")
+SILENTGROUPS = json.load(file)['groups']
 file.close()
 
 SirIanM=420909210
@@ -92,8 +96,16 @@ def unmute(bot, chatid, user, targetuser, reply_to_message):
     if bot.getChatMember(chatid,targetuser.id) in admins:
         bot.sendMessage(chatid, text=u"Don't need to unmute an admin", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
         return
+    price = PRICES['unmute']
+    if koge48core.getBalance(user.id) < price:
+        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次解禁的费用".format(price), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        return
+
+
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
-    bot.sendMessage(chatid, text=u"[{}](tg://user?id={}) is unmuted".format(targetuser.full_name,targetuser.id), reply_to_message_id=reply_to_message.message_id,parse_mode=ParseMode.MARKDOWN)
+    koge48core.changeBalance(user.id,-price,"unmute {}".format(targetuser.id))
+
+    bot.sendMessage(chatid, text=u"[{}](tg://user?id={}) 解除禁言,费用{}Koge由{}支付".format(targetuser.full_name,targetuser.id,price,user.full_name), reply_to_message_id=reply_to_message.message_id,parse_mode=ParseMode.MARKDOWN)
 
     
 def mute(bot, chatid, user, targetuser, duration, reply_to_message):
@@ -103,13 +115,19 @@ def mute(bot, chatid, user, targetuser, duration, reply_to_message):
     else:
         reply_to_id = reply_to_message.message_id 
     if user != None and not bot.getChatMember(chatid,user.id) in admins:
-        bot.sendMessage(chatid, text=u"No sufficient privilege", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(chatid, text=u"只有管理员可以禁言别人", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
         return
     if bot.getChatMember(chatid,targetuser.id) in admins:
-        bot.sendMessage(chatid, text=u"Can't restrict an admin", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(chatid, text=u"管理员不能被禁言", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
         return
-    bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*3600))
-    bot.sendMessage(chatid, text=u"[{}](tg://user?id={}) is muted for {} hour(s)".format(targetuser.full_name,targetuser.id,duration), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+    price = PRICES['mute']*float(duration)
+    if koge48core.getBalance(user.id) < price:
+        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次禁言的费用".format(price), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        return
+
+    bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*60))
+    koge48core.changeBalance(user.id,-price,"mute {}".format(targetuser.id))
+    bot.sendMessage(chatid, text=u"[{}](tg://user?id={})被禁言{}分钟，费用{}Koge由{}支付".format(targetuser.full_name,targetuser.id,duration,price,user.full_name), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
 
 
 def callbackhandler(bot,update):
@@ -162,21 +180,18 @@ def buildcasinomarkup(result=["",""]):
             ],
             [
                 InlineKeyboardButton(u'押龙:', callback_data='LONG'),
-                InlineKeyboardButton(u'1 Koge', callback_data='LONG#1'),
                 InlineKeyboardButton(u'10 Koge', callback_data='LONG#10'),
                 InlineKeyboardButton(u'100 Koge', callback_data='LONG#100'),
                 InlineKeyboardButton(u'1000 Koge', callback_data='LONG#1000'),
             ],
             [
                 InlineKeyboardButton(u'押和:', callback_data='HE'),
-                InlineKeyboardButton(u'1 Koge', callback_data='HE#1'),
                 InlineKeyboardButton(u'10 Koge', callback_data='HE#10'),
                 InlineKeyboardButton(u'100 Koge', callback_data='HE#100'),
                 InlineKeyboardButton(u'1000 Koge', callback_data='HE#1000'),
             ],
             [
                 InlineKeyboardButton(u'押虎:', callback_data='HU'),
-                InlineKeyboardButton(u'1 Koge', callback_data='HU#1'),
                 InlineKeyboardButton(u'10 Koge', callback_data='HU#10'),
                 InlineKeyboardButton(u'100 Koge', callback_data='HU#100'),
                 InlineKeyboardButton(u'1000 Koge', callback_data='HU#1000'),
@@ -194,7 +209,7 @@ def startcasino(bot=None):
     #global casino_id
     if not bot is None:
         CASINO_BOT = bot
-    CASINO_LOG = "龙虎斗\n------------"
+    CASINO_LOG = LonghuCasino.getRule()+"\n------------"
     try:
         message = CASINO_BOT.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup(),parse_mode=ParseMode.MARKDOWN)
     except:
@@ -285,7 +300,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        bot.sendMessage(update.message.chat_id, text="{} Koge48".format(koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text="{}的持仓余额为{} Koge48".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
     elif ("/unmute" in things[0] or "/mute" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -322,12 +337,33 @@ def botcommandhandler(bot,update):
         if "/promote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'promote')
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is promoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})晋升为管理员\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.fullname), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         if "/demote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'demote')
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is demoted".format(update.message.reply_to_message.from_user.full_name,targetid), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})被革去管理员职位\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.fullname), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
+    elif "/silent" in things[0] or "/desilent" in things[0]:
+        if update.message.from_user.id != SirIanM:
+            return
+            #SirIanM only
+        thegroup = update.message.chat_id
+        if "/silent" in things[0]:
+            if thegroup in SILENTGROUPS:
+                return
+            SILENTGROUPS.append(thegroup)
+            bot.sendMessage(update.message.chat_id, text=u"本群切换为静默模式，出矿无消息提示", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        else:
+            if not thekeyword in FLUSHWORDS:
+                return
+            SILENTGROUPS.remove(thegroup)
+            bot.sendMessage(update.message.chat_id, text=u"本群解除静默模式", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+
+        file = codecs.open("silents.json","w","utf-8")
+        file.write(json.dumps({"groups":SILENTGROUPS}))
+        file.flush()
+        file.close()
+        logger.warning("SILENTGROUPS updated")
     elif "/flush" in things[0] or "/deflush" in things[0]:
         if update.message.from_user.id != SirIanM:
             return
@@ -418,7 +454,7 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if update.message.chat_id != BNB48CASINO and update.message.chat_id != BinanceCN and koge48core.mine(user.id):
+        if koge48core.mine(user.id) and not update.message.chat_id in SILENTGROUPS:
             bot.sendMessage(chatid, text=u"_{}_挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
 
@@ -559,7 +595,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     #dp.add_handler(MessageHandler(Filters.group & Filters.text & Filters.reply, replyCommand))# '''处理大群中的回复'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
-    dp.add_handler(RegexHandler("^\w{64}#\w{64}$",regexmessagehandler))
+    dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",regexmessagehandler))
     dp.add_handler(CommandHandler(
         [
             "bind",
@@ -577,7 +613,9 @@ def main():
             "flush",
             "mute",
             "unmute",
-            "sync"
+            "sync",
+            "silent",
+            "desilent"
         ],
         botcommandhandler))# '''处理大群中的直接消息'''
 

@@ -32,7 +32,7 @@ class LonghuCasino(Casino):
     @staticmethod
     def getRule(key=None):
         if key == "FULL" or key is None:
-            return u"龙虎各发一张比大小 A最大"
+            return "龙虎斗\n龙虎各发一张比大小 A最大\n押中拿回本金再得1倍奖励\n押中拿回本金再得8倍奖励"
         elif key in ["LONG","HU"]:
             return "押中拿回本金再得1倍奖励"
         elif key == "HE":
