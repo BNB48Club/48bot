@@ -316,8 +316,8 @@ def botcommandhandler(bot,update):
 
         elif "/unmute" in things[0]:
             unmute(bot,update.message.chat_id,user,targetuser,update.message)
-
-    elif ("/ban" in things[0] or "/kick" in things[0] ) and "from_user" in  dir(update.message.reply_to_message):
+        ''' 
+        elif ("/ban" in things[0] or "/kick" in things[0] ) and "from_user" in  dir(update.message.reply_to_message):
         if update.message.from_user.id != SirIanM:
             return
         try:
@@ -327,7 +327,7 @@ def botcommandhandler(bot,update):
         if "/kick" in things[0]:
             bot.unbanChatMember(update.message.chat_id,user_id=targetid)
         bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={}) is {}".format(update.message.reply_to_message.from_user.full_name,targetid,things[0]+"ed"), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        
+        ''' 
     elif ("/promote" in things[0] or "/demote" in things[0]) and not update.message.reply_to_message is None:
         if koge48core.getBalance(update.message.from_user.id) < PRICES['promote']:
             bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{}Koge,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
@@ -337,11 +337,11 @@ def botcommandhandler(bot,update):
         if "/promote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'promote')
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})晋升为管理员\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.fullname), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})晋升为管理员\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         if "/demote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'demote')
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})被革去管理员职位\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.fullname), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})被革去管理员职位\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
 
     elif "/silent" in things[0] or "/desilent" in things[0]:
         if update.message.from_user.id != SirIanM:
@@ -605,8 +605,6 @@ def main():
             "nocasino",
             "spam",
             "despam",
-            "ban",
-            "kick",
             "promote",
             "demote",
             "deflush",

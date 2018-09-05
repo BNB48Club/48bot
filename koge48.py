@@ -29,7 +29,8 @@ class Koge48:
             if bnbamount > 0:
                 if bnbamount > 50000:
                     bnbamount = 50000
-                self.changeBalance(each[0],bnbamount,'bnbairdrop')
+                self.changeBalance(each[0],bnbamount/24,'bnbairdrop')
+            time.sleep(1)
         
     def __init__(self,host,user,passwd,database):
 
