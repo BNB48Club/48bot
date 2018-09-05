@@ -61,10 +61,6 @@ class Koge48:
         self._mycursor.execute(newblocksql,(userid,number,memo))
         self._mydb.commit()
 
-        updatebalsql = "INSERT INTO balance (uid,bal) VALUES (%s,%s) ON DUPLICATE KEY UPDATE bal=bal+%s"
-        self._mycursor.execute(updatebalsql,(userid,number,number))
-        self._mydb.commit()
-
         self._cache[strid]=balance + float(number)
         return self._cache[strid]
 
