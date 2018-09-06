@@ -1,7 +1,12 @@
+import sys
+if sys.version_info[0] < 3:
+    import ConfigParser
+else:
+    import configparser
 import random
 import json
 import time
-import ConfigParser
+import MySQLdb
 import mysql.connector
 import logging
 
@@ -13,24 +18,15 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 class Koge48:
-    @staticmethod
-    def getBNBAmount(key,secret):
-        try:
-            client = Client(key,secret)
-            bnb = client.get_asset_balance(asset='BNB')
-            return float(bnb['locked']) + float(bnb['free'])
-        except:
-            return 0
     def BNBAirDrop(self):
-        self._mycursor.execute("SELECT * FROM `apikey`")
+        logger.warning("airdroping")
+        self._mycursor.execute("SELECT *,offchain+onchain as total FROM `bnb`")
         res = self._mycursor.fetchall()
         for each in res:
-            bnbamount = Koge48.getBNBAmount(each[1],each[2])
-            if bnbamount > 0:
-                if bnbamount > 50000:
-                    bnbamount = 50000
-                self.changeBalance(each[0],bnbamount/24,'bnbairdrop')
-            time.sleep(1)
+            bnbamount = each[4]
+            if bnbamount > 50000:
+                bnbamount = 50000
+            self.changeBalance(each[0],bnbamount/24,'bnbairdrop')
         
     def __init__(self,host,user,passwd,database):
 
@@ -47,6 +43,11 @@ class Koge48:
         self._cache = {}
         return
 
+
+    def setEthAddress(self,userid,eth):
+        updatesql = "INSERT INTO eth (uid,eth) VALUES (%s,%s) ON DUPLICATE KEY UPDATE eth=%s"
+        self._mycursor.execute(updatesql,(userid,eth,eth))
+        self._mydb.commit()
 
     def setApiKey(self,userid,apikey,apisecret):
         updatesql = "INSERT INTO apikey (uid,apikey,apisecret) VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE apikey=%s,apisecret=%s"

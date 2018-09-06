@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import re
 import logging
 import json
@@ -15,7 +16,7 @@ from selectBot import selectBot
 from botsapi import bots
 from koge48 import Koge48
 from casino import LonghuCasino
-import sys  
+import schedule
 
 reload(sys)  
 sys.setdefaultencoding('utf8')
@@ -265,7 +266,7 @@ def botcommandhandler(bot,update):
             bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id)
     elif "/bind" in things[0] and update.message.chat_id == update.message.from_user.id:
         bot.sendMessage(update.message.chat_id,
-            text="绑定APIKEY须知：\n"+
+            text="如需绑定API，请阅读如下绑定须知：\n"+
             "我们是此Telegram机器人的第三方授权开发商\n"+
             "你充分了解API原理、充分了解权限设置流程和方法并已经进行了安全设置\n"+
             "你提交的APIKEY可以访问你的账户持仓、交易、提现、充值等所有信息\n"+
@@ -275,7 +276,19 @@ def botcommandhandler(bot,update):
             "因此你的APIKEY完全有可能泄露\n"+
             "你的APIKEY一旦泄露，最坏的情况下你的资产可能全部丢失\n"+
             "你充分了解上述风险并愿意完全承担上述风险\n"+
-            "如果对此无异议，请输入你的apikey和apisecret进行绑定，以#分隔")
+            "如果对此无异议，请输入你的apikey和apisecret进行绑定，以#分隔\n"+
+            "\n"+
+            "如需绑定ETH钱包地址，请直接输入\n"+
+            "\n"+
+            "每个用户只可绑定一组API和一个ETH钱包地址\n"+
+            "重复绑定将覆盖前面的绑定\n"+
+            "\n"+
+            "链上与链下持仓BNB每日快照，每小时发放Koge\n"+
+            "\n"+
+            "例如交易所账户内持仓1000BNB，ETH地址持仓1000BNB\n"+
+            "则一共持仓2000BNB，每小时发放2000/24枚Koge\n"+
+            "每天合计发放2000Koge"
+        )
     elif "/trans" in things[0] and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
@@ -422,13 +435,24 @@ def botcommandhandler(bot,update):
         file.close()
         logger.warning("spamwords updated")
     return
+def ethhandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
+    eth = update.message.text
+    richlist = [ "0x00c5e04176d95a286fcce0e68c683ca0bfec8454", "0xfe9e8709d3215310075d67e3ed32a380ccf451c8", "0x001866ae5b3de6caa5a51543fd9fb64f524f5478", "0x115635b91717c4d96d092e3f0b72155283ef400f", "0x2b8d5c9209fbd500fd817d960830ac6718b88112", "0xa92c9e965c6b6068a90ccde5af00a4da49fbf162", "0xb8c9647a497732f032e8789b24573e0f6bcd678e", "0x5e660c9cefb1a9651971cdafc13fef604a40aa92", "0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be", "0x299bdb1fadbad944d7ebb863568e699265907880", "0xce67898df439190e9c487eabe35320318fdd7746", "0x54f3e53bea04a3989114b8885ac16cc0fadcf2ec", "0x1fb9f75ec3bc42d71b0afb9ad177d5d7306c97ea", "0x30ed5f8dcced1a040fd6f7c9e319c4a0fa0eb037", "0xbd91471befdf2861a904a2bb5c58fb42189d216a", "0x2e49cf10d079efd3dc7176307af34adae34b43a7", "0xe21dd2e22a7281b63bcd1b0dfc73dff6678b0b64", "0x2ba2aee80303f89de1c4721cee75a2f41f21b4a1", "0x9a3dbe3d2d9e79b622fca709e1b2bcc766cd464c", "0xaf88abb5479ce1365bcd38be59c8123f4787c7b9", "0x15da3e506967f39a9a7195fe450c587c2cb2ad14", "0x00f9451385bf75910d80374eb42edf36d1a3f243", "0xdc52ce74855c7272974406a672603937664ce507", "0x75a373f4e651be36719faf7d4fa79999e9a1ee2b", "0x52032989864bb4cb17c7f9fad4c25b19d36ba7de", "0x0681d8db095565fe8a346fa0277bffde9c0edbbf", "0xf2549fba1da6e17a1e82478a0b0a945adb7416c7", "0xeee9592cec2001f395c1f871ff3088cbd1b75e9d", "0xa487a9dacb856793d4845a0f5c9fbf7068ffeaa9", "0xdd2d0fafc1bd34eb698884c21220d5bf9e5affac", "0x18a257dad57fb1813c687dfac6bc0ae2f3eeaeb2", "0x2cd1196cc6108bc3687e4891a0c67182aeb34649", "0x19575ec860760267160de1dfc5cc698b15923f0e", "0x564286362092d8e7936f0549571a803b203aaced", "0xd551234ae421e3bcba99a0da6d736074f22192ff", "0xe2720f4abb5bbf05f20221ca08281f0beb2672a4", "0xed2e188eedbc58bbf2845c63ef16b5eb1fa5742c", "0x009843872eda1e866b3104568af87dc87c536fc5", "0xf61c5c1aa5ba784c3f12da30c35f6b12a25c8f87", "0x65b0bf8ee4947edd2a500d74e50a3d757dc79de0", "0x915d7915f2b469bb654a7d903a5d4417cb8ea7df", "0xf82021207e4f548c69b021af5981d0877cc197ef", "0x9364f1b110f15e87f6fe06e3d0ecfa47238c6642", "0xdf7f56092799156ba5d59d0be242d3e28856fae5", "0x889bb192b972a7e1b6fcfdb01396935357876165", "0x86aa0f6a399f1279659fa7b57f80825eea12228f", "0xc3ae368407e15cdef5561da58de1a1cc9a937086", "0x7d854d8c6f4182a5c7e3e7d6a0d289eb6062009b", "0x13b9a956ab3b84ea950d84ace88461277dcd47be", "0x5abef7fc05bce3248a032c4e0d27be3bd4c35936", "0x1c4b70a3968436b9a0a9cf5205c787eb81bb558c", "0x58be970a5b33aee9766ff965f4d4b823268994d1", "0x1bd7452f318559daa57385a71256027b0d802ed7", "0xd953a49c53c2a4db1cf37ac2ecef2dd082938795", "0x81cd16ee6a008c3d12f332bdd2fd653717f71af3", "0x134c230ecdab04ce9b5e7ea22e1313642adcb340", "0x841b5b0c5f903b24b1eb98bbf282417aa68ba2b3", "0xa73d9021f67931563fdfe3e8f66261086319a1fc", "0x89f40fde58eee6d66f8f67cbba21886c3640c3e5", "0x924141f1df09d3d188bcee813b21544248c0bcd8", "0xdbada8db753b4f7992bbd6cf4c8b2c99a6195a30", "0x0cbab4716306e9d8dd698f370faaaa4b3048d115", "0x1f4ce32ea4ab217fb01b4840e03e44cd9aac7f4e", "0xb5148070dde4bdcde894cfafbaf1d31820ad9cef", "0xda8e12cc4262e0213e037fe7335430b1d73a69ab", "0x6199a4ac62c622a29a4158089f67a3b28fa67051", "0xe0b2e151e404880f132383b5ace9e45f0f72f874", "0xb3c70518b55bea5141c271593bbfef34489c106d", "0x90448c9fd29910f79a92abfb61a8e807977488c1", "0x11e0715a208b33a76824c1ff543d2814eba389bc", "0x79d2a32436bf9e19c78204e072158b60eb4b087b", "0x9d1e720e5d128afe7d863bddedf047cce7e48796", "0x2761edbd41cce8b8dbb00823a449fd966c5b28db", "0xa628143f0292b7f4d4ba644414c57ee4003b79ff", "0xe788cca0477ad766321292e67bdadf09a05bbdf8", "0xd7e0dc071ef38544a072ce6f333a8697bc11c1b5", "0xfdafc34dfafe2ce42a7f4392a6f843c948fadde4", "0x21e616d330395ab9eca5bade392bcbccb3795297", "0xb8c77482e45f1f44de1745f52c74426c631bdd52", "0xe93431fd2eee59305a1bc7e80ad925853823a31b", "0xd75eebece0db5e544f32cf2404e7aa5509d739a5", "0xa1d157e01e797e4a64606e6304f3b6288211dcfe", "0xbd6456f4ea57351a6e00a9a816fc6003a0170ba3", "0x8699cee9cca0f1e2e627059ef7dcd46e9735b9d5", "0xd4b8817b45dc9cf996381ad7595d066e55a6b965", "0xb0cf97d42b3abcb002d6385bf54f16e602de4061", "0xd410ea959d63fae73c8e2b61fbf92fffc229b144", "0xe9da0d4d2acc12bbb8543f300eaf0882ea3b4ef8", "0xaeec6f5aca72f3a005af1b3420ab8c8c7009bac8", "0x5de9b9bd567bd425a94f993602583de6c4822243", "0x3aac5c3cb540e311316d3b0ebfe3559b586b0af5", "0x3e5d0c6bc202421c0b06cac59bf8dfdf36991ae6", "0x96ba6bee78d09b335e3fe01f9173e8de93ea8466", "0x0d0707963952f2fba59dd06f2b425ace40b492fe", "0xfc83b1ad1662a0071d107e84ae253a7c6aab40e7", "0x1bc217f4c4083be683de399401caa0fc2d73b975", "0xacd99090c637a657e1cfc642261319e36866096b", "0xeb5e459cb3af4a3e56fb43dc1b0c948a95ab3a38", "0xad640188745ff9a9fbbfd13a30e1fc48c0b93761", "0x7b2247cb372d34f0f253d92ec88f33317fc5bf12"]
+    if eth in richlist:
+        update.message.reply_text("请不要拿链上富豪榜地址冒充，如果这个地址确实属于你，请私聊@SirIanM")
+    else:
+        koge48core.setEthAddress(update.message.from_user.id,eth)
+        update.message.reply_text("eth绑定完成。请注意绑定过程不校验地址持仓BNB余额")
 
-def regexmessagehandler(bot,update):
+
+def apihandler(bot,update):
     message_text = update.message.text
     api = message_text.split("#")
     koge48core.setApiKey(update.message.from_user.id,api[0],api[1])
     bnb = koge48core.getBNBAmount(api[0],api[1])
-    bot.sendMessage(update.message.chat_id,"apikey绑定完成，您的账户BNB余额为{}。\n如果您提交的apikey不正确，上述余额查询结果会为0，如有异议请自行检查。".format(bnb))
+    update.message.reply_text("apikey绑定完成，您的账户BNB余额为{}。\n如果您提交的apikey不正确，上述余额查询结果会为0，如有异议请自行检查。".format(bnb))
     return
 
 def botmessagehandler(bot, update):
@@ -458,7 +482,7 @@ def botmessagehandler(bot, update):
         #mining
         user = update.message.from_user
         if koge48core.mine(user.id) and not update.message.chat_id in SILENTGROUPS:
-            bot.sendMessage(chatid, text=u"_{}_挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id)
+            bot.sendMessage(chatid, text=u"{}挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id)
 
 
 '''
@@ -598,7 +622,8 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     #dp.add_handler(MessageHandler(Filters.group & Filters.text & Filters.reply, replyCommand))# '''处理大群中的回复'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
-    dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",regexmessagehandler))
+    dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
+    dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
     dp.add_handler(CommandHandler(
         [
             "bind",
@@ -626,11 +651,25 @@ def main():
     # Start the Bot
     updater.start_polling()
 
+    #Start the schedule
+    newthread = Thread(target = schedule_thread)
+    newthread.start()
+
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
 
+
+def schedule_thread():
+    print("start loop")
+    schedule.every().hour.do(koge48core.BNBAirDrop)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
 if __name__ == '__main__':
+    
     main()
+
