@@ -91,21 +91,21 @@ def unmute(bot, chatid, user, targetuser, reply_to_message):
     else:
         reply_to_id = reply_to_message.message_id 
     if user != None and not bot.getChatMember(chatid,user.id) in admins:
-        bot.sendMessage(chatid, text=u"No sufficient privilege", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(chatid, text=u"No sufficient privilege", reply_to_message_id=reply_to_id)
         return
     if bot.getChatMember(chatid,targetuser.id) in admins:
-        bot.sendMessage(chatid, text=u"Don't need to unmute an admin", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(chatid, text=u"Don't need to unmute an admin", reply_to_message_id=reply_to_id)
         return
     price = PRICES['unmute']
     if koge48core.getBalance(user.id) < price:
-        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次解禁的费用".format(price), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次解禁的费用".format(price), reply_to_message_id=reply_to_id)
         return
 
 
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
     koge48core.changeBalance(user.id,-price,"unmute {}".format(targetuser.id))
 
-    bot.sendMessage(chatid, text=u"[{}](tg://user?id={}) 解除禁言,费用{}Koge由{}支付".format(targetuser.full_name,targetuser.id,price,user.full_name), reply_to_message_id=reply_to_message.message_id,parse_mode=ParseMode.MARKDOWN)
+    bot.sendMessage(chatid, text=u"{}解除禁言,费用{}Koge由{}支付".format(targetuser.full_name,price,user.full_name), reply_to_message_id=reply_to_message.message_id)
 
     
 def mute(bot, chatid, user, targetuser, duration, reply_to_message):
@@ -115,19 +115,23 @@ def mute(bot, chatid, user, targetuser, duration, reply_to_message):
     else:
         reply_to_id = reply_to_message.message_id 
     if user != None and not bot.getChatMember(chatid,user.id) in admins:
-        bot.sendMessage(chatid, text=u"只有管理员可以禁言别人", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(chatid, text=u"只有管理员可以禁言别人", reply_to_message_id=reply_to_id)
         return
     if bot.getChatMember(chatid,targetuser.id) in admins:
-        bot.sendMessage(chatid, text=u"管理员不能被禁言", reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(chatid, text=u"管理员不能被禁言", reply_to_message_id=reply_to_id)
         return
     price = PRICES['mute']*float(duration)
-    if koge48core.getBalance(user.id) < price:
-        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次禁言的费用".format(price), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+    if user != None and koge48core.getBalance(user.id) < price:
+        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次禁言的费用".format(price), reply_to_message_id=reply_to_id)
         return
 
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*60))
-    koge48core.changeBalance(user.id,-price,"mute {}".format(targetuser.id))
-    bot.sendMessage(chatid, text=u"[{}](tg://user?id={})被禁言{}分钟，费用{}Koge由{}支付".format(targetuser.full_name,targetuser.id,duration,price,user.full_name), reply_to_message_id=reply_to_id,parse_mode=ParseMode.MARKDOWN)
+
+    if user != None:
+        koge48core.changeBalance(user.id,-price,"mute {}".format(targetuser.id))
+        bot.sendMessage(chatid, text=u"{}被禁言{}分钟，费用{}Koge由{}支付".format(targetuser.full_name,duration,price,user.full_name), reply_to_message_id=reply_to_id)
+    else:
+        bot.sendMessage(chatid, text=u"{}被禁言{}分钟".format(targetuser.full_name,duration), reply_to_message_id=reply_to_id)
 
 
 def callbackhandler(bot,update):
@@ -211,7 +215,7 @@ def startcasino(bot=None):
         CASINO_BOT = bot
     CASINO_LOG = LonghuCasino.getRule()+"\n------------"
     try:
-        message = CASINO_BOT.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup(),parse_mode=ParseMode.MARKDOWN)
+        message = CASINO_BOT.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup())
     except:
         thread = Thread(target = startcasino)
         time.sleep(10)
@@ -258,7 +262,7 @@ def botcommandhandler(bot,update):
 
     if "/sync" in things[0] and not update.message.reply_to_message is None:
         if u"💰" in update.message.reply_to_message.text:
-            bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id)
     elif "/bind" in things[0] and update.message.chat_id == update.message.from_user.id:
         bot.sendMessage(update.message.chat_id,
             text="绑定APIKEY须知：\n"+
@@ -271,8 +275,7 @@ def botcommandhandler(bot,update):
             "因此你的APIKEY完全有可能泄露\n"+
             "你的APIKEY一旦泄露，最坏的情况下你的资产可能全部丢失\n"+
             "你充分了解上述风险并愿意完全承担上述风险\n"+
-            "如果对此无异议，请输入你的apikey和apisecret进行绑定，以#分隔",
-            parse_mode=ParseMode.MARKDOWN)
+            "如果对此无异议，请输入你的apikey和apisecret进行绑定，以#分隔")
     elif "/trans" in things[0] and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
@@ -285,7 +288,7 @@ def botcommandhandler(bot,update):
         
         koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name)
         latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name)
-        bot.sendMessage(update.message.chat_id, text="{} 向 {} 转账 {} Koge48".format(user.full_name,targetuser.full_name,transamount), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text="{} 向 {} 转账 {} Koge48".format(user.full_name,targetuser.full_name,transamount), reply_to_message_id=update.message.message_id)
     elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
         CASINO_CONTINUE = True
         startcasino(bot)
@@ -300,7 +303,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        bot.sendMessage(update.message.chat_id, text="{}的持仓余额为{} Koge48".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text="{}的持仓余额为{} Koge48".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id)
 
     elif ("/unmute" in things[0] or "/mute" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -330,18 +333,18 @@ def botcommandhandler(bot,update):
         ''' 
     elif ("/promote" in things[0] or "/demote" in things[0]) and not update.message.reply_to_message is None:
         if koge48core.getBalance(update.message.from_user.id) < PRICES['promote']:
-            bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{}Koge,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{}Koge,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id)
             return
         targetid = update.message.reply_to_message.from_user.id
 
         if "/promote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'promote')
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})晋升为管理员\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"{}晋升为管理员\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
         if "/demote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'demote')
-            bot.sendMessage(update.message.chat_id, text=u"[{}](tg://user?id={})被革去管理员职位\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,targetid,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"{}被革去管理员职位\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
 
     elif "/silent" in things[0] or "/desilent" in things[0]:
         if update.message.from_user.id != SirIanM:
@@ -352,12 +355,12 @@ def botcommandhandler(bot,update):
             if thegroup in SILENTGROUPS:
                 return
             SILENTGROUPS.append(thegroup)
-            bot.sendMessage(update.message.chat_id, text=u"本群切换为静默模式，出矿无消息提示", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"本群切换为静默模式，出矿无消息提示", reply_to_message_id=update.message.message_id)
         else:
             if not thekeyword in FLUSHWORDS:
                 return
             SILENTGROUPS.remove(thegroup)
-            bot.sendMessage(update.message.chat_id, text=u"本群解除静默模式", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"本群解除静默模式", reply_to_message_id=update.message.message_id)
 
         file = codecs.open("silents.json","w","utf-8")
         file.write(json.dumps({"groups":SILENTGROUPS}))
@@ -379,12 +382,12 @@ def botcommandhandler(bot,update):
             if thekeyword in FLUSHWORDS:
                 return
             FLUSHWORDS.append(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为刷屏关键词", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为刷屏关键词", reply_to_message_id=update.message.message_id)
         else:
             if not thekeyword in FLUSHWORDS:
                 return
             FLUSHWORDS.remove(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为刷屏关键词", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为刷屏关键词", reply_to_message_id=update.message.message_id)
 
         file = codecs.open("flushwords.json","w","utf-8")
         file.write(json.dumps({"words":FLUSHWORDS}))
@@ -406,12 +409,12 @@ def botcommandhandler(bot,update):
             if thekeyword in SPAMWORDS:
                 return
             SPAMWORDS.append(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为垃圾账号关键词", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为垃圾账号关键词", reply_to_message_id=update.message.message_id)
         else:
             if not thekeyword in SPAMWORDS:
                 return
             SPAMWORDS.remove(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id)
 
         file = codecs.open("spamwords.json","w","utf-8")
         file.write(json.dumps({"words":SPAMWORDS}))
@@ -436,7 +439,7 @@ def botmessagehandler(bot, update):
         file=open("/var/www/html/sell48","r")
         content = json.load(file)
         response="目前48BTC挂单量为{}BNB".format(content['amt'])
-        bot.sendMessage(update.message.chat_id, text=response, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text=response, reply_to_message_id=update.message.message_id)
         file.close()
         return
     #elif update.message.chat_id != BNB48 and update.message.from_user.id == :
@@ -455,7 +458,7 @@ def botmessagehandler(bot, update):
         #mining
         user = update.message.from_user
         if koge48core.mine(user.id) and not update.message.chat_id in SILENTGROUPS:
-            bot.sendMessage(chatid, text=u"_{}_挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(chatid, text=u"_{}_挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id)
 
 
 '''
@@ -523,12 +526,12 @@ def photoHandler(bot,update):
     sayingmember = bot.getChatMember(BNB48, userid)
     if sayingmember.status == 'restricted' or userid == SirIanM:
         forward = bot.forwardMessage(BNB48,update.effective_user.id,update.message.message_id)
-        bot.sendMessage(update.message.chat_id, text=u"已提交持仓证明，请关注群内审批情况，耐心等待。如无必要，无需频繁重复发送。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
+        bot.sendMessage(update.message.chat_id, text=u"已提交持仓证明，请关注群内审批情况，耐心等待。如无必要，无需频繁重复发送。", reply_to_message_id=update.message.message_id)
         #给每名管理员私聊发送提醒
         admins = bot.getChatAdministrators(BNB48)
         for eachadmin in admins:
             try:
-                bot.sendMessage(eachadmin.user.id, text=NOTIFYADMINS,parse_mode=ParseMode.MARKDOWN)
+                bot.sendMessage(eachadmin.user.id, text=NOTIFYADMINS)
             except TelegramError:
                 print('TelegramError, could be while send private message to admins')
                 continue
