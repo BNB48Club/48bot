@@ -456,6 +456,9 @@ def apihandler(bot,update):
     return
 
 def botmessagehandler(bot, update):
+    if BNB48CASINO == update.message.chat_id:
+        bot.deleteMessage(update.message.chat_id,update.message.message_id)
+        return
     message_text = update.message.text
     #logger.warning(message_text)
     if "#SellBNBAt48BTC" in message_text:

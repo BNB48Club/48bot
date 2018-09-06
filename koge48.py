@@ -75,8 +75,7 @@ class Koge48:
 
     def getBalance(self,userid):
         strid = str(userid)
-        #if strid in self._cache:
-        if False:
+        if strid in self._cache:
             return self._cache[strid]
         else:
             balance = self._getBalanceFromDb(strid)
