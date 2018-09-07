@@ -20,13 +20,18 @@ logger = logging.getLogger(__name__)
 class Koge48:
     def BNBAirDrop(self):
         logger.warning("airdroping")
+        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")        
+        lastts = self._mycursor.fetchone()[0]
+        duration = time.time() - lastts
+
         self._mycursor.execute("SELECT *,offchain+onchain as total FROM `bnb`")
         res = self._mycursor.fetchall()
+
         for each in res:
             bnbamount = each[4]
             if bnbamount > 50000:
                 bnbamount = 50000
-            self.changeBalance(each[0],bnbamount/24,'bnbairdrop')
+            self.changeBalance(each[0],duration*bnbamount/(24*3600),'bnbairdrop')
         
     def __init__(self,host,user,passwd,database):
 
