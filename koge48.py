@@ -1,12 +1,8 @@
-import sys
-if sys.version_info[0] < 3:
-    import ConfigParser
-else:
-    import configparser
+import ConfigParser
 import random
 import json
+import datetime
 import time
-import MySQLdb
 import mysql.connector
 import logging
 
@@ -22,7 +18,7 @@ class Koge48:
         logger.warning("airdroping")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")        
         lastts = self._mycursor.fetchone()[0]
-        duration = time.time() - lastts
+        secondsduration = time.time() - lastts
 
         self._mycursor.execute("SELECT *,offchain+onchain as total FROM `bnb`")
         res = self._mycursor.fetchall()
@@ -31,7 +27,7 @@ class Koge48:
             bnbamount = each[4]
             if bnbamount > 50000:
                 bnbamount = 50000
-            self.changeBalance(each[0],duration*bnbamount/(24*3600),'bnbairdrop')
+            self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
         
     def __init__(self,host,user,passwd,database):
 
@@ -60,39 +56,62 @@ class Koge48:
         self._mydb.commit()
         
     def changeBalance(self,userid,number,memo=""):
-        strid = str(userid)
-        balance = self.getBalance(strid)
+        balance = self.getBalance(userid)
         assert balance + float(number) > -0.001
         newblocksql = "INSERT INTO changelog (uid,differ,memo) VALUES (%s,%s,%s)"
         self._mycursor.execute(newblocksql,(userid,number,memo))
         self._mydb.commit()
 
-        self._cache[strid]=balance + float(number)
-        return self._cache[strid]
+        self._cache[userid]=balance + float(number)
+        return self._cache[userid]
 
-    def _getBalanceFromDb(self,strid):
-        self._mycursor.execute("SELECT `bal` FROM `balance` WHERE `uid` = {}".format(strid))
+    def _getBalanceFromDb(self,userid):
+        self._mycursor.execute("SELECT `bal` FROM `balance` WHERE `uid` = {}".format(userid))
         res = self._mycursor.fetchone()
         if res is None:
             return 0
         else:
             return res[0]
-
-    def getBalance(self,userid):
-        strid = str(userid)
-        if strid in self._cache:
-            return self._cache[strid]
+    def getAirDropStatus(self,userid):
+        #get eth
+        self._mycursor.execute("SELECT eth FROM `eth` WHERE `uid` = {}".format(userid))
+        res = self._mycursor.fetchone()
+        if not res is None:
+            eth = res[0]
         else:
-            balance = self._getBalanceFromDb(strid)
-            self._cache[strid]=balance
+            eth=""
+        #get api
+        self._mycursor.execute("SELECT apikey,apisecret FROM `apikey` WHERE `uid` = {}".format(userid))
+        api = self._mycursor.fetchone()
+        if api is None:
+            api = ["",""]
+        #get bnb balance
+        self._mycursor.execute("SELECT onchain,offchain FROM `bnb` WHERE `uid` = {}".format(userid))
+        bnb = self._mycursor.fetchone()
+        if bnb is None:
+            bnb = [0,0]
+        #get last 10 airdrop
+        self._mycursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE  `memo` LIKE '%bnbairdrop%' AND `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
+        airdrops=[]
+        currentts = time.time()
+        for each in self._mycursor.fetchall():
+            airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[5]))),"diff":each[2]})
+        return {"eth":eth,"api":api,"bnb":bnb,"airdrops":airdrops}
+            
+        
+    def getBalance(self,userid):
+        if userid in self._cache:
+            return self._cache[userid]
+        else:
+            balance = self._getBalanceFromDb(userid)
+            self._cache[userid]=balance
             return balance
     def mine(self,minerid):
-        strid = str(minerid)
         self._tries+=1;
         if random.random()<self._prob:
-            self.changeBalance(strid,1,"mining")            
+            self.changeBalance(minerid,1,"mining")            
             self._tries = 0
-            logger.warning("{} mined one".format(strid))
+            logger.warning("%s mined one",minerid)
             return True
         else:
             return False

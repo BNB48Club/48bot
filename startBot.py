@@ -16,7 +16,7 @@ from selectBot import selectBot
 from botsapi import bots
 from koge48 import Koge48
 from casino import LonghuCasino
-import schedule
+#import schedule
 
 reload(sys)  
 sys.setdefaultencoding('utf8')
@@ -69,7 +69,6 @@ CASINO_INTERVAL = 30
 #casino_id = None
 CASINO_LOG = ""
 CASINO_MARKUP = None
-CASINO_BOT = None
 CASINO_CONTINUE = True
 def help(bot, update):
     """Send a message when the command /help is issued."""
@@ -185,21 +184,21 @@ def buildcasinomarkup(result=["",""]):
             ],
             [
                 InlineKeyboardButton(u'押龙:', callback_data='LONG'),
-                InlineKeyboardButton(u'10 Koge', callback_data='LONG#10'),
-                InlineKeyboardButton(u'100 Koge', callback_data='LONG#100'),
-                InlineKeyboardButton(u'1000 Koge', callback_data='LONG#1000'),
+                InlineKeyboardButton(u'10', callback_data='LONG#10'),
+                InlineKeyboardButton(u'100', callback_data='LONG#100'),
+                InlineKeyboardButton(u'10ge', callback_data='LONG#1000'),
             ],
             [
                 InlineKeyboardButton(u'押和:', callback_data='HE'),
-                InlineKeyboardButton(u'10 Koge', callback_data='HE#10'),
-                InlineKeyboardButton(u'100 Koge', callback_data='HE#100'),
-                InlineKeyboardButton(u'1000 Koge', callback_data='HE#1000'),
+                InlineKeyboardButton(u'10', callback_data='HE#10'),
+                InlineKeyboardButton(u'100', callback_data='HE#100'),
+                InlineKeyboardButton(u'1000', callback_data='HE#1000'),
             ],
             [
                 InlineKeyboardButton(u'押虎:', callback_data='HU'),
-                InlineKeyboardButton(u'10 Koge', callback_data='HU#10'),
-                InlineKeyboardButton(u'100 Koge', callback_data='HU#100'),
-                InlineKeyboardButton(u'1000 Koge', callback_data='HU#1000'),
+                InlineKeyboardButton(u'10', callback_data='HU#10'),
+                InlineKeyboardButton(u'100', callback_data='HU#100'),
+                InlineKeyboardButton(u'1000', callback_data='HU#1000'),
             ]
         ]
     )
@@ -210,13 +209,11 @@ def startcasino(bot=None):
     logger.warning("try to start starting")
     if not CASINO_CONTINUE:
         return
-    global CASINO_LOG, CASINO_MARKUP, CASINO_BOT
+    global CASINO_LOG, CASINO_MARKUP
     #global casino_id
-    if not bot is None:
-        CASINO_BOT = bot
     CASINO_LOG = LonghuCasino.getRule()+"\n------------"
     try:
-        message = CASINO_BOT.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup())
+        message = updater.bot.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup())
     except:
         thread = Thread(target = startcasino)
         time.sleep(10)
@@ -243,7 +240,7 @@ def releaseandstartcasino(casino_id):
 
     try:
         logger.warning(results['win'])
-        CASINO_BOT.edit_message_text(
+        updater.bot.edit_message_text(
             chat_id=BNB48CASINO,
             message_id=casino_id,
             text=CASINO_LOG+u"\n------------"+u"\n{}人押中{}".format(len(results['payroll']),results['win']),
@@ -265,29 +262,22 @@ def botcommandhandler(bot,update):
         if u"💰" in update.message.reply_to_message.text:
             bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id)
     elif "/bind" in things[0] and update.message.chat_id == update.message.from_user.id:
+        bindstatus = koge48core.getAirDropStatus(update.message.from_user.id)
+        response = "当前绑定的ETH钱包地址:\n    {}\n\n".format(str(bindstatus['eth']))
+        response +="当前绑定的币安API:\n    {}#{}\n\n".format(bindstatus['api'][0],bindstatus['api'][1])
+        response +="末次快照BNB余额:\n    链上(钱包里){}\n    链下(交易所){}\n\n".format(bindstatus['bnb'][0],bindstatus['bnb'][1])
+        if len(bindstatus['airdrops']) >0 :
+            response += "最近的空投记录:\n"
+            for each in bindstatus['airdrops']:
+                response += "    {}前 {}Koge\n".format(each['before'],each['diff'])
         bot.sendMessage(update.message.chat_id,
-            text="如需绑定API，请阅读如下绑定须知：\n"+
-            "我们是此Telegram机器人的第三方授权开发商\n"+
-            "你充分了解API原理、充分了解权限设置流程和方法并已经进行了安全设置\n"+
-            "你提交的APIKEY可以访问你的账户持仓、交易、提现、充值等所有信息\n"+
-            "你提交的APIKEY可能可以操作你的账户进行交易、提现等所有操作\n"+
-            "我们无法从技术层面保证存储你的APIKEY的服务器不被攻击\n"+
-            "我们无法从道德层面保证内部员工绝不会滥用你提交的APIKEY\n"+
-            "因此你的APIKEY完全有可能泄露\n"+
-            "你的APIKEY一旦泄露，最坏的情况下你的资产可能全部丢失\n"+
-            "你充分了解上述风险并愿意完全承担上述风险\n"+
-            "如果对此无异议，请输入你的apikey和apisecret进行绑定，以#分隔\n"+
+            text=response+
             "\n"+
-            "如需绑定ETH钱包地址，请直接输入\n"+
-            "\n"+
-            "每个用户只可绑定一组API和一个ETH钱包地址\n"+
-            "重复绑定将覆盖前面的绑定\n"+
-            "\n"+
-            "链上与链下持仓BNB每日快照，每小时发放Koge\n"+
-            "\n"+
-            "例如交易所账户内持仓1000BNB，ETH地址持仓1000BNB\n"+
-            "则一共持仓2000BNB，每小时发放2000/24枚Koge\n"+
-            "每天合计发放2000Koge"
+            "每个用户只可绑定一组API和一个ETH钱包地址，重复绑定将覆盖前面的绑定。链上与链下持仓BNB合并计算，每日快照，持续发放Koge，平均每BNB每天获得1Koge\n"+
+            "例如交易所账户内持仓1000BNB，ETH地址持仓1000BNB，则一共持仓2000BNB，每天合计发放2000Koge\n"+
+            "风险提示:\n    Koge是一种由BNB48维护的中心化空气币，不具有任何价值\n    本机器人绑定、存储、读取币安API的操作由第三方提供，您的APIKEY/SECRET完全有可能被盗或滥用，您对此完全清楚并愿意承担潜在后果\n    您的ETH钱包地址、BNB持仓等信息本机器人不承诺予以隐私安全保护，完全有可能被盗或滥用\n\n"+
+            "输入apikey#apisecret绑定API\n"+
+            "绑定ETH钱包地址请直接输入\n"
         )
     elif "/trans" in things[0] and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
@@ -451,8 +441,7 @@ def apihandler(bot,update):
     message_text = update.message.text
     api = message_text.split("#")
     koge48core.setApiKey(update.message.from_user.id,api[0],api[1])
-    bnb = koge48core.getBNBAmount(api[0],api[1])
-    update.message.reply_text("apikey绑定完成，您的账户BNB余额为{}。\n如果您提交的apikey不正确，上述余额查询结果会为0，如有异议请自行检查。".format(bnb))
+    update.message.reply_text("apikey绑定完成，注意绑定过程不会验证api的有效性")
     return
 
 def botmessagehandler(bot, update):
@@ -605,11 +594,13 @@ def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
+
+mytoken = selectBot(bots)
+updater = Updater(token=mytoken)
+
 def main():
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
-    mytoken = selectBot(bots)
-    updater = Updater(token=mytoken)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -651,12 +642,18 @@ def main():
     # log all errors
     dp.add_error_handler(error)
 
-    # Start the Bot
-    updater.start_polling()
 
     #Start the schedule
+    j = updater.job_queue
+    job_airdrop = j.run_repeating(airdropportal,interval=600,first=0)
+    #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
+    '''
     newthread = Thread(target = schedule_thread)
     newthread.start()
+    '''
+
+    # Start the Bot
+    updater.start_polling()
 
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
@@ -665,12 +662,16 @@ def main():
 
 
 
+'''
 def schedule_thread():
     print("start loop")
     schedule.every().hour.do(koge48core.BNBAirDrop)
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(600)
+'''
+def airdropportal(bot,job):
+    koge48core.BNBAirDrop()
 
 if __name__ == '__main__':
     
