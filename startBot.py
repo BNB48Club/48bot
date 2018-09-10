@@ -28,7 +28,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
-PRICES={"promote":500,"mute":10,"unmute":100}
+PRICES={"promote":500,"restrict":10,"unrestrict":100}
 BNB48=-1001136778297
 
 file=open("flushwords.json","r")
@@ -84,7 +84,7 @@ def is_number(s):
     return False
 
 
-def unmute(bot, chatid, user, targetuser, reply_to_message):
+def unrestrict(bot, chatid, user, targetuser, reply_to_message):
     admins = bot.get_chat_administrators(chatid)
     if reply_to_message is None:
         reply_to_id = None
@@ -94,21 +94,21 @@ def unmute(bot, chatid, user, targetuser, reply_to_message):
         bot.sendMessage(chatid, text=u"No sufficient privilege", reply_to_message_id=reply_to_id)
         return
     if bot.getChatMember(chatid,targetuser.id) in admins:
-        bot.sendMessage(chatid, text=u"Don't need to unmute an admin", reply_to_message_id=reply_to_id)
+        bot.sendMessage(chatid, text=u"Don't need to unrestrict an admin", reply_to_message_id=reply_to_id)
         return
-    price = PRICES['unmute']
+    price = PRICES['unrestrict']
     if koge48core.getBalance(user.id) < price:
         bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次解禁的费用".format(price), reply_to_message_id=reply_to_id)
         return
 
 
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
-    koge48core.changeBalance(user.id,-price,"unmute {}".format(targetuser.id))
+    koge48core.changeBalance(user.id,-price,"unrestrict {}".format(targetuser.id))
 
     bot.sendMessage(chatid, text=u"{}解除禁言,费用{}Koge由{}支付".format(targetuser.full_name,price,user.full_name), reply_to_message_id=reply_to_message.message_id)
 
     
-def mute(bot, chatid, user, targetuser, duration, reply_to_message):
+def restrict(bot, chatid, user, targetuser, duration, reply_to_message):
     admins = bot.get_chat_administrators(chatid)
     if reply_to_message is None:
         reply_to_id = None
@@ -120,7 +120,7 @@ def mute(bot, chatid, user, targetuser, duration, reply_to_message):
     if bot.getChatMember(chatid,targetuser.id) in admins:
         bot.sendMessage(chatid, text=u"管理员不能被禁言", reply_to_message_id=reply_to_id)
         return
-    price = PRICES['mute']*float(duration)
+    price = PRICES['restrict']*float(duration)
     if user != None and koge48core.getBalance(user.id) < price:
         bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次禁言的费用".format(price), reply_to_message_id=reply_to_id)
         return
@@ -128,7 +128,7 @@ def mute(bot, chatid, user, targetuser, duration, reply_to_message):
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*60))
 
     if user != None:
-        koge48core.changeBalance(user.id,-price,"mute {}".format(targetuser.id))
+        koge48core.changeBalance(user.id,-price,"restrict {}".format(targetuser.id))
         bot.sendMessage(chatid, text=u"{}被禁言{}分钟，费用{}Koge由{}支付".format(targetuser.full_name,duration,price,user.full_name), reply_to_message_id=reply_to_id)
     else:
         bot.sendMessage(chatid, text=u"{}被禁言{}分钟".format(targetuser.full_name,duration), reply_to_message_id=reply_to_id)
@@ -308,20 +308,20 @@ def botcommandhandler(bot,update):
 
         bot.sendMessage(update.message.chat_id, text="{}的持仓余额为{} Koge48".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id)
 
-    elif ("/unmute" in things[0] or "/mute" in things[0] ) and not update.message.reply_to_message is None:
+    elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
 
-        if "/mute" in things[0]:
+        if "/restrict" in things[0]:
             duration = 0.01
             if len(things) > 1 and is_number(things[1]):
                 duration = things[1]
-            mute(bot,update.message.chat_id,user,targetuser,duration,update.message)
+            restrict(bot,update.message.chat_id,user,targetuser,duration,update.message)
 
-        elif "/unmute" in things[0]:
-            unmute(bot,update.message.chat_id,user,targetuser,update.message)
+        elif "/unrestrict" in things[0]:
+            unrestrict(bot,update.message.chat_id,user,targetuser,update.message)
         ''' 
         elif ("/ban" in things[0] or "/kick" in things[0] ) and "from_user" in  dir(update.message.reply_to_message):
         if update.message.from_user.id != SirIanM:
@@ -360,7 +360,7 @@ def botcommandhandler(bot,update):
             SILENTGROUPS.append(thegroup)
             bot.sendMessage(update.message.chat_id, text=u"本群切换为静默模式，出矿无消息提示", reply_to_message_id=update.message.message_id)
         else:
-            if not thekeyword in FLUSHWORDS:
+            if not thegroup in SILENTGROUPS:
                 return
             SILENTGROUPS.remove(thegroup)
             bot.sendMessage(update.message.chat_id, text=u"本群解除静默模式", reply_to_message_id=update.message.message_id)
@@ -468,8 +468,8 @@ def botmessagehandler(bot, update):
         chatid = update.message.chat_id
         for FLUSHWORD in FLUSHWORDS:
             if FLUSHWORD in update.message.text:
-                mute(bot, update.message.chat_id, None, update.message.from_user, 0.1, update.message)
-                logger.warning(update.message.from_user.full_name+u" muted because of " + update.message.text);
+                restrict(bot, update.message.chat_id, None, update.message.from_user, 0.1, update.message)
+                logger.warning(update.message.from_user.full_name+u" restricted because of " + update.message.text);
                 return
         #mining
         user = update.message.from_user
@@ -631,8 +631,8 @@ def main():
             "demote",
             "deflush",
             "flush",
-            "mute",
-            "unmute",
+            "restrict",
+            "unrestrict",
             "sync",
             "silent",
             "desilent"
