@@ -42,15 +42,14 @@ class LonghuCasino(Casino):
         Casino.__init__(self,id)
         self._bets={"LONG":{},"HU":{},"HE":{}}
     def get(self,userid,item):
-        return self._bets[item][str(userid)]
+        return self._bets[item][userid]
     def bet(self,userid,item,amount):
         assert item == "LONG" or item == "HU" or item == "HE"
-        strid=str(userid)
-        if strid in self._bets[item]:
-            self._bets[item][strid]+=amount
+        if userid in self._bets[item]:
+            self._bets[item][userid]+=amount
         else:
-            self._bets[item][strid]=amount
-        return self._bets[item][strid]
+            self._bets[item][userid]=amount
+        return self._bets[item][userid]
     def release(self):
 
         longpai = random.randint(0,51)

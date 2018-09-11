@@ -27,7 +27,8 @@ class Koge48:
             bnbamount = each[4]
             if bnbamount > 50000:
                 bnbamount = 50000
-            self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
+            if bnbamount > 0:
+                self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
         
     def __init__(self,host,user,passwd,database):
 
@@ -55,14 +56,16 @@ class Koge48:
         self._mycursor.execute(updatesql,(userid,apikey,apisecret,apikey,apisecret))
         self._mydb.commit()
         
-    def changeBalance(self,userid,number,memo=""):
+    def changeBalance(self,userid,number,memo="",source=0):
         balance = self.getBalance(userid)
+        #logger.warning("changing balance for %s from %s",userid,balance)
         assert balance + float(number) > -0.001
-        newblocksql = "INSERT INTO changelog (uid,differ,memo) VALUES (%s,%s,%s)"
-        self._mycursor.execute(newblocksql,(userid,number,memo))
+        newblocksql = "INSERT INTO changelog (uid,differ,memo,source) VALUES (%s,%s,%s,%s)"
+        self._mycursor.execute(newblocksql,(userid,number,memo,source))
         self._mydb.commit()
 
         self._cache[userid]=balance + float(number)
+        #logger.warning("update balance of %s from %s to %s",userid,balance,self._cache[userid])
         return self._cache[userid]
 
     def _getBalanceFromDb(self,userid):
@@ -95,10 +98,16 @@ class Koge48:
         airdrops=[]
         currentts = time.time()
         for each in self._mycursor.fetchall():
-            airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[5]))),"diff":each[2]})
+            airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2]})
         return {"eth":eth,"api":api,"bnb":bnb,"airdrops":airdrops}
             
-        
+    def getGroupMiningStatus(self,groupid): 
+        sql = "SELECT uid,count(*) as amount FROM `changelog` WHERE source={} AND unix_timestamp(ts)>{} group by uid order by amount desc limit 10".format(groupid,(time.time()-(7*24*3600)))
+        self._mycursor.execute(sql)
+        #logger.warning(sql)
+        top10 = self._mycursor.fetchall()
+        #logger.warning(json.dumps(top10,indent=4))
+        return top10
     def getBalance(self,userid):
         if userid in self._cache:
             return self._cache[userid]
@@ -106,12 +115,12 @@ class Koge48:
             balance = self._getBalanceFromDb(userid)
             self._cache[userid]=balance
             return balance
-    def mine(self,minerid):
+    def mine(self,minerid,groupid):
         self._tries+=1;
         if random.random()<self._prob:
-            self.changeBalance(minerid,1,"mining")            
+            self.changeBalance(minerid,1,"mining",groupid)
             self._tries = 0
-            logger.warning("%s mined one",minerid)
+            logger.warning("%s mined one from %s",minerid,groupid)
             return True
         else:
             return False

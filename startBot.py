@@ -16,6 +16,7 @@ from selectBot import selectBot
 from botsapi import bots
 from koge48 import Koge48
 from casino import LonghuCasino
+from redpacket import RedPacket
 #import schedule
 
 reload(sys)  
@@ -62,14 +63,14 @@ koge48core = Koge48(
 
 
 global_longhu_casinos = {}
-
+global_redpackets = {}
 #casino_betsize = 2
 CASINO_INTERVAL = 30
 
-#casino_id = None
 CASINO_LOG = ""
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
+
 def help(bot, update):
     """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
@@ -98,14 +99,14 @@ def unrestrict(bot, chatid, user, targetuser, reply_to_message):
         return
     price = PRICES['unrestrict']
     if koge48core.getBalance(user.id) < price:
-        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次解禁的费用".format(price), reply_to_message_id=reply_to_id)
+        bot.sendMessage(chatid, text=u"余额不足{} Koge48积分,即此次解禁的费用".format(price), reply_to_message_id=reply_to_id)
         return
 
 
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
     koge48core.changeBalance(user.id,-price,"unrestrict {}".format(targetuser.id))
 
-    bot.sendMessage(chatid, text=u"{}解除禁言,费用{}Koge由{}支付".format(targetuser.full_name,price,user.full_name), reply_to_message_id=reply_to_message.message_id)
+    bot.sendMessage(chatid, text=u"{}解除禁言,费用{} Koge48积分由{}支付".format(targetuser.full_name,price,user.full_name), reply_to_message_id=reply_to_message.message_id)
 
     
 def restrict(bot, chatid, user, targetuser, duration, reply_to_message):
@@ -122,57 +123,69 @@ def restrict(bot, chatid, user, targetuser, duration, reply_to_message):
         return
     price = PRICES['restrict']*float(duration)
     if user != None and koge48core.getBalance(user.id) < price:
-        bot.sendMessage(chatid, text=u"余额不足{}Koge,即此次禁言的费用".format(price), reply_to_message_id=reply_to_id)
+        bot.sendMessage(chatid, text=u"余额不足{} Koge48积分,即此次禁言的费用".format(price), reply_to_message_id=reply_to_id)
         return
 
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*60))
 
     if user != None:
         koge48core.changeBalance(user.id,-price,"restrict {}".format(targetuser.id))
-        bot.sendMessage(chatid, text=u"{}被禁言{}分钟，费用{}Koge由{}支付".format(targetuser.full_name,duration,price,user.full_name), reply_to_message_id=reply_to_id)
+        bot.sendMessage(chatid, text=u"{}被禁言{}分钟，费用{} Koge48积分由{}支付".format(targetuser.full_name,duration,price,user.full_name), reply_to_message_id=reply_to_id)
     else:
         bot.sendMessage(chatid, text=u"{}被禁言{}分钟".format(targetuser.full_name,duration), reply_to_message_id=reply_to_id)
 
 
 def callbackhandler(bot,update):
-    #global casino_id
     global CASINO_LOG, CASINO_MARKUP
-    casino_id = str(update.callback_query.message.message_id)
+    message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
-    if not casino_id in global_longhu_casinos:
-        update.callback_query.answer(text=u"该局不存在或已经开牌",show_alert=True);
-        bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
-        return
+    if message_id in global_redpackets:
+        redpacket_id = message_id
+        redpacket = global_redpackets[redpacket_id]
+        thisdraw = redpacket.draw(activeuser)
+        if thisdraw > 0:
+            koge48core.changeBalance(activeuser.id,thisdraw,"collect redpacket",redpacket._fromuser.id)
+            update.callback_query.answer(text=u"你抢到{} Koge48积分".format(thisdraw))
+            update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
+        else:
+            update.callback_query.answer()
+    elif message_id in global_longhu_casinos:
+        casino_id = message_id
+        thecasino = global_longhu_casinos[casino_id]
 
-    thecasino = global_longhu_casinos[casino_id]
+        if not "#" in update.callback_query.data:
+            answer=LonghuCasino.getRule(update.callback_query.data) + "\n你的可用余额:{} Koge48积分".format(koge48core.getBalance(activeuser.id))
+            update.callback_query.answer(answer)
+            return
 
-    if not "#" in update.callback_query.data:
-        answer=LonghuCasino.getRule(update.callback_query.data) + "\n你的可用余额:{}Koge".format(koge48core.getBalance(activeuser.id))
-        update.callback_query.answer(answer)
-        return
+        thedatas = update.callback_query.data.split('#')
+        bet_target = thedatas[0]
+        casino_betsize = float(thedatas[1])
 
-    thedatas = update.callback_query.data.split('#')
-    bet_target = thedatas[0]
-    casino_betsize = float(thedatas[1])
-
-    if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
-        if koge48core.getBalance(activeuser.id) < casino_betsize:
-            update.callback_query.answer(text=u"余额不足",show_alert=True)
-        koge48core.changeBalance(activeuser.id,-casino_betsize,"bet on casino")        
-        global_longhu_casinos[casino_id].bet(activeuser.id,bet_target,casino_betsize)
-        CASINO_LOG+=u"\n{} 押注 {} {} Koge".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
-        update.callback_query.edit_message_text(
-            text=CASINO_LOG,
-            reply_markup=CASINO_MARKUP
-        )
-        update.callback_query.answer(text=u"押注成功")
+        if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
+            if koge48core.getBalance(activeuser.id) < casino_betsize:
+                update.callback_query.answer(text=u"余额不足",show_alert=True)
+                return
+            koge48core.changeBalance(activeuser.id,-casino_betsize,"bet on casino")        
+            global_longhu_casinos[casino_id].bet(activeuser.id,bet_target,casino_betsize)
+            CASINO_LOG+=u"\n{} 押注 {} {} Koge48积分".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
+            update.callback_query.edit_message_text(
+                text=CASINO_LOG,
+                reply_markup=CASINO_MARKUP
+            )
+            update.callback_query.answer(text=u"押注成功")
+        else:
+            update.callback_query.answer(text=u"不存在的押注信息")
+            bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
     else:
-        bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
-        update.callback_query.answer(text=u"不存在的押注信息")
+        update.callback_query.answer()
 
-
-
-
+def buildredpacketmarkup():
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton('打开红包',callback_data="VOID")]
+        ]
+    )
 def buildcasinomarkup(result=["",""]):
     global CASINO_MARKUP
     CASINO_MARKUP = InlineKeyboardMarkup(
@@ -186,7 +199,7 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'押龙:', callback_data='LONG'),
                 InlineKeyboardButton(u'10', callback_data='LONG#10'),
                 InlineKeyboardButton(u'100', callback_data='LONG#100'),
-                InlineKeyboardButton(u'10ge', callback_data='LONG#1000'),
+                InlineKeyboardButton(u'1000', callback_data='LONG#1000'),
             ],
             [
                 InlineKeyboardButton(u'押和:', callback_data='HE'),
@@ -206,7 +219,7 @@ def buildcasinomarkup(result=["",""]):
 
 
 def startcasino(bot=None):
-    logger.warning("try to start starting")
+    #logger.warning("try to start starting")
     if not CASINO_CONTINUE:
         return
     global CASINO_LOG, CASINO_MARKUP
@@ -219,7 +232,7 @@ def startcasino(bot=None):
         time.sleep(10)
         thread.start()
         return
-    casino_id = str(message.message_id)
+    casino_id = message.message_id
     global_longhu_casinos[casino_id]=LonghuCasino(casino_id)
     thread = Thread(target = releaseandstartcasino, args=[casino_id])
     thread.start()
@@ -227,7 +240,7 @@ def startcasino(bot=None):
 def releaseandstartcasino(casino_id):
     time.sleep(CASINO_INTERVAL)
     thecasino = global_longhu_casinos[casino_id]
-    logger.warning("start releasing")
+    #logger.warning("start releasing")
 
     while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0:
         time.sleep(CASINO_INTERVAL)
@@ -239,7 +252,7 @@ def releaseandstartcasino(casino_id):
     del global_longhu_casinos[casino_id]
 
     try:
-        logger.warning(results['win'])
+        #logger.warning(results['win'])
         updater.bot.edit_message_text(
             chat_id=BNB48CASINO,
             message_id=casino_id,
@@ -254,28 +267,42 @@ def releaseandstartcasino(casino_id):
     thread.start()
     
 
+def groupadminhandler(bot,update):
+    chatid = update.message.chat_id
+    user = update.message.from_user
+    admins = bot.get_chat_administrators(chatid)
+    if not bot.getChatMember(chatid,user.id) in admins:
+        update.message.reply_text("只有管理员可以调用")
+        return
+    top10 = koge48core.getGroupMiningStatus(chatid)
+    text="过去一周(7\*24小时){}挖矿排行榜:\n".format(update.message.chat.title)
+    for each in top10:
+        text+="[{}](tg://user?id={})挖出{}Koge48积分\n".format(each[0],each[0],each[1])
+    update.message.reply_markdown(text)
+    #logger.warning(text)
+    
+def getusermd(user):
+    #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
+    return "`{}`".format(user.full_name)
+def getkoge48md():
+    return "[Koge48积分](http://bnb48.club/koge48)"
 def botcommandhandler(bot,update):
     global CASINO_CONTINUE, CASINO_LOG, CASINO_MARKUP
     things = update.message.text.split(' ')
 
-    if "/sync" in things[0] and not update.message.reply_to_message is None:
-        if u"💰" in update.message.reply_to_message.text:
-            bot.sendMessage(update.message.chat_id, text=update.message.reply_to_message.text, reply_to_message_id=update.message.message_id)
-    elif "/bind" in things[0] and update.message.chat_id == update.message.from_user.id:
+    if "/mybinding" in things[0] and update.message.chat_id == update.message.from_user.id:
         bindstatus = koge48core.getAirDropStatus(update.message.from_user.id)
-        response = "当前绑定的ETH钱包地址:\n    {}\n\n".format(str(bindstatus['eth']))
+        response = "当前绑定的ETH钱包地址:\n    {}\n\n".format(bindstatus['eth'])
         response +="当前绑定的币安API:\n    {}#{}\n\n".format(bindstatus['api'][0],bindstatus['api'][1])
         response +="末次快照BNB余额:\n    链上(钱包里){}\n    链下(交易所){}\n\n".format(bindstatus['bnb'][0],bindstatus['bnb'][1])
         if len(bindstatus['airdrops']) >0 :
             response += "最近的空投记录:\n"
             for each in bindstatus['airdrops']:
-                response += "    {}前 {}Koge\n".format(each['before'],each['diff'])
-        bot.sendMessage(update.message.chat_id,
-            text=response+
-            "\n"+
-            "每个用户只可绑定一组API和一个ETH钱包地址，重复绑定将覆盖前面的绑定。链上与链下持仓BNB合并计算，每日快照，持续发放Koge，平均每BNB每天获得1Koge\n"+
-            "例如交易所账户内持仓1000BNB，ETH地址持仓1000BNB，则一共持仓2000BNB，每天合计发放2000Koge\n"+
-            "风险提示:\n    Koge是一种由BNB48维护的中心化空气币，不具有任何价值\n    本机器人绑定、存储、读取币安API的操作由第三方提供，您的APIKEY/SECRET完全有可能被盗或滥用，您对此完全清楚并愿意承担潜在后果\n    您的ETH钱包地址、BNB持仓等信息本机器人不承诺予以隐私安全保护，完全有可能被盗或滥用\n\n"+
+                response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
+        update.message.reply_text(response)
+    elif "/bind" in things[0] and update.message.chat_id == update.message.from_user.id:
+        update.message.reply_text(
+            "持有1BNB，每天可以获得1 Koge48积分。持仓超过5万BNB，最多按照5万BNB计算。\n\n持仓快照来自两部分，链上与链下。链上部分可以通过机器人提交ETH地址进行绑定，链下部分可以通过机器人提交币安交易所账户API进行绑定。所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。\n\n持仓快照每天进行四次，空投每小时按照上次快照进行一次。\n\n请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交ETH地址或币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
             "输入apikey#apisecret绑定API\n"+
             "绑定ETH钱包地址请直接输入\n"
         )
@@ -289,15 +316,35 @@ def botcommandhandler(bot,update):
         if not koge48core.getBalance(user.id) > float(things[1]):
             return
         
-        koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name)
-        latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name)
-        bot.sendMessage(update.message.chat_id, text="{} 向 {} 转账 {} Koge48".format(user.full_name,targetuser.full_name,transamount), reply_to_message_id=update.message.message_id)
+        koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
+        latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
+        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
         CASINO_CONTINUE = True
         startcasino(bot)
     elif "/nocasino" in things[0] and update.message.from_user.id == SirIanM:
         CASINO_CONTINUE = False
         bot.sendMessage(update.message.chat_id, text="Casino stoped")
+    elif "/hongbao" in things[0] or "/redpacket" in things[0]:
+        if len(things) > 3 or len(things) < 2:
+            update.message.reply_text("命令格式：/hongbao 金额 [个数 缺省10]")
+            return
+        
+        user = update.message.from_user
+        balance = float(things[1])
+        if koge48core.getBalance(user.id) < balance:
+            update.message.reply_text("余额不足")
+            return
+        koge48core.changeBalance(user.id,-balance,"send redpacket")
+        if len(things) == 3:
+            amount = int(things[2])
+        else:
+            amount = 10
+        redpacket = RedPacket(update.message.from_user,balance,amount)
+        message = update.message.reply_markdown(redpacket.getLog(),reply_markup=buildredpacketmarkup(),quote=False,disable_web_page_preview=True)
+        redpacket_id = message.message_id
+        global_redpackets[redpacket_id]=redpacket
+
     elif "/bal" in things[0]:
         user = update.message.from_user
 
@@ -306,7 +353,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        bot.sendMessage(update.message.chat_id, text="{}的持仓余额为{} Koge48".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id)
+        bot.sendMessage(update.message.chat_id, text="{}的 Koge48积分余额为{} Koge48积分".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id)
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -336,18 +383,18 @@ def botcommandhandler(bot,update):
         ''' 
     elif ("/promote" in things[0] or "/demote" in things[0]) and not update.message.reply_to_message is None:
         if koge48core.getBalance(update.message.from_user.id) < PRICES['promote']:
-            bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{}Koge,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{} Koge48积分,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id)
             return
         targetid = update.message.reply_to_message.from_user.id
 
         if "/promote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'promote')
-            bot.sendMessage(update.message.chat_id, text=u"{}晋升为管理员\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text=u"{}晋升为管理员\n{} Koge48积分费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
         if "/demote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
             koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'demote')
-            bot.sendMessage(update.message.chat_id, text=u"{}被革去管理员职位\n{}Koge费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text=u"{}被革去管理员职位\n{} Koge48积分费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
 
     elif "/silent" in things[0] or "/desilent" in things[0]:
         if update.message.from_user.id != SirIanM:
@@ -451,7 +498,6 @@ def botmessagehandler(bot, update):
     message_text = update.message.text
     #logger.warning(message_text)
     if "#SellBNBAt48BTC" in message_text:
-        logger.warning('botmessagehandler')
         file=open("/var/www/html/sell48","r")
         content = json.load(file)
         response="目前48BTC挂单量为{}BNB".format(content['amt'])
@@ -473,8 +519,8 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if koge48core.mine(user.id) and not update.message.chat_id in SILENTGROUPS:
-            bot.sendMessage(chatid, text=u"{}挖到一枚【Koge48】".format(user.full_name,user.id), reply_to_message_id=update.message.message_id)
+        if koge48core.mine(user.id,update.message.chat_id) and not update.message.chat_id in SILENTGROUPS:
+            update.message.reply_markdown("{}挖到一个{}".format(getusermd(user),getkoge48md()),disable_web_page_preview=True)
 
 
 '''
@@ -620,6 +666,14 @@ def main():
     dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
     dp.add_handler(CommandHandler(
         [
+            "groupstats"
+        ],
+        groupadminhandler)
+    )
+
+    dp.add_handler(CommandHandler(
+        [
+            "mybinding",
             "bind",
             "trans",
             "bal",
@@ -633,9 +687,9 @@ def main():
             "flush",
             "restrict",
             "unrestrict",
-            "sync",
             "silent",
-            "desilent"
+            "desilent",
+            "hongbao",
         ],
         botcommandhandler))# '''处理大群中的直接消息'''
 
@@ -645,7 +699,7 @@ def main():
 
     #Start the schedule
     j = updater.job_queue
-    job_airdrop = j.run_repeating(airdropportal,interval=600,first=0)
+    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=0)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
