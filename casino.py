@@ -2,32 +2,7 @@
 # -*- coding: utf-8 -*-
 import random
 
-class Casino:
-    def __init__(self,casinoid):
-        self._id = casinoid
-        self._active = True
-        self._totalbet = 0
-        self._something=""
-    def setSomething(self,something):
-        self._something=something
-    def appendSomething(self,something):
-        self._something+=something
-        return self._something
-    def getSomething(self):
-        return self._something
-    def getId(self):
-        return self._id
-    def getCreator(self):
-        return self._creator
-    def deActive(self):
-        self._active = False
-    def isActive(self):
-        return self._active
-    @staticmethod
-    def getRule(key):
-        return u""
-
-class LonghuCasino(Casino):
+class LonghuCasino:
     TARGET_TEXTS={"LONG":u"龙","HU":u"虎","HE":u"和"}
     @staticmethod
     def getRule(key=None):
@@ -38,18 +13,26 @@ class LonghuCasino(Casino):
         elif key == "HE":
             return "押中拿回本金再得8倍奖励"
             
-    def __init__(self,id):
-        Casino.__init__(self,id)
+    def __init__(self):
         self._bets={"LONG":{},"HU":{},"HE":{}}
-    def get(self,userid,item):
-        return self._bets[item][userid]
-    def bet(self,userid,item,amount):
+        self._released = False
+    
+    def getLog(self):
+        text="" 
+        for eachbet in self._bets:
+            for eachuserid in self._bets[eachbet]:
+                text += "{}押{}{}".format(self._bets[eachbet][eachuserid][0],self._bets[eachbet][eachuserid][1],LonghuCasino.TARGET_TEXTS[eachbet])
+                if self._released and eachbet == self._result['betresult'] and eachuserid in self._result['payroll']:
+                    text += " 赢 {}".format(self._result['payroll'][eachuserid])
+                text += "\n"
+        return text
+    def bet(self,user,item,amount):
         assert item == "LONG" or item == "HU" or item == "HE"
-        if userid in self._bets[item]:
-            self._bets[item][userid]+=amount
+        if user.id in self._bets[item]:
+            self._bets[item][user.id][1]+=amount
         else:
-            self._bets[item][userid]=amount
-        return self._bets[item][userid]
+            self._bets[item][user.id]=[user.full_name,amount]
+        return self._bets[item][user.id][1]
     def release(self):
 
         longpai = random.randint(0,51)
@@ -87,14 +70,15 @@ class LonghuCasino(Casino):
 
         payroll={}
         for each in self._bets[result]:
-            payroll[each]=self._bets[result][each]*times
+            payroll[each]=self._bets[result][each][1]*times
 
-        self.deActive()
-
-        return {"result":[
+        self._released = True
+        self._result =  {"result":[
                             "{}{}".format( huase[longpai/13], dianshu[longdianshu]),
                             "{}{}".format( huase[hupai/13], dianshu[hudianshu])
                         ],
                 "payroll":payroll,
-                "win":win
+                "win":win,
+                "betresult":result
                 }
+        return self._result

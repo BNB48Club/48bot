@@ -67,7 +67,6 @@ global_redpackets = {}
 #casino_betsize = 2
 CASINO_INTERVAL = 30
 
-CASINO_LOG = ""
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
 
@@ -139,7 +138,7 @@ def restrict(bot, chatid, user, targetuser, duration, reply_to_message):
 
 
 def callbackhandler(bot,update):
-    global CASINO_LOG, CASINO_MARKUP
+    global CASINO_MARKUP
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
     if message_id in global_redpackets:
@@ -170,10 +169,10 @@ def callbackhandler(bot,update):
                 update.callback_query.answer(text=u"余额不足",show_alert=True)
                 return
             koge48core.changeBalance(activeuser.id,-casino_betsize,"bet on casino")        
-            global_longhu_casinos[casino_id].bet(activeuser.id,bet_target,casino_betsize)
-            CASINO_LOG+=u"\n{} 押注 {} {} Koge48积分".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
+            global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
+            #CASINO_LOG+=u"\n{} 押注 {} {} Koge48积分".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
             update.callback_query.edit_message_text(
-                text=CASINO_LOG,
+                text=LonghuCasino.getRule()+"\n------------\n"+global_longhu_casinos[casino_id].getLog(),
                 reply_markup=CASINO_MARKUP
             )
             update.callback_query.answer(text=u"押注成功")
@@ -228,18 +227,17 @@ def startcasino(bot=None):
     #logger.warning("try to start starting")
     if not CASINO_CONTINUE:
         return
-    global CASINO_LOG, CASINO_MARKUP
+    global CASINO_MARKUP
     #global casino_id
-    CASINO_LOG = LonghuCasino.getRule()+"\n------------"
     try:
-        message = updater.bot.sendMessage(BNB48CASINO, CASINO_LOG, reply_markup=buildcasinomarkup())
+        message = updater.bot.sendMessage(BNB48CASINO, LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
     except:
         thread = Thread(target = startcasino)
         time.sleep(10)
         thread.start()
         return
     casino_id = message.message_id
-    global_longhu_casinos[casino_id]=LonghuCasino(casino_id)
+    global_longhu_casinos[casino_id]=LonghuCasino()
     thread = Thread(target = releaseandstartcasino, args=[casino_id])
     thread.start()
     
@@ -255,19 +253,20 @@ def releaseandstartcasino(casino_id):
     for each in results['payroll']:
         koge48core.changeBalance(each,results['payroll'][each],"casino pay")
 
+    displaytext =LonghuCasino.getRule()+"\n------------\n"+global_longhu_casinos[casino_id].getLog()
     del global_longhu_casinos[casino_id]
 
-    try:
+    #try:
         #logger.warning(results['win'])
-        updater.bot.edit_message_text(
+    updater.bot.edit_message_text(
             chat_id=BNB48CASINO,
             message_id=casino_id,
-            text=CASINO_LOG+u"\n------------"+u"\n{}人押中{}".format(len(results['payroll']),results['win']),
+            text = displaytext,
             reply_markup=buildcasinomarkup(result=results['result'])
         )
-    except:
-        logger.warning("releaseandstartcasino exception: maybe a timeout")
-        pass
+    #except:
+    #    logger.warning("releaseandstartcasino exception: maybe a timeout")
+    #    pass
 
     thread = Thread(target=startcasino)
     thread.start()
@@ -293,7 +292,7 @@ def getusermd(user):
 def getkoge48md():
     return "[Koge48积分](http://bnb48.club/koge48)"
 def botcommandhandler(bot,update):
-    global CASINO_CONTINUE, CASINO_LOG, CASINO_MARKUP
+    global CASINO_CONTINUE, CASINO_MARKUP
     things = update.message.text.split(' ')
 
     if "/mybinding" in things[0] and update.message.chat_id == update.message.from_user.id:
