@@ -123,7 +123,10 @@ def restrict(bot, chatid, user, targetuser, duration, reply_to_message):
         return
     price = PRICES['restrict']*float(duration)
     if user != None and koge48core.getBalance(user.id) < price:
-        bot.sendMessage(chatid, text=u"余额不足{} Koge48积分,即此次禁言的费用".format(price), reply_to_message_id=reply_to_id)
+        update.message.reply_text("余额不足{} Koge48积分,即此次禁言的费用".format(price))
+        return
+    if duration < 1:
+        update.message.reply_text("至少禁言1分钟")
         return
 
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*60))
@@ -188,33 +191,36 @@ def buildredpacketmarkup():
     )
 def buildcasinomarkup(result=["",""]):
     global CASINO_MARKUP
-    CASINO_MARKUP = InlineKeyboardMarkup(
-        [
-            
+    keys = [
             [
                 InlineKeyboardButton(u'龙牌:'+result[0],callback_data="FULL"),
                 InlineKeyboardButton(u'虎牌:'+result[1],callback_data="FULL")
-            ],
+            ]
+           ]
+    if result[0] == "" :
+        keys.append(
             [
                 InlineKeyboardButton(u'押龙:', callback_data='LONG'),
                 InlineKeyboardButton(u'10', callback_data='LONG#10'),
                 InlineKeyboardButton(u'100', callback_data='LONG#100'),
                 InlineKeyboardButton(u'1000', callback_data='LONG#1000'),
-            ],
+            ]
+        )
+        keys.append(
             [
                 InlineKeyboardButton(u'押和:', callback_data='HE'),
                 InlineKeyboardButton(u'10', callback_data='HE#10'),
                 InlineKeyboardButton(u'100', callback_data='HE#100'),
                 InlineKeyboardButton(u'1000', callback_data='HE#1000'),
-            ],
+            ])
+        keys.append(
             [
                 InlineKeyboardButton(u'押虎:', callback_data='HU'),
                 InlineKeyboardButton(u'10', callback_data='HU#10'),
                 InlineKeyboardButton(u'100', callback_data='HU#100'),
                 InlineKeyboardButton(u'1000', callback_data='HU#1000'),
-            ]
-        ]
-    )
+            ])
+    CASINO_MARKUP = InlineKeyboardMarkup(keys)
     return CASINO_MARKUP
 
 
@@ -335,9 +341,13 @@ def botcommandhandler(bot,update):
         if koge48core.getBalance(user.id) < balance:
             update.message.reply_text("余额不足")
             return
+        if balance <= 0:
+            return
         koge48core.changeBalance(user.id,-balance,"send redpacket")
         if len(things) == 3:
             amount = int(things[2])
+            if amount < 1:
+                return
         else:
             amount = 10
         redpacket = RedPacket(update.message.from_user,balance,amount)
@@ -362,7 +372,7 @@ def botcommandhandler(bot,update):
 
 
         if "/restrict" in things[0]:
-            duration = 0.01
+            duration = 1
             if len(things) > 1 and is_number(things[1]):
                 duration = things[1]
             restrict(bot,update.message.chat_id,user,targetuser,duration,update.message)
