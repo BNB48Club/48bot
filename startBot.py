@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
 PRICES={"promote":500,"restrict":10,"unrestrict":100}
-BNB48=-1001136778297
 
 file=open("flushwords.json","r")
 FLUSHWORDS = json.load(file)["words"]
@@ -46,11 +45,18 @@ file.close()
 
 SirIanM=420909210
 Gui=434121211
+
 coinrumorbot=405689392
 bnb48_bot=571331274
+
+BNB48=-1001136778297
+BNB48CN= -1001345282090
 BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
+ENTRANCE_THRESHOLDS={BNB48:10000,BNB48CN:1000}
+KICKINSUFFICIENT = False
+SAYINSUFFICIENT = True
 
 kogeconfig = ConfigParser.ConfigParser()
 kogeconfig.read("koge48.conf")
@@ -324,6 +330,12 @@ def botcommandhandler(bot,update):
         koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
         latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
         update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+    elif "/kick" in things[0] and update.message.from_user.id == SirIanM:
+        kick(update.message.chat_id,update.message.from_user.id)
+    elif "/ban" in things[0] and update.message.from_user.id == SirIanM:
+        ban(update.message.chat_id,update.message.from_user.id)
+    elif "/groupid" in things[0]:
+        bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
     elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
         CASINO_CONTINUE = True
         startcasino(bot)
@@ -362,7 +374,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        bot.sendMessage(update.message.chat_id, text="{}的 Koge48积分余额为{} Koge48积分".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id)
+        bot.sendMessage(update.message.chat_id, text="{}的 Koge48积分余额为{}".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id)
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -504,6 +516,8 @@ def botmessagehandler(bot, update):
     if BNB48CASINO == update.message.chat_id:
         bot.deleteMessage(update.message.chat_id,update.message.message_id)
         return
+    checkThresholds(update.message.chat_id,update.message.from_user.id,update.message)
+
     message_text = update.message.text
     #logger.warning(message_text)
     if "#SellBNBAt48BTC" in message_text:
@@ -613,17 +627,10 @@ def onleft(bot,update):
         if SPAMWORD in update.message.left_chat_member.full_name:
             bot.deleteMessage(update.message.chat_id,update.message.message_id)
             return
+    update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
 
 def welcome(bot, update):
-    '''
-    usernameMention = f"[{update.message.from_user.first_name}](tg://user?id={update.message.from_user.id})"
-    text = f' {usernameMention}'
-    keyboards = [[KeyboardButton(s)] for s in [*menu]]
-    reply_markup2 = ReplyKeyboardMarkup(keyboards, one_time_keyboard=True, selective=True, resize_keyboard=True)
-    bot.sendMessage(chat_id=update.message.chat_id, text=text, parse_mode=ParseMode.MARKDOWN,reply_markup=reply_markup2)
-    bot.sendMessage(update.message.chat_id, text=update.effective_user.full_name, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-    '''
-    #首先筛选垃圾消息
+    #筛选垃圾消息
     isSpam = False
     for newUser in update.message.new_chat_members:
         for SPAMWORD in SPAMWORDS:
@@ -637,12 +644,23 @@ def welcome(bot, update):
             bot.kickChatMember(update.message.chat_id,newUser.id)
             logger.warning('%s|%s is kicked from %s because of spam',newUser.id,newUser.full_name,update.message.chat.title)
             
-    #if update.message.chat_id == BNB48:
-        #bot.sendMessage(update.message.chat_id, text=u"欢迎。新成员默认禁言，请私聊 [BNB48 - 静静](tg://user?id=571331274)  发送持仓截图(1583BNB或以上，Photo形式，非File形式)，审核通过后开启权限成为正式会员。持仓截图会被机器人自动转发进群，请注意保护个人隐私。", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        #for newUser in update.message.new_chat_members:
-        #    bot.restrictChatMember(update.message.chat_id,user_id=newUser.id, can_send_messages=False)
-        #使用Groupbutler完成这一功能，自己不写了
+    checkThresholds(update.message.chat_id,newUser.id,update.message)
 
+def checkThresholds(chatid,userid,message):
+    if not chatid in ENTRANCE_THRESHOLDS:
+        return
+    if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
+        if SAYINSUFFICIENT:
+            message.reply_text(chatid,"持仓不足{}".format(ENTRANCE_THRESHOLDS[chatid]))
+        if KICKINSUFFICIENT:
+            kick(chatid,userid)
+        
+
+def ban(chatid,userid):
+    updater.bot.kickChatMember(chatid,userid)
+def kick(chatid,userid):
+    updater.bot.kickChatMember(chatid,userid)
+    updater.bot.unbanChatMember(chatid,userid)
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
@@ -669,7 +687,6 @@ def main():
     dp.add_handler(CallbackQueryHandler(callbackhandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
-    #dp.add_handler(MessageHandler(Filters.group & Filters.text & Filters.reply, replyCommand))# '''处理大群中的回复'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
     dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
@@ -699,6 +716,8 @@ def main():
             "silent",
             "desilent",
             "hongbao",
+            "kick",
+            "ban",
         ],
         botcommandhandler))# '''处理大群中的直接消息'''
 
