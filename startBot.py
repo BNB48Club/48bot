@@ -84,7 +84,7 @@ def is_number(s):
     return False
 
 
-def unrestrict(bot, chatid, user, targetuser, reply_to_message):
+def unrestrict(bot, update,chatid, user, targetuser, reply_to_message):
     admins = bot.get_chat_administrators(chatid)
     if reply_to_message is None:
         reply_to_id = None
@@ -108,15 +108,15 @@ def unrestrict(bot, chatid, user, targetuser, reply_to_message):
     bot.sendMessage(chatid, text=u"{}解除禁言,费用{} Koge48积分由{}支付".format(targetuser.full_name,price,user.full_name), reply_to_message_id=reply_to_message.message_id)
 
     
-def restrict(bot, chatid, user, targetuser, duration, reply_to_message):
+def restrict(bot, update,chatid, user, targetuser, duration, reply_to_message):
     admins = bot.get_chat_administrators(chatid)
     if reply_to_message is None:
         reply_to_id = None
     else:
         reply_to_id = reply_to_message.message_id 
-    if user != None and not bot.getChatMember(chatid,user.id) in admins:
-        bot.sendMessage(chatid, text=u"只有管理员可以禁言别人", reply_to_message_id=reply_to_id)
-        return
+    #if user != None and not bot.getChatMember(chatid,user.id) in admins:
+    #    bot.sendMessage(chatid, text=u"只有管理员可以禁言别人", reply_to_message_id=reply_to_id)
+    #    return
     if bot.getChatMember(chatid,targetuser.id) in admins:
         bot.sendMessage(chatid, text=u"管理员不能被禁言", reply_to_message_id=reply_to_id)
         return
@@ -256,17 +256,17 @@ def releaseandstartcasino(casino_id):
     displaytext =LonghuCasino.getRule()+"\n------------\n"+global_longhu_casinos[casino_id].getLog()
     del global_longhu_casinos[casino_id]
 
-    #try:
+    try:
         #logger.warning(results['win'])
-    updater.bot.edit_message_text(
+        updater.bot.edit_message_text(
             chat_id=BNB48CASINO,
             message_id=casino_id,
             text = displaytext,
             reply_markup=buildcasinomarkup(result=results['result'])
         )
-    #except:
-    #    logger.warning("releaseandstartcasino exception: maybe a timeout")
-    #    pass
+    except:
+        logger.warning("releaseandstartcasino exception: maybe a timeout")
+        pass
 
     thread = Thread(target=startcasino)
     thread.start()
@@ -374,10 +374,10 @@ def botcommandhandler(bot,update):
             duration = 1
             if len(things) > 1 and is_number(things[1]):
                 duration = things[1]
-            restrict(bot,update.message.chat_id,user,targetuser,duration,update.message)
+            restrict(bot,update,update.message.chat_id,user,targetuser,duration,update.message)
 
         elif "/unrestrict" in things[0]:
-            unrestrict(bot,update.message.chat_id,user,targetuser,update.message)
+            unrestrict(bot,update,update.message.chat_id,user,targetuser,update.message)
         ''' 
         elif ("/ban" in things[0] or "/kick" in things[0] ) and "from_user" in  dir(update.message.reply_to_message):
         if update.message.from_user.id != SirIanM:
@@ -523,7 +523,7 @@ def botmessagehandler(bot, update):
         chatid = update.message.chat_id
         for FLUSHWORD in FLUSHWORDS:
             if FLUSHWORD in update.message.text:
-                restrict(bot, update.message.chat_id, None, update.message.from_user, 0.1, update.message)
+                restrict(bot, update,update.message.chat_id, None, update.message.from_user, 1, update.message)
                 logger.warning(update.message.from_user.full_name+u" restricted because of " + update.message.text);
                 return
         #mining
@@ -708,7 +708,7 @@ def main():
 
     #Start the schedule
     j = updater.job_queue
-    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=0)
+    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=360)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
