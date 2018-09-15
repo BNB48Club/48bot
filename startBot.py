@@ -56,7 +56,7 @@ BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
 ENTRANCE_THRESHOLDS={BNB48:10000,BNB48CN:1000}
 KICKINSUFFICIENT = False
-SAYINSUFFICIENT = True
+SAYINSUFFICIENT = False
 
 kogeconfig = ConfigParser.ConfigParser()
 kogeconfig.read("koge48.conf")
@@ -259,7 +259,7 @@ def releaseandstartcasino(casino_id):
     for each in results['payroll']:
         koge48core.changeBalance(each,results['payroll'][each],"casino pay")
 
-    displaytext =LonghuCasino.getRule()+"\n------------\n"+global_longhu_casinos[casino_id].getLog()
+    displaytext = global_longhu_casinos[casino_id].getLog()
     del global_longhu_casinos[casino_id]
 
     try:
@@ -334,7 +334,7 @@ def botcommandhandler(bot,update):
         kick(update.message.chat_id,update.message.from_user.id)
     elif "/ban" in things[0] and update.message.from_user.id == SirIanM:
         ban(update.message.chat_id,update.message.from_user.id)
-    elif "/groupid" in things[0]:
+    elif "/groupid" in things[0] and update.message.from_user.id == SirIanM:
         bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
     elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
         CASINO_CONTINUE = True
@@ -343,26 +343,35 @@ def botcommandhandler(bot,update):
         CASINO_CONTINUE = False
         bot.sendMessage(update.message.chat_id, text="Casino stoped")
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
-        if len(things) > 3 or len(things) < 2:
-            update.message.reply_text("命令格式：/hongbao 金额 [个数 缺省10]")
-            return
-        
         user = update.message.from_user
-        balance = float(things[1])
+
+        if len(things) >1 and things[1].isdigit():
+            balance = float(things[1])
+        else:
+            balance = 10
+
         if koge48core.getBalance(user.id) < balance:
             update.message.reply_text("余额不足")
             return
         if balance <= 0:
             return
         koge48core.changeBalance(user.id,-balance,"send redpacket")
-        if len(things) == 3:
+
+        if len(things) > 2 and things[2].isdigit():
             amount = int(things[2])
             if amount < 1:
-                return
+                amount = 1
         else:
-            amount = 10
-        redpacket = RedPacket(update.message.from_user,balance,amount)
+            amount = 1
+        
+        if len(things) > 3:
+            title = things[3]
+        else:
+            title = "恭喜发财"
+
+        redpacket = RedPacket(update.message.from_user,balance,amount,title)
         message = update.message.reply_markdown(redpacket.getLog(),reply_markup=buildredpacketmarkup(),quote=False,disable_web_page_preview=True)
+        bot.deleteMessage(update.message.chat_id,update.message.message_id)
         redpacket_id = message.message_id
         global_redpackets[redpacket_id]=redpacket
 
@@ -374,7 +383,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        bot.sendMessage(update.message.chat_id, text="{}的 Koge48积分余额为{}".format(targetuser.full_name,koge48core.getBalance(targetuser.id)), reply_to_message_id=update.message.message_id)
+        update.message.reply_markdown("{}的 {}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True)
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -651,7 +660,7 @@ def checkThresholds(chatid,userid,message):
         return
     if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
         if SAYINSUFFICIENT:
-            message.reply_text(chatid,"持仓不足{}".format(ENTRANCE_THRESHOLDS[chatid]))
+            message.reply_text("持仓不足{}".format(ENTRANCE_THRESHOLDS[chatid]))
         if KICKINSUFFICIENT:
             kick(chatid,userid)
         
@@ -718,6 +727,7 @@ def main():
             "hongbao",
             "kick",
             "ban",
+            "groupid",
         ],
         botcommandhandler))# '''处理大群中的直接消息'''
 

@@ -2,15 +2,16 @@
 #!/bin/usr/python
 import random
 class RedPacket:
-    def __init__(self,fromuser,balance,amount):
+    def __init__(self,fromuser,balance,amount,title):
         self._fromuser = fromuser
         self._origbalance = balance
         self._balance = balance
         self._origamount = amount
         self._amount = amount
+        self._title = title
         self._drawed = {}
     def getLog(self):
-        text = "`{}`发了{}个红包{} [Koge48积分](http://bnb48.club/koge48)\n".format(self._fromuser.full_name,self._origamount,self._origbalance)
+        text = "`{}`\n`{}`发了{}个红包{} [Koge48积分](http://bnb48.club/koge48)\n".format(self._title,self._fromuser.full_name,self._origamount,self._origbalance)
         text += "剩余{}个红包{} [Koge48积分](http://bnb48.club/koge48)\n-------------\n".format(self._amount,self._balance)
         for each in self._drawed:
             text += "{}抽到{}\n".format(self._drawed[each][0],self._drawed[each][1])
