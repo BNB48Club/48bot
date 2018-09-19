@@ -14,7 +14,7 @@ class RedPacket:
         text = "`{}`\n`{}`发了{}个红包{} [Koge48积分](http://bnb48.club/koge48)\n".format(self._title,self._fromuser.full_name,self._origamount,self._origbalance)
         text += "剩余{}个红包{} [Koge48积分](http://bnb48.club/koge48)\n-------------\n".format(self._amount,self._balance)
         for each in self._drawed:
-            text += "{}抽到{}\n".format(self._drawed[each][0],self._drawed[each][1])
+            text += "`{}`抽到{}\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
     def draw(self,user):
         if self._amount < 1 or user.id in self._drawed:

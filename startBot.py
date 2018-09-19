@@ -55,8 +55,8 @@ BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
 ENTRANCE_THRESHOLDS={BNB48:10000,BNB48CN:1000}
-KICKINSUFFICIENT = False
-SAYINSUFFICIENT = False
+KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
+SAYINSUFFICIENT = {BNB48:False,BNB48CN:True}
 
 kogeconfig = ConfigParser.ConfigParser()
 kogeconfig.read("koge48.conf")
@@ -97,14 +97,14 @@ def unrestrict(bot, update,chatid, user, targetuser, reply_to_message):
     else:
         reply_to_id = reply_to_message.message_id 
     if user != None and not bot.getChatMember(chatid,user.id) in admins:
-        bot.sendMessage(chatid, text=u"No sufficient privilege", reply_to_message_id=reply_to_id)
+        reply_to_message.reply_text("No sufficient privilege")
         return
     if bot.getChatMember(chatid,targetuser.id) in admins:
-        bot.sendMessage(chatid, text=u"Don't need to unrestrict an admin", reply_to_message_id=reply_to_id)
+        reply_to_message.reply_text("Don't need to unrestrict an admin")
         return
     price = PRICES['unrestrict']
     if koge48core.getBalance(user.id) < price:
-        bot.sendMessage(chatid, text=u"余额不足{} Koge48积分,即此次解禁的费用".format(price), reply_to_message_id=reply_to_id)
+        reply_to_message.reply_text("余额不足{} Koge48积分,即此次解禁的费用".format(price))
         return
 
 
@@ -144,7 +144,6 @@ def restrict(bot, update,chatid, user, targetuser, duration, reply_to_message):
 
 
 def callbackhandler(bot,update):
-    global CASINO_MARKUP
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
     if message_id in global_redpackets:
@@ -233,8 +232,6 @@ def startcasino(bot=None):
     #logger.warning("try to start starting")
     if not CASINO_CONTINUE:
         return
-    global CASINO_MARKUP
-    #global casino_id
     try:
         message = updater.bot.sendMessage(BNB48CASINO, LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
     except:
@@ -277,7 +274,32 @@ def releaseandstartcasino(casino_id):
     thread = Thread(target=startcasino)
     thread.start()
     
+def pmcommandhandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
 
+    things = update.message.text.split(' ')
+    if "/mybinding" in things[0]:
+        bindstatus = koge48core.getAirDropStatus(update.message.from_user.id)
+        response = "当前绑定的ETH钱包地址:\n    {}\n\n".format(bindstatus['eth'])
+        response +="当前绑定的币安API:\n    {}#{}\n\n".format(bindstatus['api'][0],bindstatus['api'][1])
+        response +="末次快照BNB余额:\n    链上(钱包里){}\n    链下(交易所){}\n\n".format(bindstatus['bnb'][0],bindstatus['bnb'][1])
+        if len(bindstatus['airdrops']) >0 :
+            response += "最近的空投记录:\n"
+            for each in bindstatus['airdrops']:
+                response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
+        update.message.reply_text(response)
+    elif "/start" in things[0]:
+        if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
+            update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
+        else:
+            update.message.reply_markdown("需要{}持仓大于{}方可加入BNB48Club".format(getkoge48md(),ENTRANCE_THRESHOLDS[BNB48]))
+    elif "/bind" in things[0]:
+        update.message.reply_text(
+            "持有1BNB，每天可以获得1 Koge48积分。持仓超过5万BNB，最多按照5万BNB计算。\n\n持仓快照来自两部分，链上与链下。链上部分可以通过机器人提交ETH地址进行绑定，链下部分可以通过机器人提交币安交易所账户API进行绑定。所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。\n\n持仓快照每天进行四次，空投每小时按照上次快照进行一次。\n\n请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交ETH地址或币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
+            "输入apikey#apisecret绑定API\n"+
+            "绑定ETH钱包地址请直接输入\n"
+        )
 def groupadminhandler(bot,update):
     chatid = update.message.chat_id
     user = update.message.from_user
@@ -297,27 +319,94 @@ def getusermd(user):
     return "`{}`".format(user.full_name)
 def getkoge48md():
     return "[Koge48积分](http://bnb48.club/koge48)"
+def siriancommandhandler(bot,update):
+    global CASINO_CONTINUE
+    if update.message.from_user.id != SirIanM:
+        return
+    things = update.message.text.split(' ')
+    if not update.message.reply_to_message is None:
+        targetuser = update.message.reply_to_message.from_user
+    else:
+        targetuser = None
+
+    if "/kick" in things[0] and not targetuser is None:
+        kick(update.message.chat_id,targetuser.id)
+    elif "/kick" in things[0]:
+        kick(long(things[1],long(things[2])))
+    elif "/ban" in things[0] and not targetuser is None:
+        ban(update.message.chat_id,targetuser.id)
+    elif "/ban" in things[0]:
+        ban(long(things[1],long(things[2])))
+    elif "/unban" in things[0] and not targetuser is None:
+        unban(update.message.chat_id,targetuser.id)
+    elif "/unban" in things[0]:
+        unban(long(things[1],long(things[2])))
+    elif "/groupid" in things[0]:
+        bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
+    elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
+        CASINO_CONTINUE = True
+        startcasino(bot)
+    elif "/nocasino" in things[0] and update.message.from_user.id == SirIanM:
+        CASINO_CONTINUE = False
+        bot.sendMessage(update.message.chat_id, text="Casino stoped")
+    elif "/flush" in things[0] or "/deflush" in things[0]:
+        if update.message.from_user.id != SirIanM:
+            return
+            #SirIanM only
+        thekeyword=""
+
+        if "text" in dir(update.message.reply_to_message):
+            thekeyword = update.message.reply_to_message.text
+        else:
+            thekeyword = things[1]
+
+        if "/flush" in things[0]:
+            if thekeyword in FLUSHWORDS:
+                return
+            FLUSHWORDS.append(thekeyword)
+            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为刷屏关键词", reply_to_message_id=update.message.message_id)
+        else:
+            if not thekeyword in FLUSHWORDS:
+                return
+            FLUSHWORDS.remove(thekeyword)
+            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为刷屏关键词", reply_to_message_id=update.message.message_id)
+
+        file = codecs.open("flushwords.json","w","utf-8")
+        file.write(json.dumps({"words":FLUSHWORDS}))
+        file.flush()
+        file.close()
+        logger.warning("flushwords updated")
+    elif "/spam" in things[0] or "/despam" in things[0]:
+        if update.message.from_user.id != SirIanM:
+            return
+            #SirIanM only
+        thekeyword=""
+
+        if "text" in dir(update.message.reply_to_message):
+            thekeyword = update.message.reply_to_message.text
+        else:
+            thekeyword = things[1]
+
+        if "/spam" in things[0]:
+            if thekeyword in SPAMWORDS:
+                return
+            SPAMWORDS.append(thekeyword)
+            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为垃圾账号关键词", reply_to_message_id=update.message.message_id)
+        else:
+            if not thekeyword in SPAMWORDS:
+                return
+            SPAMWORDS.remove(thekeyword)
+            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id)
+
+        file = codecs.open("spamwords.json","w","utf-8")
+        file.write(json.dumps({"words":SPAMWORDS}))
+        file.flush()
+        file.close()
+        logger.warning("spamwords updated")
 def botcommandhandler(bot,update):
-    global CASINO_CONTINUE, CASINO_MARKUP
     things = update.message.text.split(' ')
 
-    if "/mybinding" in things[0] and update.message.chat_id == update.message.from_user.id:
-        bindstatus = koge48core.getAirDropStatus(update.message.from_user.id)
-        response = "当前绑定的ETH钱包地址:\n    {}\n\n".format(bindstatus['eth'])
-        response +="当前绑定的币安API:\n    {}#{}\n\n".format(bindstatus['api'][0],bindstatus['api'][1])
-        response +="末次快照BNB余额:\n    链上(钱包里){}\n    链下(交易所){}\n\n".format(bindstatus['bnb'][0],bindstatus['bnb'][1])
-        if len(bindstatus['airdrops']) >0 :
-            response += "最近的空投记录:\n"
-            for each in bindstatus['airdrops']:
-                response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
-        update.message.reply_text(response)
-    elif "/bind" in things[0] and update.message.chat_id == update.message.from_user.id:
-        update.message.reply_text(
-            "持有1BNB，每天可以获得1 Koge48积分。持仓超过5万BNB，最多按照5万BNB计算。\n\n持仓快照来自两部分，链上与链下。链上部分可以通过机器人提交ETH地址进行绑定，链下部分可以通过机器人提交币安交易所账户API进行绑定。所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。\n\n持仓快照每天进行四次，空投每小时按照上次快照进行一次。\n\n请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交ETH地址或币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
-            "输入apikey#apisecret绑定API\n"+
-            "绑定ETH钱包地址请直接输入\n"
-        )
-    elif "/trans" in things[0] and not update.message.reply_to_message is None:
+    if "/trans" in things[0] and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
         user = update.message.from_user
@@ -330,22 +419,10 @@ def botcommandhandler(bot,update):
         koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
         latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
         update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
-    elif "/kick" in things[0] and update.message.from_user.id == SirIanM:
-        kick(update.message.chat_id,update.message.from_user.id)
-    elif "/ban" in things[0] and update.message.from_user.id == SirIanM:
-        ban(update.message.chat_id,update.message.from_user.id)
-    elif "/groupid" in things[0] and update.message.from_user.id == SirIanM:
-        bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
-    elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
-        CASINO_CONTINUE = True
-        startcasino(bot)
-    elif "/nocasino" in things[0] and update.message.from_user.id == SirIanM:
-        CASINO_CONTINUE = False
-        bot.sendMessage(update.message.chat_id, text="Casino stoped")
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         user = update.message.from_user
 
-        if len(things) >1 and things[1].isdigit():
+        if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
             balance = 10
@@ -357,7 +434,7 @@ def botcommandhandler(bot,update):
             return
         koge48core.changeBalance(user.id,-balance,"send redpacket")
 
-        if len(things) > 2 and things[2].isdigit():
+        if len(things) > 2 and is_number(things[2]):
             amount = int(things[2])
             if amount < 1:
                 amount = 1
@@ -371,9 +448,12 @@ def botcommandhandler(bot,update):
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title)
         message = update.message.reply_markdown(redpacket.getLog(),reply_markup=buildredpacketmarkup(),quote=False,disable_web_page_preview=True)
-        bot.deleteMessage(update.message.chat_id,update.message.message_id)
         redpacket_id = message.message_id
         global_redpackets[redpacket_id]=redpacket
+        try:
+            bot.deleteMessage(update.message.chat_id,update.message.message_id)
+        except:
+            pass
 
     elif "/bal" in things[0]:
         user = update.message.from_user
@@ -447,60 +527,6 @@ def botcommandhandler(bot,update):
         file.flush()
         file.close()
         logger.warning("SILENTGROUPS updated")
-    elif "/flush" in things[0] or "/deflush" in things[0]:
-        if update.message.from_user.id != SirIanM:
-            return
-            #SirIanM only
-        thekeyword=""
-
-        if "text" in dir(update.message.reply_to_message):
-            thekeyword = update.message.reply_to_message.text
-        else:
-            thekeyword = things[1]
-
-        if "/flush" in things[0]:
-            if thekeyword in FLUSHWORDS:
-                return
-            FLUSHWORDS.append(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为刷屏关键词", reply_to_message_id=update.message.message_id)
-        else:
-            if not thekeyword in FLUSHWORDS:
-                return
-            FLUSHWORDS.remove(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为刷屏关键词", reply_to_message_id=update.message.message_id)
-
-        file = codecs.open("flushwords.json","w","utf-8")
-        file.write(json.dumps({"words":FLUSHWORDS}))
-        file.flush()
-        file.close()
-        logger.warning("flushwords updated")
-    elif "/spam" in things[0] or "/despam" in things[0]:
-        if update.message.from_user.id != SirIanM:
-            return
-            #SirIanM only
-        thekeyword=""
-
-        if "text" in dir(update.message.reply_to_message):
-            thekeyword = update.message.reply_to_message.text
-        else:
-            thekeyword = things[1]
-
-        if "/spam" in things[0]:
-            if thekeyword in SPAMWORDS:
-                return
-            SPAMWORDS.append(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为垃圾账号关键词", reply_to_message_id=update.message.message_id)
-        else:
-            if not thekeyword in SPAMWORDS:
-                return
-            SPAMWORDS.remove(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id)
-
-        file = codecs.open("spamwords.json","w","utf-8")
-        file.write(json.dumps({"words":SPAMWORDS}))
-        file.flush()
-        file.close()
-        logger.warning("spamwords updated")
     return
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
@@ -515,6 +541,8 @@ def ethhandler(bot,update):
 
 
 def apihandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
     message_text = update.message.text
     api = message_text.split("#")
     koge48core.setApiKey(update.message.from_user.id,api[0],api[1])
@@ -635,10 +663,11 @@ def onleft(bot,update):
     for SPAMWORD in SPAMWORDS:
         if SPAMWORD in update.message.left_chat_member.full_name:
             bot.deleteMessage(update.message.chat_id,update.message.message_id)
-            return
     update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
 
 def welcome(bot, update):
+    if update.message.chat_id == BNB48:
+        bot.exportChatInviteLink(BNB48)
     #筛选垃圾消息
     isSpam = False
     for newUser in update.message.new_chat_members:
@@ -659,14 +688,16 @@ def checkThresholds(chatid,userid,message):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
     if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
-        if SAYINSUFFICIENT:
-            message.reply_text("持仓不足{}".format(ENTRANCE_THRESHOLDS[chatid]))
-        if KICKINSUFFICIENT:
+        if SAYINSUFFICIENT[chatid]:
+            message.reply_markdown("{}持仓不足{}，此消息将持续出现。".format(getkoge48md(),ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
+        if KICKINSUFFICIENT[chatid]:
             kick(chatid,userid)
         
 
 def ban(chatid,userid):
     updater.bot.kickChatMember(chatid,userid)
+def unban(chatid,userid):
+    updater.bot.unbanChatMember(chatid,userid)
 def kick(chatid,userid):
     updater.bot.kickChatMember(chatid,userid)
     updater.bot.unbanChatMember(chatid,userid)
@@ -699,35 +730,50 @@ def main():
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
     dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
+
+
     dp.add_handler(CommandHandler(
         [
             "groupstats"
         ],
-        groupadminhandler)
+        groupadminhandler)#只对管理员账号的命令做出响应
     )
 
     dp.add_handler(CommandHandler(
         [
             "mybinding",
             "bind",
-            "trans",
-            "bal",
+            "start"
+        ],
+        pmcommandhandler)#处理私聊机器人发送的命令
+    )
+
+    dp.add_handler(CommandHandler(
+        [
             "casino",
             "nocasino",
             "spam",
             "despam",
+            "flush",
+            "deflush",
+            "kick",
+            "ban",
+            "unban",
+            "groupid",
+        ],
+        siriancommandhandler)#
+    )
+    dp.add_handler(CommandHandler(
+        [
+            "trans",
+            "bal",
             "promote",
             "demote",
-            "deflush",
-            "flush",
             "restrict",
             "unrestrict",
             "silent",
             "desilent",
             "hongbao",
-            "kick",
-            "ban",
-            "groupid",
         ],
         botcommandhandler))# '''处理大群中的直接消息'''
 
