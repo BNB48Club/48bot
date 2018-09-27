@@ -36,17 +36,6 @@ BinanceCN=-1001136071376
 BNB48TEST = -1001395548149
 WATCHDOGGROUP=BNB48TEST
 
-def unrestrict(update,chatid, user, targetuser, reply_to_message):
-
-
-    bot.sendMessage(chatid, text=u"{}解除禁言,费用{} Koge48积分由{}支付".format(targetuser.full_name,price,user.full_name), reply_to_message_id=reply_to_message.message_id)
-
-    
-def restrict(update,chatid, user, targetuser, duration, reply_to_message):
-
-    bot.sendMessage(chatid, text=u"{}被禁言{}分钟".format(targetuser.full_name,duration), reply_to_message_id=reply_to_id)
-
-
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user

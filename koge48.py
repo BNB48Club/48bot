@@ -14,6 +14,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 class Koge48:
+    SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     def BNBAirDrop(self):
         logger.warning("airdroping")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")        
@@ -56,9 +57,37 @@ class Koge48:
         self._mycursor.execute(updatesql,(userid,apikey,apisecret,apikey,apisecret))
         self._mydb.commit()
         
+    def signCheque(self,userid,number):
+        balance = self.getBalance(userid)
+        assert balance >= number
+        code=""
+        for i in range(8):
+            code+="".join(random.sample(Koge48.SEQUENCE,4))
+
+        self.changeBalance(userid,-number,"pay cheque "+code)
+        newcheque = "INSERT INTO cheque (sid,number,code) VALUES (%s,%s,%s)"
+        self._mycursor.execute(newcheque,(userid,number,code))
+        self._mydb.commit()
+        return code
+
+    def claimCheque(self,userid,code):
+        self._mycursor.execute("SELECT * FROM `cheque` WHERE `code` = '{}'".format(code))
+        res = self._mycursor.fetchone()
+        if res is None:
+            return 0
+        elif res[2] != 0:
+            return -1
+            #expired
+        else:
+            number = res[0]
+            self.changeBalance(userid,number,"cheque "+res[4],res[1])
+            updatesql = "UPDATE `cheque` SET `did` = %s WHERE `code` = %s";
+            self._mycursor.execute(updatesql,(userid,code))
+            self._mydb.commit()
+            return number
+        
     def changeBalance(self,userid,number,memo="",source=0):
         balance = self.getBalance(userid)
-        #logger.warning("changing balance for %s from %s",userid,balance)
         assert balance + float(number) > -0.001
         newblocksql = "INSERT INTO changelog (uid,differ,memo,source) VALUES (%s,%s,%s,%s)"
         self._mycursor.execute(newblocksql,(userid,number,memo,source))
@@ -100,7 +129,14 @@ class Koge48:
         for each in self._mycursor.fetchall():
             airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2]})
         return {"eth":eth,"api":api,"bnb":bnb,"airdrops":airdrops}
-            
+    def getRecentChanges(self,userid):       
+        self._mycursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
+        changes=[]
+        currentts = time.time()
+        for each in self._mycursor.fetchall():
+            changes.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2],"memo":each[4]})
+        return changes
+        
     def getGroupMiningStatus(self,groupid): 
         sql = "SELECT uid,count(*) as amount FROM `changelog` WHERE source={} AND unix_timestamp(ts)>{} group by uid order by amount desc limit 10".format(groupid,(time.time()-(7*24*3600)))
         self._mycursor.execute(sql)

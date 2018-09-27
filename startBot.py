@@ -109,7 +109,7 @@ def unrestrict(bot, update,chatid, user, targetuser, reply_to_message):
 
 
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
-    koge48core.changeBalance(user.id,-price,"unrestrict {}".format(targetuser.id))
+    koge48core.changeBalance(user.id,-price,"unrestrict {}".format(targetuser.full_name),targetuser.id)
 
     bot.sendMessage(chatid, text=u"{}解除禁言,费用{} Koge48积分由{}支付".format(targetuser.full_name,price,user.full_name), reply_to_message_id=reply_to_message.message_id)
 
@@ -137,7 +137,7 @@ def restrict(bot, update,chatid, user, targetuser, duration, reply_to_message):
     bot.restrictChatMember(chatid,user_id=targetuser.id,can_send_messages=False,until_date=time.time()+int(float(duration)*60))
 
     if user != None:
-        koge48core.changeBalance(user.id,-price,"restrict {}".format(targetuser.id))
+        koge48core.changeBalance(user.id,-price,"restrict {}".format(targetuser.full_name),targetuser.id)
         bot.sendMessage(chatid, text=u"{}被禁言{}分钟，费用{} Koge48积分由{}支付".format(targetuser.full_name,duration,price,user.full_name), reply_to_message_id=reply_to_id)
     else:
         bot.sendMessage(chatid, text=u"{}被禁言{}分钟".format(targetuser.full_name,duration), reply_to_message_id=reply_to_id)
@@ -151,7 +151,7 @@ def callbackhandler(bot,update):
         redpacket = global_redpackets[redpacket_id]
         thisdraw = redpacket.draw(activeuser)
         if thisdraw > 0:
-            koge48core.changeBalance(activeuser.id,thisdraw,"collect redpacket",redpacket._fromuser.id)
+            koge48core.changeBalance(activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name),redpacket._fromuser.id)
             update.callback_query.answer(text=u"你抢到{} Koge48积分".format(thisdraw))
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
         else:
@@ -173,7 +173,7 @@ def callbackhandler(bot,update):
             if koge48core.getBalance(activeuser.id) < casino_betsize:
                 update.callback_query.answer(text=u"余额不足",show_alert=True)
                 return
-            koge48core.changeBalance(activeuser.id,-casino_betsize,"bet on casino")        
+            koge48core.changeBalance(activeuser.id,-casino_betsize,"bet {} on casino".format(bet_target))        
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
             #CASINO_LOG+=u"\n{} 押注 {} {} Koge48积分".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
             update.callback_query.edit_message_text(
@@ -289,6 +289,12 @@ def pmcommandhandler(bot,update):
             for each in bindstatus['airdrops']:
                 response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
         update.message.reply_text(response)
+    elif "/changes" in things[0]:
+        changes=koge48core.getRecentChanges(update.message.from_user.id)
+        response = "最近的变动记录:\n"
+        for each in changes:
+            response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
+        update.message.reply_markdown(response)
     elif "/start" in things[0]:
         if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
             update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
@@ -419,6 +425,20 @@ def botcommandhandler(bot,update):
         koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
         latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
         update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+    elif "/cheque" in things[0]:
+        if update.message.chat_id != update.message.from_user.id:
+            return
+        if len(things) < 2:
+            update.message.reply_text("命令格式: /cheque 金额(私聊)。领取支票直接私聊发送支票号即可。")
+            return
+        user = update.message.from_user
+        
+        number = float(things[-1])
+        if number <= 0 or koge48core.getBalance(user.id) < number:
+            update.message.reply_text("金额不合法")
+            return
+        code = koge48core.signCheque(user.id,float(things[1]))
+        update.message.reply_markdown("任意用户发送\n`{}`\n即可领取这张支票，金额{}".format(code,number))
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         user = update.message.from_user
 
@@ -495,15 +515,16 @@ def botcommandhandler(bot,update):
         if koge48core.getBalance(update.message.from_user.id) < PRICES['promote']:
             bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{} Koge48积分,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id)
             return
+        targetuser = update.message.reply_to_message.from_user
         targetid = update.message.reply_to_message.from_user.id
 
         if "/promote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid,can_delete_messages=False,can_pin_messages=True)
-            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'promote')
+            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'promote {}'.format(targetuser.full_name),targetid)
             bot.sendMessage(update.message.chat_id, text=u"{}晋升为管理员\n{} Koge48积分费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
         if "/demote" in things[0]:
             bot.promoteChatMember(update.message.chat_id, targetid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
-            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'demote')
+            koge48core.changeBalance(update.message.from_user.id,-PRICES['promote'],'demote {}'.format(targetuser.full_name),targetid)
             bot.sendMessage(update.message.chat_id, text=u"{}被革去管理员职位\n{} Koge48积分费用由{}支付".format(update.message.reply_to_message.from_user.full_name,PRICES['promote'],update.message.from_user.full_name), reply_to_message_id=update.message.message_id)
 
     elif "/silent" in things[0] or "/desilent" in things[0]:
@@ -528,6 +549,16 @@ def botcommandhandler(bot,update):
         file.close()
         logger.warning("SILENTGROUPS updated")
     return
+def chequehandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
+    change = koge48core.claimCheque(update.message.from_user.id,update.message.text)
+    if change > 0:
+        update.message.reply_markdown("领取到{} {}".format(change,getkoge48md()),disable_web_page_preview=True)
+    elif change == -1:
+        update.message.reply_markdown("该支票已被领取")
+    elif change == 0:
+        update.message.reply_markdown("不存在的支票号码")
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
@@ -730,6 +761,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
     dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
+    dp.add_handler(RegexHandler("^\w{32}$",chequehandler))
 
 
     dp.add_handler(CommandHandler(
@@ -743,6 +775,7 @@ def main():
         [
             "mybinding",
             "bind",
+            "changes",
             "start"
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
@@ -774,8 +807,10 @@ def main():
             "silent",
             "desilent",
             "hongbao",
+            "redpacket",
+            "cheque"
         ],
-        botcommandhandler))# '''处理大群中的直接消息'''
+        botcommandhandler))# '''处理默认所有命令'''
 
     # log all errors
     dp.add_error_handler(error)
@@ -783,7 +818,7 @@ def main():
 
     #Start the schedule
     j = updater.job_queue
-    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=360)
+    job_airdrop = j.run_repeating(airdropportal,interval=14400,first=3600)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
