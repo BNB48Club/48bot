@@ -1,0 +1,50 @@
+{
+  "groupname":"newtestgroup", 
+  "onstart":"newtestgroup very beginning",
+  "onpast":"This will be shown when user pass the test",
+  "onfail":"This will be shown when user fail the test",
+  "probation":1,
+  "grouphint":"This will be shown after user joined this group",
+  "puzzles":
+  [
+    {
+      "question":"question text",
+      "options":
+      [
+        ["A","answer 1"],
+        ["B","answer 2"],
+        ["C","answer 3"],
+        ["D","answer 4"]
+      ],
+      "answer":"D",
+      "postcorrect":"This will be shown when answered correctly",
+      "postincorrect":"This will be shown when wrongly answered, give some hint"
+    },
+    {
+      "question":"This the question 2",
+      "options":
+      [
+        ["A","answer 1, the 'A' will not be shown"],
+        ["B","answer 2"],
+        ["C","answer 3"],
+        ["D","answer 4"]
+      ],
+      "answer":"D",
+      "postcorrect":"This will be shown when answered correctly",
+      "postincorrect":"This will be shown when wrongly answered, give some hint"
+    },
+    {
+      "question":"This the question 3",
+      "options":
+      [
+        ["A","answer 1, the 'A' will not be shown"],
+        ["B","answer 2"],
+        ["C","answer 3"],
+        ["D","answer 4"]
+      ],
+      "answer":"D",
+      "postcorrect":"This will be shown when answered correctly",
+      "postincorrect":"This will be shown when wrongly answered, give some hint"
+    }
+  ]
+}
