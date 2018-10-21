@@ -24,7 +24,7 @@ def getBNBAmountByETH(ethaddress):
 ########################################
 
 kogeconfig = configparser.ConfigParser()
-kogeconfig.read("koge48.conf")
+kogeconfig.read("../conf/koge48.conf")
 db = pymysql.connect(
   kogeconfig.get("mysql","host"),
   kogeconfig.get("mysql","user"),

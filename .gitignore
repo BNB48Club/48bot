@@ -1,9 +1,9 @@
 botsapi.py
 *.pyc
 ids
-test.py
-log.bnb48bot
 test
-test.json
-koge48.conf
+test.py
+*.json
+*.conf
 log.*
+temp
