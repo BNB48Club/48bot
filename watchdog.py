@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Read config
 watchdogconfig = ConfigParser.ConfigParser()
-watchdogconfig.read("watchdog.conf")
+watchdogconfig.read("conf/watchdog.conf")
 
 # set bot conf
 bottoken = watchdogconfig.get("bot","token")
