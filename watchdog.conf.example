@@ -3,7 +3,6 @@ token = 111111111:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 name = @usernameofyourbot
 
 [groups]
--1000011001100 = YourGroupNameJustFillTheFormat
--1000000000001 = OneGroupOneLine
-#bot should have admin(ban/delete) in all groups above
+-1000011001100 = puzzles/yourpuzzle.json
+-1000000000001 = anotherpuzzle.json
 

@@ -32,7 +32,7 @@ botname = watchdogconfig.get("bot","name")
 GROUPS = {}
 for groupinfo in watchdogconfig.items("groups"):
     groupid = int(groupinfo[0])
-    file=open("puzzles/{}.json".format(-groupid),"r")
+    file=open(groupinfo[1],"r")
     puzzles = json.load(file)
     file.close()
     GROUPS[groupid]=puzzles
