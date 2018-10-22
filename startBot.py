@@ -31,15 +31,15 @@ logger = logging.getLogger(__name__)
 BLACKLIST= set()
 PRICES={"promote":500,"restrict":10,"unrestrict":100}
 
-file=open("flushwords.json","r")
+file=open("_data/flushwords.json","r")
 FLUSHWORDS = json.load(file)["words"]
 file.close()
 
-file=open("spamwords.json","r")
+file=open("_data/spamwords.json","r")
 SPAMWORDS=json.load(file)["words"]
 file.close()
 
-file=open("silents.json","r")
+file=open("_data/silents.json","r")
 SILENTGROUPS = json.load(file)['groups']
 file.close()
 
@@ -59,7 +59,7 @@ KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
 SAYINSUFFICIENT = {BNB48:False,BNB48CN:False}
 
 kogeconfig = ConfigParser.ConfigParser()
-kogeconfig.read("koge48.conf")
+kogeconfig.read("conf/koge48.conf")
 koge48core = Koge48(
   kogeconfig.get("mysql","host"),
   kogeconfig.get("mysql","user"),
@@ -377,7 +377,7 @@ def siriancommandhandler(bot,update):
             FLUSHWORDS.remove(thekeyword)
             bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为刷屏关键词", reply_to_message_id=update.message.message_id)
 
-        file = codecs.open("flushwords.json","w","utf-8")
+        file = codecs.open("_data/flushwords.json","w","utf-8")
         file.write(json.dumps({"words":FLUSHWORDS}))
         file.flush()
         file.close()
@@ -404,7 +404,7 @@ def siriancommandhandler(bot,update):
             SPAMWORDS.remove(thekeyword)
             bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id)
 
-        file = codecs.open("spamwords.json","w","utf-8")
+        file = codecs.open("_data/spamwords.json","w","utf-8")
         file.write(json.dumps({"words":SPAMWORDS}))
         file.flush()
         file.close()
@@ -543,7 +543,7 @@ def botcommandhandler(bot,update):
             SILENTGROUPS.remove(thegroup)
             bot.sendMessage(update.message.chat_id, text=u"本群解除静默模式", reply_to_message_id=update.message.message_id)
 
-        file = codecs.open("silents.json","w","utf-8")
+        file = codecs.open("_data/silents.json","w","utf-8")
         file.write(json.dumps({"groups":SILENTGROUPS}))
         file.flush()
         file.close()
