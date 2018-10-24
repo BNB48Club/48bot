@@ -79,6 +79,7 @@ def callbackhandler(bot,update):
 
     if answer == GROUPS[groupid]['puzzles'][currentpuzzleindex]['answer']:
     #回答正确
+        bot.sendMessage(activeuser.id,GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
         if ENTRANCE_PROGRESS[activeuser.id] + 1>= len(GROUPS[groupid]['puzzles']):
             #全部回答完毕
             if activeuser.id in GROUPS[groupid]['kickjobs']:
@@ -91,7 +92,6 @@ def callbackhandler(bot,update):
             else:
                 pass
         else:
-            bot.sendMessage(activeuser.id,GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
             ENTRANCE_PROGRESS[activeuser.id]+=1
             bot.sendMessage(activeuser.id,PUZZLES[ENTRANCE_PROGRESS[activeuser.id]]['question'],reply_markup=buildpuzzlemarkup(groupid,PUZZLES[ENTRANCE_PROGRESS[activeuser.id]]['options']))
             
