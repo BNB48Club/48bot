@@ -143,7 +143,6 @@ def welcome(bot, update):
             GROUPS[groupid]['kickjobs'][newUser.id] = jobqueue.run_once(watchdogkick,probation*60,context = {"userid":newUser.id,"groupid":groupid,"full_name":newUser.full_name})
             logger.warning("%s minutes kicker timer started for %s in %s",GROUPS[groupid]['probation'],newUser.id,groupid)
 
-            update.message.delete()
 
             if GROUPS[groupid]['lasthintid'] != 0:
                 try:
@@ -151,7 +150,9 @@ def welcome(bot, update):
                 except:
                     logger.warning("deleting exception")
 
-            GROUPS[groupid]['lasthintid'] = update.message.reply_text("{}: {}".format(GROUPS[groupid]['grouphint'],botname),quote=False).message_id
+            GROUPS[groupid]['lasthintid'] = update.message.reply_text("{}: {}".format(GROUPS[groupid]['grouphint'],botname),quote=True).message_id
+
+            update.message.delete()
 
             try:
                 bot.sendMessage(newUser.id,GROUPS[groupid]['onstart'],parse_mode=ParseMode.MARKDOWN)
