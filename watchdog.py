@@ -112,7 +112,7 @@ def buildpuzzlemarkup(groupid,options):
     
 
 
-def botcommandhandler(bot,update):
+def starthandler(bot,update):
     
     #must in private mode
     if update.message.chat_id != update.message.from_user.id:
@@ -191,7 +191,7 @@ def main():
         [
             "start"
         ],
-        botcommandhandler))
+        starthandler))
 
     # log all errors
     dp.add_error_handler(error)
