@@ -113,7 +113,8 @@ def buildpuzzlemarkup(groupid,options):
 
 
 def botcommandhandler(bot,update):
-    #start in private mode
+    
+    #must in private mode
     if update.message.chat_id != update.message.from_user.id:
         return
     userid = update.message.from_user.id
@@ -126,9 +127,11 @@ def botcommandhandler(bot,update):
             else:
                 update.message.reply_text(GROUPS[groupid]['puzzles'][0]['question'],reply_markup=buildpuzzlemarkup(groupid,GROUPS[groupid]['puzzles'][0]['options']))
                 GROUPS[groupid]['ENTRANCE_PROGRESS'][userid] = 0
-                break
+                return
         except:
             continue
+    if 'allclear' in GROUPS[groupid]:
+        update.message.reply_text(GROUPS[groupid]['allclear'])
         
 
 def welcome(bot, update):
