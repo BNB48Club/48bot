@@ -41,7 +41,14 @@ for groupinfo in watchdogconfig.items("groups"):
     GROUPS[groupid]['kickjobs'] = {}
     logger.warning("start watching %s",groupid)
 
-# parse puzzles.json
+
+def banInAllGroups(userid):
+    global GROUPS
+    for groupid in GROUPS:
+        try:
+            ban(groupid,userid)
+        except:
+            pass
 
 def ban(chatid,userid):
     updater.bot.kickChatMember(chatid,userid)
@@ -136,6 +143,23 @@ def starthandler(bot,update):
 
 def welcome(bot, update):
     global GROUPS
+    
+    file=open("_data/blacklist_name.json","r")
+    SPAMWORDS=json.load(file)["words"]
+    file.close()
+    for newUser in update.message.new_chat_members:
+        isSpam = False
+        for SPAMWORD in SPAMWORDS:
+            if SPAMWORD in newUser.full_name:
+                isSpam = True
+                update.message.delete()
+                banInAllGroups(newUser.id)
+                logger.warning('%s|%s is banned from all groups because of spam',newUser.id,newUser.full_name,update.message.chat.title)
+                break;
+        if isSpam:
+            break
+
+
     groupid = update.message.chat_id
     if groupid in GROUPS:
         for newUser in update.message.new_chat_members:

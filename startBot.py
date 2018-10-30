@@ -35,7 +35,7 @@ file=open("_data/flushwords.json","r")
 FLUSHWORDS = json.load(file)["words"]
 file.close()
 
-file=open("_data/spamwords.json","r")
+file=open("_data/blacklist_name.json","r")
 SPAMWORDS=json.load(file)["words"]
 file.close()
 
@@ -55,7 +55,7 @@ BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
 ENTRANCE_THRESHOLDS={BNB48:10000,BNB48CN:1000}
-KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
+KICKINSUFFICIENT = {BNB48:False,BNB48CN:True}
 SAYINSUFFICIENT = {BNB48:False,BNB48CN:False}
 
 kogeconfig = ConfigParser.ConfigParser()
@@ -404,11 +404,11 @@ def siriancommandhandler(bot,update):
             SPAMWORDS.remove(thekeyword)
             bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id)
 
-        file = codecs.open("_data/spamwords.json","w","utf-8")
+        file = codecs.open("_data/blacklist_name.json","w","utf-8")
         file.write(json.dumps({"words":SPAMWORDS}))
         file.flush()
         file.close()
-        logger.warning("spamwords updated")
+        logger.warning("blacklist_name updated")
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
 
@@ -720,7 +720,7 @@ def checkThresholds(chatid,userid,message):
         return
     if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
         if SAYINSUFFICIENT[chatid]:
-            message.reply_markdown("{}持仓不足{}，此消息将持续出现。".format(getkoge48md(),ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
+            message.reply_markdown("{}持仓不足{}，达标之前此消息将持续出现。".format(getkoge48md(),ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
         if KICKINSUFFICIENT[chatid]:
             kick(chatid,userid)
         
@@ -818,7 +818,7 @@ def main():
 
     #Start the schedule
     j = updater.job_queue
-    job_airdrop = j.run_repeating(airdropportal,interval=14400,first=3600)
+    job_airdrop = j.run_repeating(airdropportal,interval=86400,first=3600)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
