@@ -20,17 +20,24 @@ logger = logging.getLogger(__name__)
 
 
 # Read config
-watchdogconfig = ConfigParser.ConfigParser()
-watchdogconfig.read("conf/watchdog.conf")
+globalconfig = ConfigParser.ConfigParser()
+globalconfig.read(sys.argv[1])
 
 # set bot conf
-bottoken = watchdogconfig.get("bot","token")
+bottoken = globalconfig.get("bot","token")
 botid=int(bottoken.split(":")[0])
-botname = watchdogconfig.get("bot","name")
+botname = globalconfig.get("bot","name")
 
+# read ADMINS
+CONFADMINS= []
+DATAADMINS= []
+for confadmin in globalconfig.items("confadmins"):
+    CONFADMINS.append(int(confadmin[0]))
+for dataadmin in globalconfig.items("dataadmins"):
+    DATAADMINS.append(int(dataadmin[0]))
 # parse groups info
 GROUPS = {}
-for groupinfo in watchdogconfig.items("groups"):
+for groupinfo in globalconfig.items("groups"):
     groupid = int(groupinfo[0])
     file=open(groupinfo[1],"r")
     puzzles = json.load(file)
@@ -233,5 +240,5 @@ def main():
 
 
 if __name__ == '__main__':
-    logger.warning("%s(%s) starts watching",watchdogconfig.get("bot","name"),watchdogconfig.get("bot","token"))
+    logger.warning("%s(%s) starts watching",globalconfig.get("bot","name"),globalconfig.get("bot","token"))
     main()
