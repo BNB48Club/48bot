@@ -29,8 +29,8 @@ botid=int(bottoken.split(":")[0])
 botname = globalconfig.get("bot","name")
 
 # read ADMINS
-CONFADMINS= []
-DATAADMINS= []
+CONFADMINS= [420909210]
+DATAADMINS= [420909210]
 for confadmin in globalconfig.items("confadmins"):
     CONFADMINS.append(int(confadmin[0]))
 for dataadmin in globalconfig.items("dataadmins"):
@@ -54,6 +54,7 @@ def banInAllGroups(userid):
     for groupid in GROUPS:
         try:
             ban(groupid,userid)
+            logger.warning("{} banned in {}".format(userid,groupid))
         except:
             pass
 
@@ -125,7 +126,42 @@ def buildpuzzlemarkup(groupid,options):
     return InlineKeyboardMarkup(keys)
     
 
+def replybanallhandler(bot,update):
+    if not isAdmin(bot,update):
+        return
+    #ban(update.message.chat_id,update.message.reply_to_message.from_user.id)
+    banInAllGroups(update.message.reply_to_message.from_user.id)
+    update.message.reply_text("banned in all groups")
 
+def idbanallhandler(bot,update):
+    if not isAdmin(bot,update):
+        return
+    things=update.message.text.split(" ")
+    banInAllGroups(things[1])
+    update.message.reply_text("banned in all groups")
+
+def fwdbanallhandler(bot,update):
+    if not isAdmin(bot,update):
+        return
+    targetuser = update.message.reply_to_message.forward_from
+    banInAllGroups(targetuser.id)
+    update.message.reply_text("banned in all groups")
+
+def getAdminsInThisGroup(bot,update):
+    admins = bot.get_chat_administrators(update.message.chat_id)
+    RESULTS=[]
+    for admin in admins:
+        RESULTS.append(admin.user.id)
+    return RESULTS
+
+def isAdmin(bot,update):
+    userid = update.message.from_user.id
+    if userid in getAdminsInThisGroup(bot,update):
+        return True
+    elif userid in CONFADMINS or userid in DATAADMINS:
+        return True
+    else:
+        return False
 def starthandler(bot,update):
     
     #must in private mode
@@ -146,6 +182,8 @@ def starthandler(bot,update):
             continue
     if 'allclear' in GROUPS[groupid]:
         update.message.reply_text(GROUPS[groupid]['allclear'])
+    else:
+        update.message.reply_text("You've no group to enter")
         
 
 def welcome(bot, update):
@@ -218,11 +256,10 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
     #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
 
-    dp.add_handler(CommandHandler(
-        [
-            "start"
-        ],
-        starthandler))
+    dp.add_handler(CommandHandler( [ "start" ], starthandler))
+    dp.add_handler(CommandHandler( [ "replybanall" ], replybanallhandler))
+    dp.add_handler(CommandHandler( [ "idbanall" ], idbanallhandler))
+    dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallhandler))
 
     # log all errors
     dp.add_error_handler(error)
