@@ -91,6 +91,10 @@ def unrestrict(chatid,userid):
 
 def callbackhandler(bot,update):
     global GROUPS
+    if "banInAllGroups" in update.callback_query.data:
+        eval(update.callback_query.data)
+        update.callback_query.answer('banned')
+        return
     thedata = update.callback_query.data.split("#")
     groupid = int(thedata[0])
     answer = thedata[1]
@@ -98,6 +102,7 @@ def callbackhandler(bot,update):
     activeuser = update.callback_query.from_user
     if not activeuser.id in GROUPS[groupid]['ENTRANCE_PROGRESS']:
         bot.sendMessage(activeuser.id,GROUPS[groupid]['onstart'])
+        update.callback_query.answer()
         return
 
     ENTRANCE_PROGRESS = GROUPS[groupid]['ENTRANCE_PROGRESS']
@@ -108,7 +113,7 @@ def callbackhandler(bot,update):
 
     if answer == GROUPS[groupid]['puzzles'][currentpuzzleindex]['answer']:
     #correct answer
-        bot.sendMessage(activeuser.id,GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
+        update.callback_query.answer(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
         if ENTRANCE_PROGRESS[activeuser.id] + 1>= len(GROUPS[groupid]['puzzles']):
             #all questions done
             if activeuser.id in GROUPS[groupid]['kickjobs']:
@@ -126,9 +131,9 @@ def callbackhandler(bot,update):
             
     else:
         #wrong answer
-            bot.sendMessage(activeuser.id,GROUPS[groupid]['puzzles'][currentpuzzleindex]['postincorrect'])
-            bot.sendMessage(activeuser.id,GROUPS[groupid]['onfail'])
-            del ENTRANCE_PROGRESS[activeuser.id]
+        update.callback_query.answer(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postincorrect'])
+        bot.sendMessage(activeuser.id,GROUPS[groupid]['onfail'])
+        del ENTRANCE_PROGRESS[activeuser.id]
 
     #update.callback_query.edit_message_text( text = lasttext)
             
@@ -214,7 +219,10 @@ def forwardhandler(bot,update):
                 update.message.reply_text("✅Admin in {}".format(GROUPS[groupid]['groupname']))
                 isAdmin = True
         if not isAdmin:
-            update.message.reply_text("‼️ Be careful, this guy is not an admin")
+            if update.message.from_user.id in DATAADMINS or update.message.from_user.id in CONFADMINS:
+                update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Ban in all groups!',callback_data="banInAllGroups({})".format(fwduser.id))]]))
+            else:
+                update.message.reply_text("‼️ Be careful, this guy is not an admin")
         #send in private 
     #else:
         #send in group
