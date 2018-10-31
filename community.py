@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import sys
+import codecs
 import logging
 import json
 import time
@@ -50,6 +51,19 @@ for groupinfo in globalconfig.items("groups"):
 
 
 def banInAllGroups(userid):
+
+    file=open("_data/blacklist_ids.json","r")
+    BLACKLIST=json.load(file)["ids"]
+    file.close()
+
+    file = codecs.open("_data/blacklist_ids.json","w","utf-8")
+    BLACKLIST.append(userid)
+    BLACKLIST=list(set(BLACKLIST))
+    file.write(json.dumps({"ids":BLACKLIST}))
+    file.flush()
+    file.close()
+    logger.warning("blacklist_ids updated")
+
     global GROUPS
     for groupid in GROUPS:
         try:
@@ -93,10 +107,10 @@ def callbackhandler(bot,update):
     #lasttext = PUZZLES[ENTRANCE_PROGRESS[activeuser.id]]['question']
 
     if answer == GROUPS[groupid]['puzzles'][currentpuzzleindex]['answer']:
-    #回答正确
+    #correct answer
         bot.sendMessage(activeuser.id,GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
         if ENTRANCE_PROGRESS[activeuser.id] + 1>= len(GROUPS[groupid]['puzzles']):
-            #全部回答完毕
+            #all questions done
             if activeuser.id in GROUPS[groupid]['kickjobs']:
                 GROUPS[groupid]['kickjobs'][activeuser.id].schedule_removal()
                 del GROUPS[groupid]['kickjobs'][activeuser.id]
@@ -111,7 +125,7 @@ def callbackhandler(bot,update):
             bot.sendMessage(activeuser.id,PUZZLES[ENTRANCE_PROGRESS[activeuser.id]]['question'],reply_markup=buildpuzzlemarkup(groupid,PUZZLES[ENTRANCE_PROGRESS[activeuser.id]]['options']))
             
     else:
-        #错误
+        #wrong answer
             bot.sendMessage(activeuser.id,GROUPS[groupid]['puzzles'][currentpuzzleindex]['postincorrect'])
             bot.sendMessage(activeuser.id,GROUPS[groupid]['onfail'])
             del ENTRANCE_PROGRESS[activeuser.id]
@@ -147,8 +161,8 @@ def fwdbanallhandler(bot,update):
     banInAllGroups(targetuser.id)
     update.message.reply_text("banned in all groups")
 
-def getAdminsInThisGroup(bot,update):
-    admins = bot.get_chat_administrators(update.message.chat_id)
+def getAdminsInThisGroup(bot,groupid):
+    admins = bot.get_chat_administrators(groupid)
     RESULTS=[]
     for admin in admins:
         RESULTS.append(admin.user.id)
@@ -156,7 +170,7 @@ def getAdminsInThisGroup(bot,update):
 
 def isAdmin(bot,update):
     userid = update.message.from_user.id
-    if userid in getAdminsInThisGroup(bot,update):
+    if userid in getAdminsInThisGroup(bot,update.message.chat_id):
         return True
     elif userid in CONFADMINS or userid in DATAADMINS:
         return True
@@ -189,24 +203,45 @@ def starthandler(bot,update):
     else:
         update.message.reply_text("You've no group to enter")
         
-
+def forwardhandler(bot,update):
+    global GROUPS
+    if update.message.chat_id == update.message.from_user.id:
+        fwduser = update.message.forward_from
+        isAdmin = False
+        for groupid in GROUPS:
+            admins = getAdminsInThisGroup(bot,groupid)
+            if fwduser.id in admins:
+                update.message.reply_text("✅Admin in {}".format(GROUPS[groupid]['groupname']))
+                isAdmin = True
+        if not isAdmin:
+            update.message.reply_text("‼️ Be careful, this guy is not an admin")
+        #send in private 
+    #else:
+        #send in group
+    
 def welcome(bot, update):
     global GROUPS
     
-    file=open("_data/blacklist_name.json","r")
+    file=open("_data/blacklist_names.json","r")
     SPAMWORDS=json.load(file)["words"]
     file.close()
+
+    file=open("_data/blacklist_ids.json","r")
+    BLACKLIST=json.load(file)["ids"]
+    file.close()
+
     for newUser in update.message.new_chat_members:
-        isSpam = False
+        if newUser.id in BLACKLIST:
+            update.message.delete()
+            banInAllGroups(newUser.id)
+            logger.warning('%s|%s is banned from all groups because of blacklist',newUser.id,newUser.full_name,update.message.chat.title)
+            return
         for SPAMWORD in SPAMWORDS:
             if SPAMWORD in newUser.full_name:
-                isSpam = True
                 update.message.delete()
                 banInAllGroups(newUser.id)
                 logger.warning('%s|%s is banned from all groups because of spam',newUser.id,newUser.full_name,update.message.chat.title)
-                break;
-        if isSpam:
-            break
+                return
 
 
     groupid = update.message.chat_id
@@ -258,6 +293,7 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CallbackQueryHandler(callbackhandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
+    dp.add_handler(MessageHandler(Filters.forwarded, forwardhandler))#'''处理转发消息'''
     #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
 
     dp.add_handler(CommandHandler( [ "start" ], starthandler))
