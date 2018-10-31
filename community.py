@@ -203,10 +203,7 @@ def starthandler(bot,update):
                 return
         except:
             continue
-    if 'allclear' in GROUPS[groupid]:
-        update.message.reply_text(GROUPS[groupid]['allclear'])
-    else:
-        update.message.reply_text("You've no group to enter")
+    update.message.reply_text("You've no group to enter")
         
 def forwardhandler(bot,update):
     global GROUPS

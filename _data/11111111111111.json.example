@@ -1,5 +1,4 @@
 {
-  "allclear":"shown if user inputed /start but is not restricted in any monitored group",
   "onstart":"newtestgroup very beginning",
   "onpast":"This will be shown when user pass the test",
   "onfail":"This will be shown when user fail the test",
