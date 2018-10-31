@@ -172,7 +172,11 @@ def starthandler(bot,update):
     for groupid in GROUPS:
         try:
             chatmember = bot.getChatMember(groupid,userid)
-            if chatmember.can_send_messages != False:
+            if chatmember.status != 'restricted':
+                #kicked can not,left can not
+                continue
+            elif chatmember.can_send_messages != False:
+                # can send but just not that kind of
                 continue
             else:
                 update.message.reply_text(GROUPS[groupid]['puzzles'][0]['question'],reply_markup=buildpuzzlemarkup(groupid,GROUPS[groupid]['puzzles'][0]['options']))
