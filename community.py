@@ -40,14 +40,15 @@ for confadmin in globalconfig.items("confadmins"):
     CONFADMINS.append(int(confadmin[0]))
 for dataadmin in globalconfig.items("dataadmins"):
     DATAADMINS.append(int(dataadmin[0]))
+
 # parse groups info
+ALLGROUPS = {}
 GROUPS = {}
 GROUPADMINS = {}
 for groupinfo in globalconfig.items("groups"):
     groupid = int(groupinfo[0])
-    if not "json" in groupinfo[1]:
-        GROUPS[groupid]={}
-        GROUPS[groupid]['groupname']="Othergroup"
+    ALLGROUPS[groupid]="Othergroup"
+    if not ".json" in groupinfo[1]:
         continue
     file=open(groupinfo[1],"r")
     puzzles = json.load(file)
@@ -58,11 +59,14 @@ for groupinfo in globalconfig.items("groups"):
     GROUPS[groupid]['kickjobs'] = {}
     logger.warning("start watching %s",groupid)
 
+print(ALLGROUPS)
+print("---------")
+print(GROUPS)
 def refreshAdmins(bot,job):
-    global GROUPS
+    global ALLGROUPS
     global GROUPADMINS
     logger.warning("start refreshing")
-    for groupid in GROUPS:
+    for groupid in ALLGROUPS:
         GROUPADMINS[groupid]=getAdminsInThisGroup(bot,groupid)
     logger.warning("admins refreshed")
 
@@ -80,8 +84,8 @@ def banInAllGroups(userid):
     file.close()
     logger.warning("blacklist_ids updated")
 
-    global GROUPS
-    for groupid in GROUPS:
+    global ALLGROUPS
+    for groupid in ALLGROUPS:
         try:
             ban(groupid,userid)
             logger.warning("{} banned in {}".format(userid,groupid))
@@ -178,9 +182,9 @@ def supervisehandler(bot,update):
     if not isAdmin(bot,update):
         return
     global globalconfig
-    if not update.message.chat_id in GROUPS:
-        GROUPS[update.message.chat_id]={}
-        GROUPS[update.message.chat_id]['groupname']=update.message.chat.title
+    if not update.message.chat_id in ALLGROUPS:
+        ALLGROUPS[update.message.chat_id]={}
+        ALLGROUPS[update.message.chat_id]['groupname']=update.message.chat.title
         globalconfig.set("groups",str(update.message.chat_id),update.message.chat.title)
         with open(sys.argv[1], 'wb') as configfile:
             globalconfig.write(configfile)
@@ -235,14 +239,14 @@ def starthandler(bot,update):
     update.message.reply_text("You've no group to enter")
         
 def forwardhandler(bot,update):
-    global GROUPS
+    global ALLGROUPS
     global GROUPADMINS
     if update.message.chat_id == update.message.from_user.id:
         fwduser = update.message.forward_from
         isAdmin = False
-        for groupid in GROUPS:
+        for groupid in ALLGROUPS:
             if fwduser.id in GROUPADMINS[groupid]:
-                update.message.reply_text("✅Admin in {}".format(GROUPS[groupid]['groupname']))
+                update.message.reply_text("✅Admin in {}".format(ALLGROUPS[groupid]))
                 isAdmin = True
         if not isAdmin:
             if update.message.from_user.id in DATAADMINS or update.message.from_user.id in CONFADMINS:
@@ -279,7 +283,7 @@ def welcome(bot, update):
 
 
     groupid = update.message.chat_id
-    if groupid in GROUPS:
+    if groupid in GROUPS and "puzzles" in GROUPS[groupid]:
         for newUser in update.message.new_chat_members:
             logger.warning("%s(%s)Joined %s",newUser.full_name,newUser.id,update.message.chat.title)
             restrict(update.message.chat_id,newUser.id,0.4)
