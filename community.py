@@ -47,8 +47,8 @@ GROUPS = {}
 GROUPADMINS = {}
 for groupinfo in globalconfig.items("groups"):
     groupid = int(groupinfo[0])
-    ALLGROUPS[groupid]="Othergroup"
     if not ".json" in groupinfo[1]:
+        ALLGROUPS[groupid]="Othergroup"
         continue
     file=open(groupinfo[1],"r")
     puzzles = json.load(file)
@@ -57,6 +57,7 @@ for groupinfo in globalconfig.items("groups"):
     GROUPS[groupid]['lasthintid']=0
     GROUPS[groupid]['ENTRANCE_PROGRESS']={}
     GROUPS[groupid]['kickjobs'] = {}
+    ALLGROUPS[groupid]=GROUPS[groupid]['groupname']
     logger.warning("start watching %s",groupid)
 
 print(ALLGROUPS)

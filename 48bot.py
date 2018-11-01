@@ -35,7 +35,7 @@ file=open("_data/flushwords.json","r")
 FLUSHWORDS = json.load(file)["words"]
 file.close()
 
-file=open("_data/blacklist_name.json","r")
+file=open("_data/blacklist_names.json","r")
 SPAMWORDS=json.load(file)["words"]
 file.close()
 
@@ -55,7 +55,7 @@ BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
 ENTRANCE_THRESHOLDS={BNB48:10000,BNB48CN:1000}
-KICKINSUFFICIENT = {BNB48:False,BNB48CN:True}
+KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
 SAYINSUFFICIENT = {BNB48:False,BNB48CN:False}
 
 kogeconfig = ConfigParser.ConfigParser()
