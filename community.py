@@ -183,8 +183,9 @@ def supervisehandler(bot,update):
         return
     global globalconfig
     if not update.message.chat_id in ALLGROUPS:
-        ALLGROUPS[update.message.chat_id]={}
-        ALLGROUPS[update.message.chat_id]['groupname']=update.message.chat.title
+        groupid = update.message.chat_id
+        ALLGROUPS[groupid]=update.message.chat.title
+        GROUPADMINS[groupid]=getAdminsInThisGroup(bot,groupid)
         globalconfig.set("groups",str(update.message.chat_id),update.message.chat.title)
         with open(sys.argv[1], 'wb') as configfile:
             globalconfig.write(configfile)
