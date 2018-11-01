@@ -29,6 +29,10 @@ bottoken = globalconfig.get("bot","token")
 botid=int(bottoken.split(":")[0])
 botname = globalconfig.get("bot","name")
 
+updater = Updater(token=bottoken)
+jobqueue = updater.job_queue
+
+
 # read ADMINS
 CONFADMINS= [420909210]
 DATAADMINS= [420909210]
@@ -38,8 +42,13 @@ for dataadmin in globalconfig.items("dataadmins"):
     DATAADMINS.append(int(dataadmin[0]))
 # parse groups info
 GROUPS = {}
+GROUPADMINS = {}
 for groupinfo in globalconfig.items("groups"):
     groupid = int(groupinfo[0])
+    if not "json" in groupinfo[1]:
+        GROUPS[groupid]={}
+        GROUPS[groupid]['groupname']="Othergroup"
+        continue
     file=open(groupinfo[1],"r")
     puzzles = json.load(file)
     file.close()
@@ -49,6 +58,13 @@ for groupinfo in globalconfig.items("groups"):
     GROUPS[groupid]['kickjobs'] = {}
     logger.warning("start watching %s",groupid)
 
+def refreshAdmins(bot,job):
+    global GROUPS
+    global GROUPADMINS
+    logger.warning("start refreshing")
+    for groupid in GROUPS:
+        GROUPADMINS[groupid]=getAdminsInThisGroup(bot,groupid)
+    logger.warning("admins refreshed")
 
 def banInAllGroups(userid):
 
@@ -158,7 +174,19 @@ def idbanallhandler(bot,update):
     things=update.message.text.split(" ")
     banInAllGroups(things[1])
     update.message.reply_text("banned in all groups")
-
+def supervisehandler(bot,update):
+    if not isAdmin(bot,update):
+        return
+    global globalconfig
+    if not update.message.chat_id in GROUPS:
+        GROUPS[update.message.chat_id]={}
+        GROUPS[update.message.chat_id]['groupname']=update.message.chat.title
+        globalconfig.set("groups",str(update.message.chat_id),update.message.chat.title)
+        with open(sys.argv[1], 'wb') as configfile:
+            globalconfig.write(configfile)
+        update.message.reply_text("supervised")
+    else:
+        update.message.reply_text("was supervised before")
 def fwdbanallhandler(bot,update):
     if not isAdmin(bot,update):
         return
@@ -174,8 +202,9 @@ def getAdminsInThisGroup(bot,groupid):
     return RESULTS
 
 def isAdmin(bot,update):
+    global GROUPADMINS
     userid = update.message.from_user.id
-    if userid in getAdminsInThisGroup(bot,update.message.chat_id):
+    if update.message.chat_id in GROUPADMINS and userid in GROUPADMINS[update.message.chat_id]:
         return True
     elif userid in CONFADMINS or userid in DATAADMINS:
         return True
@@ -207,12 +236,12 @@ def starthandler(bot,update):
         
 def forwardhandler(bot,update):
     global GROUPS
+    global GROUPADMINS
     if update.message.chat_id == update.message.from_user.id:
         fwduser = update.message.forward_from
         isAdmin = False
         for groupid in GROUPS:
-            admins = getAdminsInThisGroup(bot,groupid)
-            if fwduser.id in admins:
+            if fwduser.id in GROUPADMINS[groupid]:
                 update.message.reply_text("✅Admin in {}".format(GROUPS[groupid]['groupname']))
                 isAdmin = True
         if not isAdmin:
@@ -285,8 +314,6 @@ def error(bot, update, error):
 
 
 
-updater = Updater(token=bottoken)
-jobqueue = updater.job_queue
 
 def main():
     """Start the bot."""
@@ -305,9 +332,13 @@ def main():
     dp.add_handler(CommandHandler( [ "replybanall" ], replybanallhandler))
     dp.add_handler(CommandHandler( [ "idbanall" ], idbanallhandler))
     dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallhandler))
+    dp.add_handler(CommandHandler( [ "supervise" ], supervisehandler))
 
     # log all errors
     dp.add_error_handler(error)
+
+    # periodical refresh
+    updater.job_queue.run_repeating(refreshAdmins,interval=3600,first=0)
 
 
 
@@ -318,6 +349,7 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
+
 
 
 
