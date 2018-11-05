@@ -36,10 +36,12 @@ jobqueue = updater.job_queue
 # read ADMINS
 CONFADMINS= [420909210]
 DATAADMINS= [420909210]
-for confadmin in globalconfig.items("confadmins"):
-    CONFADMINS.append(int(confadmin[0]))
-for dataadmin in globalconfig.items("dataadmins"):
-    DATAADMINS.append(int(dataadmin[0]))
+if globalconfig.has_section("confadmins"):
+    for confadmin in globalconfig.items("confadmins"):
+        CONFADMINS.append(int(confadmin[0]))
+if globalconfig.has_section("dataadmins"):
+    for dataadmin in globalconfig.items("dataadmins"):
+        DATAADMINS.append(int(dataadmin[0]))
 
 # parse groups info
 ALLGROUPS = {}
@@ -167,20 +169,20 @@ def buildpuzzlemarkup(groupid,options):
     
 
 def replybanallhandler(bot,update):
-    if not isAdmin(bot,update):
+    if not isAdmin(update):
         return
     #ban(update.message.chat_id,update.message.reply_to_message.from_user.id)
     banInAllGroups(update.message.reply_to_message.from_user.id)
     update.message.reply_text("banned in all groups")
 
 def idbanallhandler(bot,update):
-    if not isAdmin(bot,update):
+    if not isAdmin(update):
         return
     things=update.message.text.split(" ")
     banInAllGroups(things[1])
     update.message.reply_text("banned in all groups")
 def supervisehandler(bot,update):
-    if not isAdmin(bot,update):
+    if not isAdmin(update,True,False):
         return
     global globalconfig
     if not update.message.chat_id in ALLGROUPS:
@@ -194,7 +196,7 @@ def supervisehandler(bot,update):
     else:
         update.message.reply_text("was supervised before")
 def fwdbanallhandler(bot,update):
-    if not isAdmin(bot,update):
+    if not isAdmin(update):
         return
     targetuser = update.message.reply_to_message.forward_from
     banInAllGroups(targetuser.id)
@@ -207,15 +209,25 @@ def getAdminsInThisGroup(bot,groupid):
         RESULTS.append(admin.user.id)
     return RESULTS
 
-def isAdmin(bot,update):
+def isAdmin(update,CONFTrue=True,DATATrue=True):
     global GROUPADMINS
     userid = update.message.from_user.id
     if update.message.chat_id in GROUPADMINS and userid in GROUPADMINS[update.message.chat_id]:
         return True
-    elif userid in CONFADMINS or userid in DATAADMINS:
+    elif CONFTrue and userid in CONFADMINS:
+        return True
+    elif DATATrue and userid in DATAADMINS:
         return True
     else:
         return False
+def filehandler(bot,update):
+    filename = update.message.document.file_name
+    if globalconfig.has_section("blackfiletypes"):
+        for item in globalconfig.items("blackfiletypes"):
+            if item[0] in filename:
+                banInAllGroups(update.message.from_user.id)
+                break
+    update.message.delete()
 def starthandler(bot,update):
     
     #must in private mode
@@ -320,6 +332,12 @@ def error(bot, update, error):
 
 
 
+class documentFilter(BaseFilter):
+    def filter(self,message):
+        if not message.document is None:
+            return True
+        else:
+            return False
 
 def main():
     """Start the bot."""
@@ -333,6 +351,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
     dp.add_handler(MessageHandler(Filters.forwarded, forwardhandler))#'''处理转发消息'''
     #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
+    dp.add_handler(MessageHandler(documentFilter(),filehandler))#'''处理成员离开'''
 
     dp.add_handler(CommandHandler( [ "start" ], starthandler))
     dp.add_handler(CommandHandler( [ "replybanall" ], replybanallhandler))
