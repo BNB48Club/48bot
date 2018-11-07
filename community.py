@@ -401,7 +401,8 @@ def main():
     dp.add_error_handler(error)
 
     # periodical refresh
-    updater.job_queue.run_repeating(refreshAdmins,interval=3600,first=0)
+    refreshAdmins(updater.bot,None)
+    updater.job_queue.run_repeating(refreshAdmins,interval=3600,first=3600)
 
 
 
