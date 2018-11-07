@@ -73,6 +73,23 @@ def refreshAdmins(bot,job):
         GROUPADMINS[groupid]=getAdminsInThisGroup(bot,groupid)
     logger.warning("admins refreshed")
 
+def reportInAllGroups(userid):
+    global CONFADMINS
+    for adminid in CONFADMINS:
+        updater.bot.sendMessage(
+            adminid,
+            "Someone reported [{}](tg://user?id={})".format(userid,userid),
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton(
+                        'Ban',
+                        callback_data="banInAllGroups({})".format(userid))
+                    ]
+                ]
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
 def banInAllGroups(userid):
 
     file=open("_data/blacklist_ids.json","r")
@@ -118,6 +135,11 @@ def callbackhandler(bot,update):
         eval(update.callback_query.data)
         update.callback_query.answer('banned')
         return
+    if "reportInAllGroups" in update.callback_query.data:
+        eval(update.callback_query.data)
+        update.callback_query.answer('reported')
+        return
+
     thedata = update.callback_query.data.split("#")
     groupid = int(thedata[0])
     answer = thedata[1]
@@ -181,8 +203,23 @@ def idbanallhandler(bot,update):
     things=update.message.text.split(" ")
     banInAllGroups(things[1])
     update.message.reply_text("banned in all groups")
+
+def dataadminhandler(bot,update):
+    global DATAADMINS
+    global globalconfig
+    targetuser = update.message.reply_to_message.from_user
+    if not isAdmin(update,False,True,False):
+        return
+    if not targetuser.id in DATAADMINS:
+        globalconfig.set("dataadmins",str(targetuser.id),targetuser.full_name)
+        DATAADMINS.append(targetuser.id)
+        with open(sys.argv[1], 'wb') as configfile:
+            globalconfig.write(configfile)
+        update.message.reply_text("{} is dataadmin now".format(targetuser.full_name))
+    else:
+        update.message.reply_text("was dataadmin before")
 def supervisehandler(bot,update):
-    if not isAdmin(update,True,False):
+    if not isAdmin(update,False,True,False):
         return
     global globalconfig
     if not update.message.chat_id in ALLGROUPS:
@@ -209,10 +246,10 @@ def getAdminsInThisGroup(bot,groupid):
         RESULTS.append(admin.user.id)
     return RESULTS
 
-def isAdmin(update,CONFTrue=True,DATATrue=True):
+def isAdmin(update,GROUPTrue=True,CONFTrue=True,DATATrue=True):
     global GROUPADMINS
     userid = update.message.from_user.id
-    if update.message.chat_id in GROUPADMINS and userid in GROUPADMINS[update.message.chat_id]:
+    if GROUPTrue and update.message.chat_id in GROUPADMINS and userid in GROUPADMINS[update.message.chat_id]:
         return True
     elif CONFTrue and userid in CONFADMINS:
         return True
@@ -266,7 +303,7 @@ def forwardhandler(bot,update):
             if update.message.from_user.id in DATAADMINS or update.message.from_user.id in CONFADMINS:
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Ban in all groups!',callback_data="banInAllGroups({})".format(fwduser.id))]]))
             else:
-                update.message.reply_text("‼️ Be careful, this guy is not an admin")
+                update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({})".format(fwduser.id))]]))
         #send in private 
     #else:
         #send in group
@@ -358,6 +395,7 @@ def main():
     dp.add_handler(CommandHandler( [ "idbanall" ], idbanallhandler))
     dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallhandler))
     dp.add_handler(CommandHandler( [ "supervise" ], supervisehandler))
+    dp.add_handler(CommandHandler( [ "dataadmin" ], dataadminhandler))
 
     # log all errors
     dp.add_error_handler(error)
