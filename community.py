@@ -74,12 +74,12 @@ def refreshAdmins(bot,job):
         GROUPADMINS[groupid]=getAdminsInThisGroup(bot,groupid)
     logger.warning("admins refreshed")
 
-def reportInAllGroups(userid):
-    global CONFADMINS
-    for adminid in CONFADMINS:
+def reportInAllGroups(userid,fullname):
+    global DATAADMINS
+    for adminid in DATAADMINS:
         updater.bot.sendMessage(
             adminid,
-            "Someone reported [{}](tg://user?id={})".format(userid,userid),
+            "Someone reported [{}](tg://user?id={})".format(fullname,userid),
             reply_markup=InlineKeyboardMarkup(
                 [
                     [InlineKeyboardButton(
@@ -298,16 +298,16 @@ def forwardhandler(bot,update):
     global GROUPADMINS
     if update.message.chat_id == update.message.from_user.id:
         fwduser = update.message.forward_from
-        isAdmin = False
+        fwdisAdmin = False
         for groupid in ALLGROUPS:
             if fwduser.id in GROUPADMINS[groupid]:
                 update.message.reply_text("✅Admin in {}".format(ALLGROUPS[groupid]))
-                isAdmin = True
-        if not isAdmin:
-            if update.message.from_user.id in DATAADMINS or update.message.from_user.id in CONFADMINS:
+                fwdisAdmin = True
+        if not fwdisAdmin:
+            if isAdmin(update,False,True,True):
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Ban in all groups!',callback_data="banInAllGroups({})".format(fwduser.id))]]))
             else:
-                update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({})".format(fwduser.id))]]))
+                update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({},'{}')".format(fwduser.id,fwduser.full_name))]]))
         #send in private 
     #else:
         #send in group
