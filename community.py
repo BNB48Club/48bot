@@ -52,9 +52,13 @@ for groupinfo in globalconfig.items("groups"):
     if not ".json" in groupinfo[1]:
         ALLGROUPS[groupid]="Othergroup"
         continue
-    file=open(groupinfo[1],"r")
-    puzzles = json.load(file)
-    file.close()
+    try:
+        file=open(groupinfo[1],"r")
+        puzzles = json.load(file)
+        file.close()
+    except IOError:
+        ALLGROUPS[groupid]="Othergroup"
+        continue
     GROUPS[groupid]=puzzles
     GROUPS[groupid]['lasthintid']=0
     GROUPS[groupid]['ENTRANCE_PROGRESS']={}
@@ -62,9 +66,6 @@ for groupinfo in globalconfig.items("groups"):
     ALLGROUPS[groupid]=GROUPS[groupid]['groupname']
     logger.warning("start watching %s",groupid)
 
-print(ALLGROUPS)
-print("---------")
-print(GROUPS)
 def refreshAdmins(bot,job):
     global ALLGROUPS
     global GROUPADMINS
@@ -91,14 +92,17 @@ def reportInAllGroups(userid):
         )
 
 def banInAllGroups(userid):
+    try:
+        file=open("_data/blacklist_ids.json","r")
+        BLACKLIST=json.load(file)["ids"]
+        file.close()
+    except IOError:
+        BLACKLIST=[]
 
-    file=open("_data/blacklist_ids.json","r")
-    BLACKLIST=json.load(file)["ids"]
-    file.close()
-
-    file = codecs.open("_data/blacklist_ids.json","w","utf-8")
     BLACKLIST.append(userid)
     BLACKLIST=list(set(BLACKLIST))
+
+    file = codecs.open("_data/blacklist_ids.json","w","utf-8")
     file.write(json.dumps({"ids":BLACKLIST}))
     file.flush()
     file.close()
@@ -311,13 +315,19 @@ def forwardhandler(bot,update):
 def welcome(bot, update):
     global GROUPS
     
-    file=open("_data/blacklist_names.json","r")
-    SPAMWORDS=json.load(file)["words"]
-    file.close()
+    try:
+        file=open("_data/blacklist_names.json","r")
+        SPAMWORDS=json.load(file)["words"]
+        file.close()
+    except IOError:
+        SPAMWORDS=[]
 
-    file=open("_data/blacklist_ids.json","r")
-    BLACKLIST=json.load(file)["ids"]
-    file.close()
+    try:
+        file=open("_data/blacklist_ids.json","r")
+        BLACKLIST=json.load(file)["ids"]
+        file.close()
+    except IOError:
+        BLACKLIST=[]
 
     for newUser in update.message.new_chat_members:
         if newUser.id in BLACKLIST:
