@@ -7,6 +7,7 @@ import json
 import time
 import random
 import ConfigParser
+import thread
 from telegram import *
 from telegram.ext import *
 
@@ -92,6 +93,10 @@ def reportInAllGroups(userid,fullname):
         )
 
 def banInAllGroups(userid):
+    thread = Thread(target = actualBanInAllGroups, args=[userid])
+    thread.start()
+
+def actualBanInAllGroups(userid):
     try:
         file=open("_data/blacklist_ids.json","r")
         BLACKLIST=json.load(file)["ids"]
@@ -271,7 +276,6 @@ def filehandler(bot,update):
     update.message.delete()
 def debughandler(bot,update):
     chatmember = bot.getChatMember(update.message.chat_id,update.message.reply_to_message.from_user.id)
-    print(chatmember)
     update.message.reply_text(chatmember.status)
     update.message.reply_text(chatmember.until_date)
 def starthandler(bot,update):
