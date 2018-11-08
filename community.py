@@ -297,20 +297,25 @@ def forwardhandler(bot,update):
     global ALLGROUPS
     global GROUPADMINS
     if update.message.chat_id == update.message.from_user.id:
+        #send in private 
         fwduser = update.message.forward_from
         fwdisAdmin = False
+        response=""
         for groupid in ALLGROUPS:
             if fwduser.id in GROUPADMINS[groupid]:
-                update.message.reply_text("✅Admin in {}".format(ALLGROUPS[groupid]))
                 fwdisAdmin = True
-        if not fwdisAdmin:
+                response+="✅✅Admin in {}".format(ALLGROUPS[groupid])
+                response+="\n"
+        if fwdisAdmin:
+            update.message.reply_text(response)
+        else:
             if isAdmin(update,False,True,True):
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Ban in all groups!',callback_data="banInAllGroups({})".format(fwduser.id))]]))
             else:
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({},'{}')".format(fwduser.id,fwduser.full_name))]]))
-        #send in private 
-    #else:
+    else:
         #send in group
+        pass
     
 def welcome(bot, update):
     global GROUPS
