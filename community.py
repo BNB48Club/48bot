@@ -273,7 +273,8 @@ def filehandler(bot,update):
             if item[0] in filename:
                 banInAllGroups(update.message.from_user.id)
                 break
-    update.message.delete()
+    if not ".mp4" in update.message.document.file_name:
+        update.message.delete()
 def debughandler(bot,update):
     chatmember = bot.getChatMember(update.message.chat_id,update.message.reply_to_message.from_user.id)
     update.message.reply_text(chatmember.status)
@@ -400,7 +401,8 @@ def error(bot, update, error):
 
 class documentFilter(BaseFilter):
     def filter(self,message):
-        if message.animation is None and not message.document is None:
+        if not message.document is None:
+        #if message.animation is None and not message.document is None:
             return True
         else:
             return False
