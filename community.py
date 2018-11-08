@@ -400,7 +400,7 @@ def error(bot, update, error):
 
 class documentFilter(BaseFilter):
     def filter(self,message):
-        if not message.document is None:
+        if message.animation is None and not message.document is None:
             return True
         else:
             return False
