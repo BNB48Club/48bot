@@ -269,6 +269,11 @@ def filehandler(bot,update):
                 banInAllGroups(update.message.from_user.id)
                 break
     update.message.delete()
+def debughandler(bot,update):
+    chatmember = bot.getChatMember(update.message.chat_id,update.message.reply_to_message.from_user.id)
+    print(chatmember)
+    update.message.reply_text(chatmember.status)
+    update.message.reply_text(chatmember.until_date)
 def starthandler(bot,update):
     
     #must in private mode
@@ -280,10 +285,13 @@ def starthandler(bot,update):
         try:
             chatmember = bot.getChatMember(groupid,userid)
             if chatmember.status != 'restricted':
-                #kicked can not,left can not
+                #if banned, no reentry
                 continue
             elif chatmember.can_send_messages != False:
                 # can send but just not that kind of
+                continue
+            elif not chatmember.until_date is None:
+                # must be forever
                 continue
             else:
                 update.message.reply_text(GROUPS[groupid]['puzzles'][0]['question'],reply_markup=buildpuzzlemarkup(groupid,GROUPS[groupid]['puzzles'][0]['options']))
@@ -291,7 +299,7 @@ def starthandler(bot,update):
                 return
         except:
             continue
-    update.message.reply_text("You've no group to enter")
+    update.message.reply_text("You've no new group test pending")
         
 def forwardhandler(bot,update):
     global ALLGROUPS
@@ -336,22 +344,24 @@ def welcome(bot, update):
 
     for newUser in update.message.new_chat_members:
         if newUser.id in BLACKLIST:
-            update.message.delete()
-            banInAllGroups(newUser.id)
-            logger.warning('%s|%s is banned from all groups because of blacklist',newUser.id,newUser.full_name,update.message.chat.title)
+            ban(update.message.chat_id,newUser.id)
+            logger.warning('%s|%s is banned from %s because of blacklist',newUser.id,newUser.full_name,update.message.chat.title)
             return
         for SPAMWORD in SPAMWORDS:
             if SPAMWORD in newUser.full_name:
-                update.message.delete()
                 banInAllGroups(newUser.id)
-                logger.warning('%s|%s is banned from all groups because of spam',newUser.id,newUser.full_name,update.message.chat.title)
+                logger.warning('%s|%s is banned from all groups because of spam',newUser.id,newUser.full_name)
                 return
 
 
     groupid = update.message.chat_id
     if groupid in GROUPS and "puzzles" in GROUPS[groupid]:
         for newUser in update.message.new_chat_members:
+            newChatMember = bot.getChatMember(groupid,newUser.id)
             logger.warning("%s(%s)Joined %s",newUser.full_name,newUser.id,update.message.chat.title)
+            if not newChatMember.until_date is None:
+                # if muted before, do nothing
+                continue
             restrict(update.message.chat_id,newUser.id,0.4)
             logger.warning("Muted")
             probation = GROUPS[groupid]['probation']
@@ -367,7 +377,6 @@ def welcome(bot, update):
 
             GROUPS[groupid]['lasthintid'] = update.message.reply_text("{}: {}".format(GROUPS[groupid]['grouphint'],botname),quote=True).message_id
 
-            update.message.delete()
 
             try:
                 bot.sendMessage(newUser.id,GROUPS[groupid]['onstart'],parse_mode=ParseMode.MARKDOWN)
@@ -377,6 +386,7 @@ def welcome(bot, update):
             
 
     
+    update.message.delete()
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
@@ -406,6 +416,7 @@ def main():
     dp.add_handler(MessageHandler(documentFilter(),filehandler))#'''处理成员离开'''
 
     dp.add_handler(CommandHandler( [ "start" ], starthandler))
+    dp.add_handler(CommandHandler( [ "debug" ], debughandler))
     dp.add_handler(CommandHandler( [ "replybanall" ], replybanallhandler))
     dp.add_handler(CommandHandler( [ "idbanall" ], idbanallhandler))
     dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallhandler))
