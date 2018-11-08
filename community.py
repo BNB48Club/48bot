@@ -359,7 +359,7 @@ def welcome(bot, update):
         for newUser in update.message.new_chat_members:
             newChatMember = bot.getChatMember(groupid,newUser.id)
             logger.warning("%s(%s)Joined %s",newUser.full_name,newUser.id,update.message.chat.title)
-            if not newChatMember.until_date is None:
+            if 'restricted' in newChatMember.status and not newChatMember.until_date is None:
                 # if muted before, do nothing
                 continue
             restrict(update.message.chat_id,newUser.id,0.4)
