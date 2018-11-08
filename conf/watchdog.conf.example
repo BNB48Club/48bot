@@ -1,9 +1,12 @@
 [bot]
 token = 111111111:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 name = @usernameofyourbot
-
 [groups]
 -1000011001100 = puzzles/yourpuzzle.json
 -1000000000001 = anotherpuzzle.json
 [confadmins]
 [dataadmins]
+[blackfiletypes]
+.exe = NO
+.scr = NO
+.vbs = NO
