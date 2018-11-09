@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import sys
+import re
 import codecs
 import logging
 import json
@@ -10,6 +11,7 @@ import ConfigParser
 import thread
 from telegram import *
 from telegram.ext import *
+from threading import Thread
 
 reload(sys)  
 sys.setdefaultencoding('utf8')
@@ -138,15 +140,19 @@ def restrict(chatid,userid,minutes):
 def unrestrict(chatid,userid):
     updater.bot.restrictChatMember(chatid,user_id=userid,can_send_messages=True,can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
 
-def callbackhandler(bot,update):
+def callbackHandler(bot,update):
     global GROUPS
     if "banInAllGroups" in update.callback_query.data:
         eval(update.callback_query.data)
         update.callback_query.answer('banned')
+        update.callback_query.message.reply_text('banned')
+        update.callback_query.message.edit_reply_markup(text=update.callback_query.message.text)
         return
     if "reportInAllGroups" in update.callback_query.data:
         eval(update.callback_query.data)
         update.callback_query.answer('reported')
+        update.callback_query.message.reply_text('reported')
+        update.callback_query.message.edit_reply_markup(text=update.callback_query.message.text)
         return
 
     thedata = update.callback_query.data.split("#")
@@ -199,21 +205,21 @@ def buildpuzzlemarkup(groupid,options):
     return InlineKeyboardMarkup(keys)
     
 
-def replybanallhandler(bot,update):
+def replybanallHandler(bot,update):
     if not isAdmin(update):
         return
     #ban(update.message.chat_id,update.message.reply_to_message.from_user.id)
     banInAllGroups(update.message.reply_to_message.from_user.id)
     update.message.reply_text("banned in all groups")
 
-def idbanallhandler(bot,update):
+def idbanallHandler(bot,update):
     if not isAdmin(update):
         return
     things=update.message.text.split(" ")
     banInAllGroups(things[1])
     update.message.reply_text("banned in all groups")
 
-def dataadminhandler(bot,update):
+def dataadminHandler(bot,update):
     global DATAADMINS
     global globalconfig
     targetuser = update.message.reply_to_message.from_user
@@ -227,7 +233,7 @@ def dataadminhandler(bot,update):
         update.message.reply_text("{} is dataadmin now".format(targetuser.full_name))
     else:
         update.message.reply_text("was dataadmin before")
-def supervisehandler(bot,update):
+def superviseHandler(bot,update):
     if not isAdmin(update,False,True,False):
         return
     global globalconfig
@@ -241,7 +247,7 @@ def supervisehandler(bot,update):
         update.message.reply_text("supervised")
     else:
         update.message.reply_text("was supervised before")
-def fwdbanallhandler(bot,update):
+def fwdbanallHandler(bot,update):
     if not isAdmin(update):
         return
     targetuser = update.message.reply_to_message.forward_from
@@ -266,7 +272,7 @@ def isAdmin(update,GROUPTrue=True,CONFTrue=True,DATATrue=True):
         return True
     else:
         return False
-def filehandler(bot,update):
+def fileHandler(bot,update):
     filename = update.message.document.file_name
     if globalconfig.has_section("blackfiletypes"):
         for item in globalconfig.items("blackfiletypes"):
@@ -275,11 +281,11 @@ def filehandler(bot,update):
                 break
     if not ".mp4" in update.message.document.file_name:
         update.message.delete()
-def debughandler(bot,update):
+def debugHandler(bot,update):
     chatmember = bot.getChatMember(update.message.chat_id,update.message.reply_to_message.from_user.id)
     update.message.reply_text(chatmember.status)
     update.message.reply_text(chatmember.until_date)
-def starthandler(bot,update):
+def startHandler(bot,update):
     
     #must in private mode
     if update.message.chat_id != update.message.from_user.id:
@@ -306,12 +312,20 @@ def starthandler(bot,update):
             continue
     update.message.reply_text("You've no new group test pending")
         
-def forwardhandler(bot,update):
+def forwardHandler(bot,update):
     global ALLGROUPS
     global GROUPADMINS
-    if update.message.chat_id == update.message.from_user.id:
+    fwduser = update.message.forward_from
+    suspectScam = False
+    if globalconfig.has_section("scamkeys"):
+        for scamkey in globalconfig.items("scamkeys"):
+            if not re.match(scamkey[0],fwduser.username,re.IGNORECASE) is None or not re.match(scamkey[0],fwduser.full_name,re.IGNORECASE) is None:
+                logger.warning("Hit scam key {}".format(scamkey))
+                suspectScam = True
+                break
+
+    if update.message.chat.type == 'private' or suspectScam:
         #send in private 
-        fwduser = update.message.forward_from
         fwdisAdmin = False
         response=""
         for groupid in ALLGROUPS:
@@ -320,15 +334,13 @@ def forwardhandler(bot,update):
                 response+="✅✅Admin in {}".format(ALLGROUPS[groupid])
                 response+="\n"
         if fwdisAdmin:
-            update.message.reply_text(response)
+            if update.message.chat.type == 'private':
+                update.message.reply_text(response)
         else:
             if isAdmin(update,False,True,True):
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Ban in all groups!',callback_data="banInAllGroups({})".format(fwduser.id))]]))
             else:
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({},'{}')".format(fwduser.id,fwduser.full_name))]]))
-    else:
-        #send in group
-        pass
     
 def welcome(bot, update):
     global GROUPS
@@ -415,19 +427,19 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CallbackQueryHandler(callbackhandler))
+    dp.add_handler(CallbackQueryHandler(callbackHandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
-    dp.add_handler(MessageHandler(Filters.forwarded, forwardhandler))#'''处理转发消息'''
+    dp.add_handler(MessageHandler(Filters.forwarded, forwardHandler))#'''处理转发消息'''
     #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
-    dp.add_handler(MessageHandler(documentFilter(),filehandler))#'''处理成员离开'''
+    dp.add_handler(MessageHandler(documentFilter(),fileHandler))#'''处理文件
 
-    dp.add_handler(CommandHandler( [ "start" ], starthandler))
-    dp.add_handler(CommandHandler( [ "debug" ], debughandler))
-    dp.add_handler(CommandHandler( [ "replybanall" ], replybanallhandler))
-    dp.add_handler(CommandHandler( [ "idbanall" ], idbanallhandler))
-    dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallhandler))
-    dp.add_handler(CommandHandler( [ "supervise" ], supervisehandler))
-    dp.add_handler(CommandHandler( [ "dataadmin" ], dataadminhandler))
+    dp.add_handler(CommandHandler( [ "start" ], startHandler))
+    dp.add_handler(CommandHandler( [ "debug" ], debugHandler))
+    dp.add_handler(CommandHandler( [ "replybanall" ], replybanallHandler))
+    dp.add_handler(CommandHandler( [ "idbanall" ], idbanallHandler))
+    dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallHandler))
+    dp.add_handler(CommandHandler( [ "supervise" ], superviseHandler))
+    dp.add_handler(CommandHandler( [ "dataadmin" ], dataadminHandler))
 
     # log all errors
     dp.add_error_handler(error)

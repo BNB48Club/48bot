@@ -10,3 +10,9 @@ name = @usernameofyourbot
 .exe = NO
 .scr = NO
 .vbs = NO
+[scamkeys]
+binance = YES
+support = YES
+admin = YES
+service = YES
+
