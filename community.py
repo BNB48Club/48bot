@@ -53,14 +53,14 @@ GROUPADMINS = {}
 for groupinfo in globalconfig.items("groups"):
     groupid = int(groupinfo[0])
     if not ".json" in groupinfo[1]:
-        ALLGROUPS[groupid]="Othergroup"
+        ALLGROUPS[groupid]=groupinfo[1]
         continue
     try:
         file=open(groupinfo[1],"r")
         puzzles = json.load(file)
         file.close()
     except IOError:
-        ALLGROUPS[groupid]="Othergroup"
+        ALLGROUPS[groupid]=groupinfo[1]
         continue
     GROUPS[groupid]=puzzles
     GROUPS[groupid]['lasthintid']=0
