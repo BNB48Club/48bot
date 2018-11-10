@@ -87,26 +87,32 @@ def reportInAllGroups(userid,fullname):
                 [
                     [InlineKeyboardButton(
                         'Ban',
-                        callback_data="banInAllGroups({})".format(userid))
+                        callback_data="banInAllGroups({},True)".format(userid))
+                    ],
+                    [InlineKeyboardButton(
+                        'unban',
+                        callback_data="banInAllGroups({},False)".format(userid))
                     ]
                 ]
             ),
             parse_mode=ParseMode.MARKDOWN
         )
 
-def banInAllGroups(userid):
-    thread = Thread(target = actualBanInAllGroups, args=[userid])
+def banInAllGroups(userid,op=True):
+    thread = Thread(target = actualBanInAllGroups, args=[userid,op])
     thread.start()
 
-def actualBanInAllGroups(userid):
+def actualBanInAllGroups(userid,op):
     try:
         file=open("_data/blacklist_ids.json","r")
         BLACKLIST=json.load(file)["ids"]
         file.close()
     except IOError:
         BLACKLIST=[]
-
-    BLACKLIST.append(userid)
+    if op:
+        BLACKLIST.append(userid)
+    else:
+        BLACKLIST.remove(userid)
     BLACKLIST=list(set(BLACKLIST))
 
     file = codecs.open("_data/blacklist_ids.json","w","utf-8")
@@ -118,18 +124,22 @@ def actualBanInAllGroups(userid):
     global ALLGROUPS
     for groupid in ALLGROUPS:
         try:
-            ban(groupid,userid)
-            logger.warning("{} banned in {}".format(userid,groupid))
+            if op:
+                ban(groupid,userid)
+                logger.warning("{} banned in {}".format(userid,groupid))
+            else:
+                unban(groupid,userid)
+                logger.warning("{} unbanned in {}".format(userid,groupid))
         except:
             pass
 
 def ban(chatid,userid):
     updater.bot.kickChatMember(chatid,userid)
-
+def unban(chatid,userid):
+    updater.bot.unbanChatMember(chatid,userid)
 def kick(chatid,userid):
     updater.bot.kickChatMember(chatid,userid)
     updater.bot.unbanChatMember(chatid,userid)
-
 def watchdogkick(bot,job):
     kick(job.context['groupid'],job.context['userid'])
     logger.warning("%s(%s) is kicked from %s",job.context['full_name'],job.context['userid'],job.context['groupid'])
@@ -206,17 +216,17 @@ def buildpuzzlemarkup(groupid,options):
     
 
 def replybanallHandler(bot,update):
-    if not isAdmin(update):
+    if not isAdmin(update,False,True,True):
         return
     #ban(update.message.chat_id,update.message.reply_to_message.from_user.id)
-    banInAllGroups(update.message.reply_to_message.from_user.id)
+    banInAllGroups(update.message.reply_to_message.from_user.id,True)
     update.message.reply_text("banned in all groups")
 
 def idbanallHandler(bot,update):
-    if not isAdmin(update):
+    if not isAdmin(update,False,True,True):
         return
     things=update.message.text.split(" ")
-    banInAllGroups(things[1])
+    banInAllGroups(things[1],True)
     update.message.reply_text("banned in all groups")
 
 def dataadminHandler(bot,update):
@@ -248,10 +258,10 @@ def superviseHandler(bot,update):
     else:
         update.message.reply_text("was supervised before")
 def fwdbanallHandler(bot,update):
-    if not isAdmin(update):
+    if not isAdmin(update,False,True,True):
         return
     targetuser = update.message.reply_to_message.forward_from
-    banInAllGroups(targetuser.id)
+    banInAllGroups(targetuser.id,True)
     update.message.reply_text("banned in all groups")
 
 def getAdminsInThisGroup(bot,groupid):
@@ -277,7 +287,7 @@ def fileHandler(bot,update):
     if globalconfig.has_section("blackfiletypes"):
         for item in globalconfig.items("blackfiletypes"):
             if item[0] in filename:
-                banInAllGroups(update.message.from_user.id)
+                banInAllGroups(update.message.from_user.id,True)
                 break
     if not ".mp4" in update.message.document.file_name:
         update.message.delete()
@@ -338,7 +348,13 @@ def forwardHandler(bot,update):
                 update.message.reply_text(response)
         else:
             if isAdmin(update,False,True,True):
-                update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Ban in all groups!',callback_data="banInAllGroups({})".format(fwduser.id))]]))
+                update.message.reply_text(
+                    "‼️ Be careful, this guy is not an admin",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton('Ban in all groups!',callback_data="banInAllGroups({},True)".format(fwduser.id))],
+                        [InlineKeyboardButton('Unban in all groups!',callback_data="banInAllGroups({},False)".format(fwduser.id))]
+                    ])
+                )
             else:
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({},'{}')".format(fwduser.id,fwduser.full_name))]]))
     
@@ -366,7 +382,7 @@ def welcome(bot, update):
             return
         for SPAMWORD in SPAMWORDS:
             if SPAMWORD in newUser.full_name:
-                banInAllGroups(newUser.id)
+                banInAllGroups(newUser.id,True)
                 logger.warning('%s|%s is banned from all groups because of spam',newUser.id,newUser.full_name)
                 return
 
