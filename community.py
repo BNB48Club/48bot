@@ -110,9 +110,12 @@ def actualBanInAllGroups(userid,op):
     except IOError:
         BLACKLIST=[]
     if op:
-        BLACKLIST.append(userid)
+        if not userid in BLACKLIST:
+            BLACKLIST.append(userid)
     else:
-        BLACKLIST.remove(userid)
+        if userid in BLACKLIST:
+            BLACKLIST.remove(userid)
+
     BLACKLIST=list(set(BLACKLIST))
 
     file = codecs.open("_data/blacklist_ids.json","w","utf-8")
