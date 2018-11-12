@@ -187,6 +187,10 @@ def callbackHandler(bot,update):
     if answer == GROUPS[groupid]['puzzles'][currentpuzzleindex]['answer']:
     #correct answer
         update.callback_query.answer(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
+        update.callback_query.message.reply_text(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
+        update.callback_query.message.edit_reply_markup(text=update.callback_query.message.text)
+        
+
         if ENTRANCE_PROGRESS[activeuser.id] + 1>= len(GROUPS[groupid]['puzzles']):
             #all questions done
             if activeuser.id in GROUPS[groupid]['kickjobs']:
@@ -205,7 +209,9 @@ def callbackHandler(bot,update):
     else:
         #wrong answer
         update.callback_query.answer(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postincorrect'])
-        bot.sendMessage(activeuser.id,GROUPS[groupid]['onfail'])
+        update.callback_query.message.reply_text(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postincorrect'])
+        update.callback_query.message.edit_reply_markup(text=update.callback_query.message.text)
+        update.callback_query.message.reply_text(GROUPS[groupid]['onfail'])
         del ENTRANCE_PROGRESS[activeuser.id]
 
     #update.callback_query.edit_message_text( text = lasttext)
