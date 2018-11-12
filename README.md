@@ -7,6 +7,7 @@
 社区机器人，用于同一机器人协调管理多个群的情形。
 ## 配置文件
 配置文件示例参见 `conf/watchdog.conf.example`
+必须使用UTF-8编码保存
 ### [bot]
 `
 token = 111111111:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -31,6 +32,7 @@ puzzle文件格式参考`_data/11111111111111.json.example`
 
 其中puzzle文件路径若使用相对路径，current directory为启动机器人时的working directory
 
+必须使用UTF-8编码保存
 ### [confadmins]
 有在线更改conf权限的用户，格式为 `userid = 备注内容`
 ### [dataadmins]
