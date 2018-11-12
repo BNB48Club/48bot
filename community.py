@@ -157,7 +157,7 @@ def callbackHandler(bot,update):
     global GROUPS
     if "banInAllGroups" in update.callback_query.data:
         eval(update.callback_query.data)
-        update.callback_query.answer('banned')
+        update.callback_query.answer('Done')
         update.callback_query.message.reply_text('Done')
         update.callback_query.message.edit_reply_markup(text=update.callback_query.message.text)
         return
