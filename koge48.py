@@ -26,8 +26,6 @@ class Koge48:
 
         for each in res:
             bnbamount = each[4]
-            if bnbamount > 50000:
-                bnbamount = 50000
             if bnbamount > 0:
                 self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
         
