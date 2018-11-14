@@ -338,7 +338,7 @@ def forwardHandler(bot,update):
     suspectScam = False
     if globalconfig.has_section("scamkeys"):
         for scamkey in globalconfig.items("scamkeys"):
-            if not re.search(scamkey[0],fwduser.username,re.IGNORECASE) is None or not re.search(scamkey[0],fwduser.full_name,re.IGNORECASE) is None:
+            if (not fwduser.username is None  and not re.search(scamkey[0],fwduser.username,re.IGNORECASE) is None )or not re.search(scamkey[0],fwduser.full_name,re.IGNORECASE) is None:
                 logger.warning("{}/{} Hit scam key {}".format(fwduser.username,fwduser.full_name,scamkey))
                 suspectScam = True
                 break
