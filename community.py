@@ -23,51 +23,63 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 
-# Read config
 globalconfig = ConfigParser.ConfigParser()
-globalconfig.read(sys.argv[1])
 
-# set bot conf
-bottoken = globalconfig.get("bot","token")
-botid=int(bottoken.split(":")[0])
-botname = globalconfig.get("bot","name")
+def loadConfig(globalconfig):
+    global bottoken
+    global botid
+    global botname
+    global CONFADMINS
+    global DATAADMINS
+    global GROUPS
+    global ALLGROUPS
+    global GROUPADMINS
+    global updater
+    global jobqueue
+    # Read config
+    globalconfig.read(sys.argv[1])
 
-updater = Updater(token=bottoken)
-jobqueue = updater.job_queue
+    # set bot conf
+    bottoken = globalconfig.get("bot","token")
+    botid=int(bottoken.split(":")[0])
+    botname = globalconfig.get("bot","name")
+
+    updater = Updater(token=bottoken)
+    jobqueue = updater.job_queue
 
 
-# read ADMINS
-CONFADMINS= [420909210]
-DATAADMINS= [420909210]
-if globalconfig.has_section("confadmins"):
-    for confadmin in globalconfig.items("confadmins"):
-        CONFADMINS.append(int(confadmin[0]))
-if globalconfig.has_section("dataadmins"):
-    for dataadmin in globalconfig.items("dataadmins"):
-        DATAADMINS.append(int(dataadmin[0]))
+    # read ADMINS
+    CONFADMINS= [420909210]
+    DATAADMINS= [420909210]
+    if globalconfig.has_section("confadmins"):
+        for confadmin in globalconfig.items("confadmins"):
+            CONFADMINS.append(int(confadmin[0]))
+    if globalconfig.has_section("dataadmins"):
+        for dataadmin in globalconfig.items("dataadmins"):
+            DATAADMINS.append(int(dataadmin[0]))
 
-# parse groups info
-ALLGROUPS = {}
-GROUPS = {}
-GROUPADMINS = {}
-for groupinfo in globalconfig.items("groups"):
-    groupid = int(groupinfo[0])
-    if not ".json" in groupinfo[1]:
-        ALLGROUPS[groupid]=groupinfo[1]
-        continue
-    try:
-        file=open(groupinfo[1],"r")
-        puzzles = json.load(file)
-        file.close()
-    except IOError:
-        ALLGROUPS[groupid]=groupinfo[1]
-        continue
-    GROUPS[groupid]=puzzles
-    GROUPS[groupid]['lasthintid']=0
-    GROUPS[groupid]['ENTRANCE_PROGRESS']={}
-    GROUPS[groupid]['kickjobs'] = {}
-    ALLGROUPS[groupid]=GROUPS[groupid]['groupname']
-    logger.warning("start watching %s",groupid)
+    # parse groups info
+    ALLGROUPS = {}
+    GROUPS = {}
+    GROUPADMINS = {}
+    for groupinfo in globalconfig.items("groups"):
+        groupid = int(groupinfo[0])
+        if not ".json" in groupinfo[1]:
+            ALLGROUPS[groupid]=groupinfo[1]
+            continue
+        try:
+            file=open(groupinfo[1],"r")
+            puzzles = json.load(file)
+            file.close()
+        except IOError:
+            ALLGROUPS[groupid]=groupinfo[1]
+            continue
+        GROUPS[groupid]=puzzles
+        GROUPS[groupid]['lasthintid']=0
+        GROUPS[groupid]['ENTRANCE_PROGRESS']={}
+        GROUPS[groupid]['kickjobs'] = {}
+        ALLGROUPS[groupid]=GROUPS[groupid]['groupname']
+        logger.warning("start watching %s",groupid)
 
 def refreshAdmins(bot,job):
     global ALLGROUPS
@@ -238,6 +250,17 @@ def idbanallHandler(bot,update):
     banInAllGroups(things[1],True)
     update.message.reply_text("banned in all groups")
 
+def reloadHandler(bot,update):
+    global DATAADMINS
+    global globalconfig
+    if not isAdmin(update,False,True,False):
+        return
+    if update.message.chat.type != 'private':
+        return
+
+    loadConfig(globalconfig)
+    update.message.reply_text("reloaded")
+
 def dataadminHandler(bot,update):
     global DATAADMINS
     global globalconfig
@@ -307,7 +330,7 @@ def debugHandler(bot,update):
 def startHandler(bot,update):
     
     #must in private mode
-    if update.message.chat_id != update.message.from_user.id:
+    if update.message.chat.type != 'private':
         return
     userid = update.message.from_user.id
     global GROUPS
@@ -338,7 +361,7 @@ def forwardHandler(bot,update):
     suspectScam = False
     if globalconfig.has_section("scamkeys"):
         for scamkey in globalconfig.items("scamkeys"):
-            if (not fwduser.username is None  and not re.search(scamkey[0],fwduser.username,re.IGNORECASE) is None )or not re.search(scamkey[0],fwduser.full_name,re.IGNORECASE) is None:
+            if not re.search(scamkey[0],str(fwduser.username),re.IGNORECASE) is None or not re.search(scamkey[0],fwduser.full_name,re.IGNORECASE) is None:
                 logger.warning("{}/{} Hit scam key {}".format(fwduser.username,fwduser.full_name,scamkey))
                 suspectScam = True
                 break
@@ -446,7 +469,8 @@ class documentFilter(BaseFilter):
 
 def main():
     """Start the bot."""
-    # Create the EventHandler and pass it your bot's token.
+    loadConfig(globalconfig)
+    logger.warning("%s(%s) starts watching",globalconfig.get("bot","name"),globalconfig.get("bot","token"))
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -465,6 +489,7 @@ def main():
     dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallHandler))
     dp.add_handler(CommandHandler( [ "supervise" ], superviseHandler))
     dp.add_handler(CommandHandler( [ "dataadmin" ], dataadminHandler))
+    dp.add_handler(CommandHandler( [ "reload" ], reloadHandler))
 
     # log all errors
     dp.add_error_handler(error)
@@ -487,5 +512,4 @@ def main():
 
 
 if __name__ == '__main__':
-    logger.warning("%s(%s) starts watching",globalconfig.get("bot","name"),globalconfig.get("bot","token"))
     main()

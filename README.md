@@ -60,6 +60,7 @@ puzzle文件格式参考`_data/11111111111111.json.example`
 1. /supervise dataadmin在机器人加入的群中发送该命令，如果该群并未在groups中配置，机器人会将该群写入groups配置。
 1. /dataadmin confadmin在机器人加入的群中回复别人的消息，被回复者会被配置为dataadmin。
 1. /start watchdog功能中，用户私聊机器人发送该命令进行入群测试。
-1. /replybanall 群管理员或者dataadmin或者confadmin使用该命令，在所有管辖群中封禁被回复者，并加入黑名单。
-1. /fwdbanall 群管理员或者dataadmin或者confadmin使用该命令，在所有管辖群中封禁被回复消息的转发来源者，并加入黑名单。
+1. /replybanall dataadmin或者confadmin使用该命令，在所有管辖群中封禁被回复者，并加入黑名单。
+1. `/fwdbanall` dataadmin或者confadmin使用该命令，在所有管辖群中封禁被回复消息的转发来源者，并加入黑名单。
 1. `/idbanall <userid>` dataadmin或者confadmin使用该命令，在所有管辖群中封禁该userid，并加入黑名单。
+1. `/reload` confadmin私聊机器人使用该命令，重新载入配置文件(以及配置文件中指定的数据文件)
