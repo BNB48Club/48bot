@@ -392,6 +392,7 @@ def forwardHandler(bot,update):
     
 def welcome(bot, update):
     global GROUPS
+    update.message.delete()
     
     try:
         file=open("_data/blacklist_names.json","r")
@@ -451,7 +452,6 @@ def welcome(bot, update):
             
 
     
-    update.message.delete()
 
 def error(bot, update, error):
     """Log Errors caused by Updates."""
