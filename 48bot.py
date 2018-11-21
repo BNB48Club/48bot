@@ -17,6 +17,7 @@ from botsapi import bots
 from koge48 import Koge48
 from casino import LonghuCasino
 from redpacket import RedPacket
+from auction import Auction
 #import schedule
 
 reload(sys)  
@@ -71,6 +72,7 @@ koge48core = Koge48(
 
 global_longhu_casinos = {}
 global_redpackets = {}
+global_auctions = {}
 #casino_betsize = 2
 CASINO_INTERVAL = 30
 
@@ -147,7 +149,31 @@ def restrict(bot, update,chatid, user, targetuser, duration, reply_to_message):
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
-    if message_id in global_redpackets:
+    if message_id in global_auctions:
+    	auction_id = message_id
+        auction = global_auctions[auction_id]
+        if "deal" in update.callback_query.data:
+            if  activeuser.id == auction._fromuser.id:
+                koge48core.changeBalance(auction._fromuser.id,auction._price,"auction income")
+                update.callback_query.answer()
+                update.callback_query.edit_message_text(text=auction.getLog(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
+                return
+            else:
+                update.callback_query.answer("拍卖发起者才能Deal")
+    
+        lastprice = auction._price
+        stepprice = int(update.callback_query.data)
+        newprice = (auction._price + stepprice)
+        if koge48core.getBalance(activeuser.id) >= newprice:
+            koge48core.changeBalance(auction._bidder.id,lastprice,"auction beated")
+            koge48core.changeBalance(activeuser.id,-newprice,"auction bid")
+            auction.bid(activeuser,stepprice)
+            update.callback_query.edit_message_text(text=auction.getLog(),reply_markup=buildAuctionMarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
+            update.callback_query.answer()
+        else:
+            update.callback_query.answer("钱不够")
+
+    elif message_id in global_redpackets:
         redpacket_id = message_id
         redpacket = global_redpackets[redpacket_id]
         thisdraw = redpacket.draw(activeuser)
@@ -188,6 +214,14 @@ def callbackhandler(bot,update):
     else:
         update.callback_query.answer()
 
+def buildAuctionMarkup():
+    return InlineKeyboardMarkup(
+        [
+        [InlineKeyboardButton('+1',callback_data="1"),InlineKeyboardButton('+10',callback_data="10"), InlineKeyboardButton('+100',callback_data="100")],
+        [InlineKeyboardButton('+1000',callback_data="1000"), InlineKeyboardButton('+10000',callback_data="10000"), InlineKeyboardButton('+100000',callback_data="100000")],
+    	[InlineKeyboardButton('Deal!',callback_data="deal")]
+        ]
+    )
 def buildredpacketmarkup():
     return InlineKeyboardMarkup(
         [
@@ -411,10 +445,18 @@ def siriancommandhandler(bot,update):
         file.flush()
         file.close()
         logger.warning("blacklist_name updated")
+
+def auctionHandler(bot,update):
+    things = update.message.text.split(' ')
+    if "/auction" in things[0] and len(things) == 2:
+        auction = Auction(update.message.from_user,things[1])
+        message = update.message.reply_markdown(auction.getLog(),reply_markup=buildAuctionMarkup(),quote=False,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+        global_auctions[message.message_id]=auction
+    
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
 
-    if "/trans" in things[0] and not update.message.reply_to_message is None:
+    if "/trans" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
         user = update.message.from_user
@@ -798,6 +840,7 @@ def main():
         ],
         siriancommandhandler)#
     )
+    dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
     dp.add_handler(CommandHandler(
         [
             "trans",
