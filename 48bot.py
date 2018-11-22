@@ -183,6 +183,7 @@ def callbackhandler(bot,update):
             update.callback_query.answer(text=u"你抢到{} Koge48积分".format(thisdraw))
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
         else:
+            update.callback_query.edit_message_text(text=update.callback_query.message.text,disable_web_page_preview=True)
             update.callback_query.answer()
             del global_redpackets[redpacket_id]
     elif message_id in global_longhu_casinos:
