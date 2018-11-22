@@ -157,6 +157,7 @@ def callbackhandler(bot,update):
                 koge48core.changeBalance(auction._fromuser.id,auction._price,"auction income")
                 update.callback_query.answer()
                 update.callback_query.edit_message_text(text=auction.getLog(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
+                del global_auctions[auction_id]
                 return
             else:
                 update.callback_query.answer("拍卖发起者才能Deal")
@@ -183,6 +184,7 @@ def callbackhandler(bot,update):
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
         else:
             update.callback_query.answer()
+            del global_redpackets[redpacket_id]
     elif message_id in global_longhu_casinos:
         casino_id = message_id
         thecasino = global_longhu_casinos[casino_id]
