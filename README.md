@@ -12,7 +12,7 @@
 - mybinding - (私聊)查看绑定与空投
 - bal - 查余额 直接发送时查看自己的余额，回复别人消息时查看对方余额。
 - trans - 转账 必须回复别人消息使用。 `/trans 转账金额`
-- auction - 发起拍卖 `/auction 商品描述(不得有空格)`
+- auction - 发起拍卖 `/auction 底价 持续小时 商品描述`
 - hongbao - 发红包。 `/hongbao [金额] [个数] [祝福语]` 金额默认10，个数默认1，祝福语默认“恭喜发财”
 - redpacket - 发红包。 `/redpacket [金额] [个数] [祝福语]` 默认值同上
 - groupstats - (管理)查看本群挖矿统计
