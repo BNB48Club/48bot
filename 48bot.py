@@ -55,6 +55,8 @@ BNB48CN= -1001345282090
 BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
+#BNB48PUBLISH=SirIanM
+BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100,BNB48CN:10}
 KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
@@ -146,30 +148,37 @@ def restrict(bot, update,chatid, user, targetuser, duration, reply_to_message):
         bot.sendMessage(chatid, text=u"{}被禁言{}分钟".format(targetuser.full_name,duration), reply_to_message_id=reply_to_id)
 
 
+def dealAuction(bot,job):
+    auction_id = job.context
+    auction = global_auctions[auction_id]
+    koge48core.changeBalance(auction['asker'].id,auction['price'],"auction {} income".format(auction_id))
+    updater.bot.editMessageReplyMarkup(BNB48PUBLISH,auction_id)
+    updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已成交。已入账{} Koge".format(auction_id,auction['price'])) 
+    updater.bot.sendMessage(auction['bidder'].id,"您已在拍卖 https://t.me/bnb48club_publish/{} 中标。最终价格{} Koge".format(auction_id,auction['price'])) 
+    updater.bot.sendMessage(BNB48PUBLISH,"拍卖成交",reply_to_message_id=auction_id)
+    del global_auctions[auction_id]
+
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
     if message_id in global_auctions:
     	auction_id = message_id
         auction = global_auctions[auction_id]
-        if "deal" in update.callback_query.data:
-            if  activeuser.id == auction._fromuser.id:
-                koge48core.changeBalance(auction._fromuser.id,auction._price,"auction income")
-                update.callback_query.answer()
-                update.callback_query.edit_message_text(text=auction.getLog(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
-                del global_auctions[auction_id]
-                return
-            else:
-                update.callback_query.answer("拍卖发起者才能Deal")
-    
-        lastprice = auction._price
-        stepprice = int(update.callback_query.data)
-        newprice = (auction._price + stepprice)
+        newprice = int(update.callback_query.data)
+        if newprice <= auction['price']:
+            update.callback_query.answer("必须超过{}".format(auction['price'])
+            return
+        if activeuser.id == auction['asker'].id:
+            update.callback_query.answer("不得竞拍自己发布的拍卖品")
+            return
         if koge48core.getBalance(activeuser.id) >= newprice:
-            koge48core.changeBalance(auction._bidder.id,lastprice,"auction beated")
-            koge48core.changeBalance(activeuser.id,-newprice,"auction bid")
-            auction.bid(activeuser,stepprice)
-            update.callback_query.edit_message_text(text=auction.getLog(),reply_markup=buildAuctionMarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
+            if not auction['bidder'] is None:
+                koge48core.changeBalance(auction['bidder'].id,auction['price'],"auction {} beated".format(auction_id))
+                bot.sendMessage(auction['bidder'].id,"你在[拍卖](https://t.me/bnb48club_publish/{}) 中的出价刚刚被 {} 超越".format(auction_id,activeuser.mention_markdown()),parse_mode=ParseMode.MARKDOWN)
+            koge48core.changeBalance(activeuser.id,-newprice,"auction {} bid".format(auction_id))
+            auction['bidder']=activeuser
+            auction['price']=newprice
+            update.callback_query.edit_message_text(text=auctionTitle(auction),reply_markup=buildAuctionMarkup(newprice),parse_mode=ParseMode.MARKDOWN)
             update.callback_query.answer()
         else:
             update.callback_query.answer("钱不够")
@@ -217,12 +226,11 @@ def callbackhandler(bot,update):
     else:
         update.callback_query.answer()
 
-def buildAuctionMarkup():
+def buildAuctionMarkup(price):
     return InlineKeyboardMarkup(
         [
-        [InlineKeyboardButton('+1',callback_data="1"),InlineKeyboardButton('+10',callback_data="10"), InlineKeyboardButton('+100',callback_data="100")],
-        [InlineKeyboardButton('+1000',callback_data="1000"), InlineKeyboardButton('+10000',callback_data="10000"), InlineKeyboardButton('+100000',callback_data="100000")],
-    	[InlineKeyboardButton('Deal!',callback_data="deal")]
+            [InlineKeyboardButton('+1',callback_data=str(price+1)),InlineKeyboardButton('+10',callback_data=str(price+10)), InlineKeyboardButton('+100',callback_data=str(price+100))],
+            [InlineKeyboardButton('+1000',callback_data=str(price+1000)), InlineKeyboardButton('+10000',callback_data=str(price+10000)), InlineKeyboardButton('+100000',callback_data=str(price+100000))],
         ]
     )
 def buildredpacketmarkup():
@@ -449,12 +457,47 @@ def siriancommandhandler(bot,update):
         file.close()
         logger.warning("blacklist_name updated")
 
+def auctionTitle(auction,first=False):
+    if first:
+        return "{} 拍卖 {} \n底价{}\n截止时间{}".format(
+            auction['asker'].mention_markdown(),
+            auction['title'],
+            auction['base'],
+            auction['end']
+        )
+    else:
+        return "{} 拍卖 `{}` \n底价{}\n截止时间{}\n当前最高出价 {} By {}".format(
+            auction['asker'].mention_markdown(),
+            auction['title'],
+            auction['base'],
+            auction['end'],
+            auction['price'],
+            auction['bidder'].mention_markdown()
+        )
 def auctionHandler(bot,update):
     things = update.message.text.split(' ')
-    if "/auction" in things[0] and len(things) == 2:
-        auction = Auction(update.message.from_user,things[1])
-        message = update.message.reply_markdown(auction.getLog(),reply_markup=buildAuctionMarkup(),quote=False,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+    if update.message.chat.type == 'private' and "/auction" in things[0] and len(things) >= 4:
+        base = int(things[1])
+        hours = float(things[2])
+        seconds = int(hours*3600)
+        del things[0]
+        del things[0]
+        del things[0]
+        title = " ".join(things)
+        auction = {
+            "asker":update.message.from_user,
+            "base":base,
+            "end":time.strftime("%Y-%m-%d %H:%M:%S %Z", time.localtime(time.time()+seconds)),
+            "title":title,
+            "bidder":None,
+            "price":base
+        }
+        message = bot.sendMessage(BNB48PUBLISH,auctionTitle(auction,True),reply_markup=buildAuctionMarkup(0),parse_mode=ParseMode.MARKDOWN)
         global_auctions[message.message_id]=auction
+        updater.job_queue.run_once(dealAuction,seconds,context=message.message_id)
+        update.message.reply_text("拍卖成功发布 https://t.me/bnb48club_publish/{}".format(message.message_id))
+    else:
+        update.message.reply_text("命令格式：私聊我 发送 '/auction 底价 持续小时 商品描述'")
     
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
@@ -788,6 +831,7 @@ def error(bot, update, error):
 
 mytoken = selectBot(bots)
 updater = Updater(token=mytoken)
+j = updater.job_queue
 
 def main():
     """Start the bot."""
@@ -865,7 +909,6 @@ def main():
 
 
     #Start the schedule
-    j = updater.job_queue
     job_airdrop = j.run_repeating(airdropportal,interval=86400,first=3600)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
