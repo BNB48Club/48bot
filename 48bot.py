@@ -166,10 +166,13 @@ def callbackhandler(bot,update):
         auction = global_auctions[auction_id]
         newprice = int(update.callback_query.data)
         if newprice <= auction['price']:
-            update.callback_query.answer("必须超过{}".format(auction['price'])
+            update.callback_query.answer("必须超过{}".format(auction['price']))
             return
         if activeuser.id == auction['asker'].id:
             update.callback_query.answer("不得竞拍自己发布的拍卖品")
+            return
+        if activeuser.id == auction['bidder'].id:
+            update.callback_query.answer("不得对自己加价")
             return
         if koge48core.getBalance(activeuser.id) >= newprice:
             if not auction['bidder'] is None:
