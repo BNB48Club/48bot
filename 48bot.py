@@ -151,11 +151,17 @@ def restrict(bot, update,chatid, user, targetuser, duration, reply_to_message):
 def dealAuction(bot,job):
     auction_id = job.context
     auction = global_auctions[auction_id]
-    koge48core.changeBalance(auction['asker'].id,auction['price'],"auction {} income".format(auction_id))
+    if not auction['bidder'] is None:
+        koge48core.changeBalance(auction['asker'].id,auction['price'],"auction {} income".format(auction_id))
+        updater.bot.editMessageReplyMarkup(BNB48PUBLISH,auction_id)
+        updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已成交。已入账{} Koge".format(auction_id,auction['price'])) 
+        updater.bot.sendMessage(auction['bidder'].id,"您已在拍卖 https://t.me/bnb48club_publish/{} 中标。最终价格{} Koge".format(auction_id,auction['price'])) 
+        updater.bot.sendMessage(BNB48PUBLISH,"拍卖成交",reply_to_message_id=auction_id)
+    else:
+        updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已流拍。".format(auction_id))
+        updater.bot.sendMessage(BNB48PUBLISH,"拍卖流拍",reply_to_message_id=auction_id)
+
     updater.bot.editMessageReplyMarkup(BNB48PUBLISH,auction_id)
-    updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已成交。已入账{} Koge".format(auction_id,auction['price'])) 
-    updater.bot.sendMessage(auction['bidder'].id,"您已在拍卖 https://t.me/bnb48club_publish/{} 中标。最终价格{} Koge".format(auction_id,auction['price'])) 
-    updater.bot.sendMessage(BNB48PUBLISH,"拍卖成交",reply_to_message_id=auction_id)
     del global_auctions[auction_id]
 
 def callbackhandler(bot,update):
@@ -495,7 +501,7 @@ def auctionHandler(bot,update):
             "bidder":None,
             "price":base
         }
-        message = bot.sendMessage(BNB48PUBLISH,auctionTitle(auction,True),reply_markup=buildAuctionMarkup(0),parse_mode=ParseMode.MARKDOWN)
+        message = bot.sendMessage(BNB48PUBLISH,auctionTitle(auction,True),reply_markup=buildAuctionMarkup(base),parse_mode=ParseMode.MARKDOWN)
         global_auctions[message.message_id]=auction
         updater.job_queue.run_once(dealAuction,seconds,context=message.message_id)
         update.message.reply_text("拍卖成功发布 https://t.me/bnb48club_publish/{}".format(message.message_id))
