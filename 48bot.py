@@ -151,18 +151,24 @@ def restrict(bot, update,chatid, user, targetuser, duration, reply_to_message):
 def dealAuction(bot,job):
     auction_id = job.context
     auction = global_auctions[auction_id]
+    del global_auctions[auction_id]
     if not auction['bidder'] is None:
         koge48core.changeBalance(auction['asker'].id,auction['price'],"auction {} income".format(auction_id))
-        updater.bot.editMessageReplyMarkup(BNB48PUBLISH,auction_id)
-        updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已成交。已入账{} Koge".format(auction_id,auction['price'])) 
-        updater.bot.sendMessage(auction['bidder'].id,"您已在拍卖 https://t.me/bnb48club_publish/{} 中标。最终价格{} Koge".format(auction_id,auction['price'])) 
-        updater.bot.sendMessage(BNB48PUBLISH,"拍卖成交",reply_to_message_id=auction_id)
+        try:
+            updater.bot.sendMessage(BNB48PUBLISH,"拍卖成交",reply_to_message_id=auction_id)
+            updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已成交。已入账{} Koge".format(auction_id,auction['price'])) 
+            updater.bot.sendMessage(auction['bidder'].id,"您已在拍卖 https://t.me/bnb48club_publish/{} 中标。最终价格{} Koge".format(auction_id,auction['price'])) 
+            updater.bot.editMessageReplyMarkup(BNB48PUBLISH,auction_id)
+        except TelegramError:
+            pass
     else:
-        updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已流拍。".format(auction_id))
-        updater.bot.sendMessage(BNB48PUBLISH,"拍卖流拍",reply_to_message_id=auction_id)
+        try:
+            updater.bot.sendMessage(auction['asker'].id,"您的拍卖 https://t.me/bnb48club_publish/{} 已流拍。".format(auction_id))
+            updater.bot.sendMessage(BNB48PUBLISH,"拍卖流拍",reply_to_message_id=auction_id)
+            updater.bot.editMessageReplyMarkup(BNB48PUBLISH,auction_id)
+        except TelegramError:
+            pass
 
-    updater.bot.editMessageReplyMarkup(BNB48PUBLISH,auction_id)
-    del global_auctions[auction_id]
 
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
@@ -177,13 +183,16 @@ def callbackhandler(bot,update):
         if activeuser.id == auction['asker'].id:
             update.callback_query.answer("不得竞拍自己发布的拍卖品")
             return
-        if activeuser.id == auction['bidder'].id:
+        if not auction['bidder'] is None and activeuser.id == auction['bidder'].id:
             update.callback_query.answer("不得对自己加价")
             return
         if koge48core.getBalance(activeuser.id) >= newprice:
             if not auction['bidder'] is None:
                 koge48core.changeBalance(auction['bidder'].id,auction['price'],"auction {} beated".format(auction_id))
-                bot.sendMessage(auction['bidder'].id,"你在[拍卖](https://t.me/bnb48club_publish/{}) 中的出价刚刚被 {} 超越".format(auction_id,activeuser.mention_markdown()),parse_mode=ParseMode.MARKDOWN)
+                try:
+                    bot.sendMessage(auction['bidder'].id,"你在[拍卖](https://t.me/bnb48club_publish/{}) 中的出价刚刚被 {} 超越".format(auction_id,activeuser.mention_markdown()),parse_mode=ParseMode.MARKDOWN)
+                except TelegramError:
+                    pass
             koge48core.changeBalance(activeuser.id,-newprice,"auction {} bid".format(auction_id))
             auction['bidder']=activeuser
             auction['price']=newprice
@@ -236,10 +245,14 @@ def callbackhandler(bot,update):
         update.callback_query.answer()
 
 def buildAuctionMarkup(price):
+    p1 = max(1,int(price*0.01))
+    p10 = max(10,int(price*0.1))
+    p100 = max(100,price)
+    p1000 = max(1000,price*10)
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton('+1',callback_data=str(price+1)),InlineKeyboardButton('+10',callback_data=str(price+10)), InlineKeyboardButton('+100',callback_data=str(price+100))],
-            [InlineKeyboardButton('+1000',callback_data=str(price+1000)), InlineKeyboardButton('+10000',callback_data=str(price+10000)), InlineKeyboardButton('+100000',callback_data=str(price+100000))],
+            [InlineKeyboardButton("+{}".format(p1),callback_data=str(price+p1)),InlineKeyboardButton('+{}'.format(p10),callback_data=str(price+p10))],
+            [InlineKeyboardButton('+{}'.format(p100),callback_data=str(price+p100)), InlineKeyboardButton('+{}'.format(p1000),callback_data=str(price+p1000))]
         ]
     )
 def buildredpacketmarkup():
@@ -487,6 +500,13 @@ def auctionHandler(bot,update):
     things = update.message.text.split(' ')
     if update.message.chat.type == 'private' and "/auction" in things[0] and len(things) >= 4:
         base = int(things[1])
+        fee = max(base*0.03,100)
+        asker = update.message.from_user
+        if koge48core.getBalance(asker.id) < fee:
+            update.message.reply_text("发起拍卖需要一次性收取底价3%作为佣金，最低收费100Koge。您的余额不足")
+            return
+        else:
+            koge48core.changeBalance(asker.id,-fee,"auction fee")
         hours = float(things[2])
         seconds = int(hours*3600)
         del things[0]
@@ -494,7 +514,7 @@ def auctionHandler(bot,update):
         del things[0]
         title = " ".join(things)
         auction = {
-            "asker":update.message.from_user,
+            "asker":asker,
             "base":base,
             "end":time.strftime("%Y-%m-%d %H:%M:%S %Z", time.localtime(time.time()+seconds)),
             "title":title,
