@@ -25,7 +25,25 @@ logger = logging.getLogger(__name__)
 
 globalconfig = ConfigParser.ConfigParser()
 
-def loadConfig(globalconfig):
+# Read config
+globalconfig.read(sys.argv[1])
+
+# set bot conf
+bottoken = globalconfig.get("bot","token")
+botid=int(bottoken.split(":")[0])
+botname = globalconfig.get("bot","name")
+
+updater = Updater(token=bottoken, request_kwargs={'read_timeout': 30, 'connect_timeout': 10})
+
+ALLGROUPS = {}
+GROUPS = {}
+GROUPADMINS = {}
+CONFADMINS= [420909210]
+DATAADMINS= [420909210]
+
+def loadConfig(globalconfig,first=True):
+    globalconfig.read(sys.argv[1])
+
     global bottoken
     global botid
     global botname
@@ -35,49 +53,45 @@ def loadConfig(globalconfig):
     global ALLGROUPS
     global GROUPADMINS
     global updater
-    global jobqueue
-    # Read config
-    globalconfig.read(sys.argv[1])
-
-    # set bot conf
-    bottoken = globalconfig.get("bot","token")
-    botid=int(bottoken.split(":")[0])
-    botname = globalconfig.get("bot","name")
-
-    updater = Updater(token=bottoken)
-    jobqueue = updater.job_queue
 
 
     # read ADMINS
-    CONFADMINS= [420909210]
-    DATAADMINS= [420909210]
     if globalconfig.has_section("confadmins"):
         for confadmin in globalconfig.items("confadmins"):
-            CONFADMINS.append(int(confadmin[0]))
+            if not int(confadmin[0]) in CONFADMINS:
+                CONFADMINS.append(int(confadmin[0]))
     if globalconfig.has_section("dataadmins"):
         for dataadmin in globalconfig.items("dataadmins"):
-            DATAADMINS.append(int(dataadmin[0]))
+            if not int(dataadmin[0]) in DATAADMINS:
+                DATAADMINS.append(int(dataadmin[0]))
 
     # parse groups info
-    ALLGROUPS = {}
-    GROUPS = {}
-    GROUPADMINS = {}
     for groupinfo in globalconfig.items("groups"):
         groupid = int(groupinfo[0])
-        if not ".json" in groupinfo[1]:
+        if re.search("\.json$",groupinfo[1]) is None:
             ALLGROUPS[groupid]=groupinfo[1]
+            if groupid in GROUPS:
+                del GROUPS[groupid]
+            logger.warning("doesn't watch %s",groupid)
             continue
         try:
             file=open(groupinfo[1],"r")
             puzzles = json.load(file)
             file.close()
-        except IOError:
+        except Exception as error:
             ALLGROUPS[groupid]=groupinfo[1]
+            if groupid in GROUPS:
+                del GROUPS[groupid]
+            print(error)
+            logger.warning("doesn't watch %s",groupid)
             continue
-        GROUPS[groupid]=puzzles
-        GROUPS[groupid]['lasthintid']=0
-        GROUPS[groupid]['ENTRANCE_PROGRESS']={}
-        GROUPS[groupid]['kickjobs'] = {}
+        if first:
+            GROUPS[groupid]=puzzles
+            GROUPS[groupid]['lasthintid']=0
+            GROUPS[groupid]['ENTRANCE_PROGRESS']={}
+            GROUPS[groupid]['kickjobs'] = {}
+        else:
+            GROUPS[groupid].update(puzzles)
         ALLGROUPS[groupid]=GROUPS[groupid]['groupname']
         logger.warning("start watching %s",groupid)
 
@@ -86,7 +100,7 @@ def refreshAdmins(bot,job):
     global GROUPADMINS
     logger.warning("start refreshing")
     for groupid in ALLGROUPS:
-        GROUPADMINS[groupid]=getAdminsInThisGroup(bot,groupid)
+        GROUPADMINS[groupid]=getAdminsInThisGroup(groupid)
     logger.warning("admins refreshed")
 
 def reportInAllGroups(userid,fullname):
@@ -282,7 +296,7 @@ def superviseHandler(bot,update):
     if not update.message.chat_id in ALLGROUPS:
         groupid = update.message.chat_id
         ALLGROUPS[groupid]=update.message.chat.title
-        GROUPADMINS[groupid]=getAdminsInThisGroup(bot,groupid)
+        GROUPADMINS[groupid]=getAdminsInThisGroup(groupid)
         globalconfig.set("groups",str(update.message.chat_id),update.message.chat.title)
         with open(sys.argv[1], 'wb') as configfile:
             globalconfig.write(configfile)
@@ -296,8 +310,8 @@ def fwdbanallHandler(bot,update):
     banInAllGroups(targetuser.id,True)
     update.message.reply_text("banned in all groups")
 
-def getAdminsInThisGroup(bot,groupid):
-    admins = bot.get_chat_administrators(groupid)
+def getAdminsInThisGroup(groupid):
+    admins = updater.bot.get_chat_administrators(groupid)
     RESULTS=[]
     for admin in admins:
         RESULTS.append(admin.user.id)
@@ -431,7 +445,7 @@ def welcome(bot, update):
             restrict(update.message.chat_id,newUser.id,0.4)
             logger.warning("Muted")
             probation = GROUPS[groupid]['probation']
-            GROUPS[groupid]['kickjobs'][newUser.id] = jobqueue.run_once(watchdogkick,probation*60,context = {"userid":newUser.id,"groupid":groupid,"full_name":newUser.full_name})
+            GROUPS[groupid]['kickjobs'][newUser.id] = updater.job_queue.run_once(watchdogkick,probation*60,context = {"userid":newUser.id,"groupid":groupid,"full_name":newUser.full_name})
             logger.warning("%s minutes kicker timer started for %s in %s",GROUPS[groupid]['probation'],newUser.id,groupid)
 
 

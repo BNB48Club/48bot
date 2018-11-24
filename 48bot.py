@@ -859,7 +859,7 @@ def error(bot, update, error):
 
 
 mytoken = selectBot(bots)
-updater = Updater(token=mytoken)
+updater = Updater(token=mytoken, request_kwargs={'read_timeout': 30, 'connect_timeout': 15})
 j = updater.job_queue
 
 def main():
