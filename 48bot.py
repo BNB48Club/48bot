@@ -209,10 +209,12 @@ def callbackhandler(bot,update):
             koge48core.changeBalance(activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name),redpacket._fromuser.id)
             update.callback_query.answer(text=u"你抢到{} Koge48积分".format(thisdraw))
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
-        else:
+        elif thisdraw == -1:
             update.callback_query.edit_message_text(text=update.callback_query.message.text,disable_web_page_preview=True)
             update.callback_query.answer()
             del global_redpackets[redpacket_id]
+        else:
+            update.callback_query.answer("每人只能领取一次")
     elif message_id in global_longhu_casinos:
         casino_id = message_id
         thecasino = global_longhu_casinos[casino_id]

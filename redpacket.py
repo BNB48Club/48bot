@@ -18,6 +18,8 @@ class RedPacket:
         return text
     def draw(self,user):
         if self._amount < 1 or user.id in self._drawed:
+            return -1
+        if user.id in self._drawed:
             return 0
         elif self._amount == 1:
             self._amount = 0
