@@ -16,6 +16,8 @@ class RedPacket:
         for each in self._drawed:
             text += "`{}`抽到{}\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
+    def left(self):
+        return self._amount
     def draw(self,user):
         if self._amount < 1 or user.id in self._drawed:
             return -1

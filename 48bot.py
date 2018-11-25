@@ -209,9 +209,11 @@ def callbackhandler(bot,update):
             koge48core.changeBalance(activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name),redpacket._fromuser.id)
             update.callback_query.answer(text=u"你抢到{} Koge48积分".format(thisdraw))
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
-        elif thisdraw == -1:
-            update.callback_query.edit_message_text(text=update.callback_query.message.text,disable_web_page_preview=True)
-            update.callback_query.answer()
+            if redpacket.left() < 1:
+                update.callback_query.edit_message_text(text=update.callback_query.message.text,disable_web_page_preview=True,timeout=60)
+                del global_redpackets[redpacket_id]
+        elif thisdraw < 0:
+            update.callback_query.edit_message_text(text=update.callback_query.message.text,disable_web_page_preview=True,timeout=60)
             del global_redpackets[redpacket_id]
         else:
             update.callback_query.answer("每人只能领取一次")
