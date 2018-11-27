@@ -431,8 +431,7 @@ def forwardHandler(bot,update):
     
 def textInGroupHandler(bot,update):
     if not isAdmin(update,True,False,False):
-        if not pointscore.mine(update.message.from_user,update.message.chat_id):
-            logger.warning("mined failed")
+        pointscore.mine(update.message.from_user,update.message.chat_id)
 def pointsHandler(bot,update):
     update.message.reply_text("💎{}".format(pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
 def clearpointsHandler(bot,update):

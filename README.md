@@ -22,6 +22,7 @@
 - unrestrict - (管理/收费)解禁
 - promote - (收费)提升为本群管理员 回复消息使用
 - demote - (收费)剥夺本群管理员 回复消息使用
+- clean 大Boss清空隐藏任务，之后请立即停止机器人运行
 # CommunityBot
 社区机器人，用于同一机器人协调管理多个群的情形。
 ## 配置文件
@@ -83,3 +84,7 @@ puzzle文件格式参考`_data/11111111111111.json.example`
 1. `/fwdbanall` dataadmin或者confadmin使用该命令，在所有管辖群中封禁被回复消息的转发来源者，并加入黑名单。
 1. `/idbanall <userid>` dataadmin或者confadmin使用该命令，在所有管辖群中封禁该userid，并加入黑名单。
 1. `/reload` confadmin私聊机器人使用该命令，重新载入配置文件(以及配置文件中指定的数据文件)
+1. `/points` 群内查看自己在本群的社区积分
+1. `/rank` 群管理员查看本群积分排名前十名单
+1. `/clearpoints` 群管理员清空本群所有积分
+1. `/clean` dataadmin 清空隐藏任务，之后请立即停止机器人运行
