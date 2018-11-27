@@ -430,8 +430,7 @@ def forwardHandler(bot,update):
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({},'{}')".format(fwduser.id,fwduser.full_name))]]))
     
 def textInGroupHandler(bot,update):
-    if not pointscore.mine(update.message.from_user,update.message.chat_id):
-        logger.warning("mined failed")
+    pointscore.mine(update.message.from_user,update.message.chat_id)
 def pointsHandler(bot,update):
     update.message.reply_text("💎{}".format(pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
 def clearpointsHandler(bot,update):

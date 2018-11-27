@@ -6,8 +6,6 @@ import time
 import sqlite3
 import logging
 
-from binance.client import Client
-
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.WARNING)
