@@ -687,7 +687,8 @@ def cleanHandler(bot,update):
         updater.job_queue.stop()
         for job in updater.job_queue.jobs():
             job.schedule_removal()
-            job.run(bot)
+            if job.name in [ "dealAuction" ]
+                job.run(bot)
             logger.warning("job {} cleared".format(job.name))
         updater.stop()
         updater.is_idle = False
@@ -895,7 +896,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
-    dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
+    #dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
     dp.add_handler(RegexHandler("^\w{32}$",chequehandler))
 
 
