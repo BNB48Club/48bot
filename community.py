@@ -170,6 +170,7 @@ def kick(chatid,userid):
     updater.bot.kickChatMember(chatid,userid)
     updater.bot.unbanChatMember(chatid,userid)
 def watchdogkick(bot,job):
+    logger.warning("%s(%s) is being kicked from %s",job.context['full_name'],job.context['userid'],job.context['groupid'])
     kick(job.context['groupid'],job.context['userid'])
     logger.warning("%s(%s) is kicked from %s",job.context['full_name'],job.context['userid'],job.context['groupid'])
 
@@ -264,6 +265,16 @@ def idbanallHandler(bot,update):
     banInAllGroups(things[1],True)
     update.message.reply_text("banned in all groups")
 
+def cleanHandler(bot,update):
+    if isAdmin(update,False,True,False):
+        updater.job_queue.stop()
+        for job in updater.job_queue.jobs():
+            job.schedule_removal()
+            job.run(bot)
+            logger.warning("job {} cleared".format(job.name))
+        updater.stop()
+        updater.is_idle = False
+        os.exit()
 def reloadHandler(bot,update):
     global DATAADMINS
     global globalconfig
@@ -504,6 +515,7 @@ def main():
     dp.add_handler(CommandHandler( [ "supervise" ], superviseHandler))
     dp.add_handler(CommandHandler( [ "dataadmin" ], dataadminHandler))
     dp.add_handler(CommandHandler( [ "reload" ], reloadHandler))
+    dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
 
     # log all errors
     dp.add_error_handler(error)

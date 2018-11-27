@@ -41,14 +41,14 @@ c.execute("SELECT * FROM `apikey`")
 res = c.fetchall()
 for each in res:
     bnbamount = getBNBAmountByAPI(each[1],each[2])
-    print(bnbamount)
+    print("api: {} {}".format(each[0],bnbamount))
     c.execute("INSERT INTO bnb (uid,offchain) VALUES (%s,%s) ON DUPLICATE KEY UPDATE offchain=%s",[each[0],bnbamount,bnbamount])
 
 c.execute("SELECT * FROM `eth`")
 res = c.fetchall()
 for each in res:
     bnbamount = getBNBAmountByETH(each[1])
-    print(bnbamount)
+    #print(bnbamount)
     c.execute("INSERT INTO bnb (uid,onchain) VALUES (%s,%s) ON DUPLICATE KEY UPDATE onchain=%s",[each[0],bnbamount,bnbamount])
 
 db.commit()

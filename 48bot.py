@@ -58,9 +58,9 @@ BNB48CASINO=-1001319319354
 #BNB48PUBLISH=SirIanM
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
-ENTRANCE_THRESHOLDS={BNB48:100,BNB48CN:10}
+ENTRANCE_THRESHOLDS={BNB48:1,BNB48CN:10}
 KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
-SAYINSUFFICIENT = {BNB48:False,BNB48CN:False}
+SAYINSUFFICIENT = {BNB48:True,BNB48CN:False}
 
 kogeconfig = ConfigParser.ConfigParser()
 kogeconfig.read("conf/koge48.conf")
@@ -369,7 +369,7 @@ def pmcommandhandler(bot,update):
         update.message.reply_markdown(response)
     elif "/start" in things[0]:
         
-        if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]*(time.time() - BINANCE_ANNI)/(3600*24):
+        if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]*int((time.time() - BINANCE_ANNI)/3600/24):
             update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
             update.message.reply_markdown("从2018.7.14起至今，日均BNB持仓超过100枚方可加入。上述持仓唯一认可凭证是Koge48数量。输入 /bind 查看如何绑定BNB持仓情况领取Koge48.")
@@ -682,6 +682,17 @@ def chequehandler(bot,update):
         update.message.reply_markdown("该支票已被领取")
     elif change == 0:
         update.message.reply_markdown("不存在的支票号码")
+def cleanHandler(bot,update):
+    if update.message.from_user.id == SirIanM:
+        updater.job_queue.stop()
+        for job in updater.job_queue.jobs():
+            job.schedule_removal()
+            job.run(bot)
+            logger.warning("job {} cleared".format(job.name))
+        updater.stop()
+        updater.is_idle = False
+        os.exit()
+        update.message.reply_text('cleaned')
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
@@ -841,9 +852,9 @@ def welcome(bot, update):
 def checkThresholds(chatid,userid,message):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
-    if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
+    if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]*int((time.time() - BINANCE_ANNI)/3600/24):
         if SAYINSUFFICIENT[chatid]:
-            message.reply_markdown("{}持仓不足{}，达标之前此消息将持续出现。".format(getkoge48md(),ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
+            message.reply_markdown("2018.7.14至今BNB日均持仓不足{}(由{}持仓数量认定)，达标之前此消息将持续出现。".format(ENTRANCE_THRESHOLDS[chatid],getkoge48md()),disable_web_page_preview=True)
         if KICKINSUFFICIENT[chatid]:
             kick(chatid,userid)
         
@@ -936,6 +947,7 @@ def main():
             "cheque"
         ],
         botcommandhandler))# '''处理默认所有命令'''
+    dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
 
     # log all errors
     dp.add_error_handler(error)
