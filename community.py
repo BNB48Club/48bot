@@ -12,6 +12,7 @@ import thread
 from telegram import *
 from telegram.ext import *
 from threading import Thread
+from points import Points
 
 reload(sys)  
 sys.setdefaultencoding('utf8')
@@ -40,6 +41,8 @@ GROUPS = {}
 GROUPADMINS = {}
 CONFADMINS= [420909210]
 DATAADMINS= [420909210]
+
+pointscore= Points('_data/points.db')
 
 def loadConfig(globalconfig,first=True):
     globalconfig.read(sys.argv[1])
@@ -379,6 +382,17 @@ def startHandler(bot,update):
             continue
     update.message.reply_text("You've no new group test pending")
         
+def cleanHandler(bot,update):
+    if isAdmin(update,False,True,False):
+        updater.job_queue.stop()
+        for job in updater.job_queue.jobs():
+            job.schedule_removal()
+            job.run(bot)
+            logger.warning("job {} cleared".format(job.name))
+        updater.stop()
+        updater.is_idle = False
+        os.exit()
+        update.message.reply_text('cleaned')
 def forwardHandler(bot,update):
     global ALLGROUPS
     global GROUPADMINS
@@ -415,6 +429,24 @@ def forwardHandler(bot,update):
             else:
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({},'{}')".format(fwduser.id,fwduser.full_name))]]))
     
+def textInGroupHandler(bot,update):
+    if not pointscore.mine(update.message.from_user,update.message.chat_id):
+        logger.warning("mined failed")
+def pointsHandler(bot,update):
+    update.message.reply_text("💎{}".format(pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
+def clearpointsHandler(bot,update):
+    if not isAdmin(update,True,False,False):
+        return
+    pointscore.clearGroup(update.message.chat_id)
+    update.message.reply_text("cleared")
+def rankHandler(bot,update):
+    if not isAdmin(update,True,False,False):
+        return
+    res=""
+    for tuple in pointscore.getBoard(update.message.chat_id):
+        res += "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
+    if len(res) > 0:
+        update.message.reply_markdown(res,quote=False)
 def welcome(bot, update):
     global GROUPS
     update.message.delete()
@@ -501,12 +533,9 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CallbackQueryHandler(callbackHandler))
-    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
-    dp.add_handler(MessageHandler(Filters.forwarded, forwardHandler))#'''处理转发消息'''
-    #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
-    dp.add_handler(MessageHandler(documentFilter(),fileHandler))#'''处理文件
 
+    dp.add_handler(CommandHandler( [ "points" ], pointsHandler))
+    dp.add_handler(CommandHandler( [ "rank" ], rankHandler))
     dp.add_handler(CommandHandler( [ "start" ], startHandler))
     dp.add_handler(CommandHandler( [ "debug" ], debugHandler))
     dp.add_handler(CommandHandler( [ "replybanall" ], replybanallHandler))
@@ -516,6 +545,14 @@ def main():
     dp.add_handler(CommandHandler( [ "dataadmin" ], dataadminHandler))
     dp.add_handler(CommandHandler( [ "reload" ], reloadHandler))
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
+    dp.add_handler(CommandHandler( [ "clearpoints" ], clearpointsHandler))
+
+    dp.add_handler(CallbackQueryHandler(callbackHandler))
+    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
+    dp.add_handler(MessageHandler(Filters.forwarded, forwardHandler))#'''处理转发消息'''
+    dp.add_handler(MessageHandler(Filters.group, textInGroupHandler))#'''处理转发消息'''
+    #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
+    dp.add_handler(MessageHandler(documentFilter(),fileHandler))#'''处理文件
 
     # log all errors
     dp.add_error_handler(error)
