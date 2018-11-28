@@ -279,6 +279,7 @@ def cleanHandler(bot,update):
         updater.stop()
         updater.is_idle = False
         os.exit()
+        update.message.reply_text("cleaned")
 def reloadHandler(bot,update):
     global DATAADMINS
     global globalconfig
@@ -450,7 +451,6 @@ def rankHandler(bot,update):
         update.message.reply_markdown(res,quote=False)
 def welcome(bot, update):
     global GROUPS
-    update.message.delete()
     
     try:
         file=open("_data/blacklist_names.json","r")
@@ -509,6 +509,7 @@ def welcome(bot, update):
                 logger.warning("send to %s(%s) failure",newUser.full_name,newUser.id)
             
 
+    update.message.delete()
     
 
 def error(bot, update, error):
