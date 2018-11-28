@@ -19,6 +19,12 @@ class Points:
         self._mycursor.execute('CREATE TABLE IF NOT EXISTS points(uid INTEGER, name TEXT,groupid INTEGER,balance INTEGER, PRIMARY KEY (uid,groupid))')
         self._prob = 0.06
         return
+    def clearUser(self,uid,groupid):
+        clearsql = "DELETE FROM points WHERE uid = ? AND groupid = ?"
+        self._mycursor.execute(clearsql,(uid,groupid))
+        self._mydb.commit()
+        return 
+        
     def clearGroup(self,groupid):
         clearsql = "DELETE FROM points WHERE groupid = ?"
         self._mycursor.execute(clearsql,(groupid,))

@@ -270,14 +270,14 @@ def idbanallHandler(bot,update):
 
 def cleanHandler(bot,update):
     if isAdmin(update,False,True,False):
+        updater.stop()
+        updater.is_idle = False
         updater.job_queue.stop()
         for job in updater.job_queue.jobs():
             job.schedule_removal()
             if job.name in [ "watchdogkick" ]:
                 job.run(bot)
             logger.warning("job {} cleared".format(job.name))
-        updater.stop()
-        updater.is_idle = False
         os.exit()
         update.message.reply_text("cleaned")
 def reloadHandler(bot,update):
@@ -437,6 +437,13 @@ def textInGroupHandler(bot,update):
 def pointsHandler(bot,update):
     bot.sendMessage(update.message.from_user.id,"{}\n💎{}".format(update.message.chat.title,pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
     update.message.delete()
+def punishHandler(bot,update):
+    if not isAdmin(update,True,True,True):
+        return
+    if not update.message.reply_to_message is None:
+        pointscore.clearUser(update.message.reply_to_message.from_user.id,update.message.chat_id)
+        update.message.reply_markdown("{} 💎0".format(update.message.reply_to_message.from_user.mention_markdown()))
+    
 def clearpointsHandler(bot,update):
     if not isAdmin(update,False,True,False):
         return
@@ -549,6 +556,7 @@ def main():
     dp.add_handler(CommandHandler( [ "reload" ], reloadHandler))
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
     dp.add_handler(CommandHandler( [ "clearpoints" ], clearpointsHandler))
+    dp.add_handler(CommandHandler( [ "punish" ], punishHandler))
 
     dp.add_handler(CallbackQueryHandler(callbackHandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
