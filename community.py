@@ -450,7 +450,6 @@ def rankHandler(bot,update):
         update.message.reply_markdown(res,quote=False)
 def welcome(bot, update):
     global GROUPS
-    update.message.delete()
     
     try:
         file=open("_data/blacklist_names.json","r")
@@ -509,6 +508,7 @@ def welcome(bot, update):
                 logger.warning("send to %s(%s) failure",newUser.full_name,newUser.id)
             
 
+    update.message.delete()
     
 
 def error(bot, update, error):
