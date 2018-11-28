@@ -435,9 +435,10 @@ def textInGroupHandler(bot,update):
     if not isAdmin(update,True,False,False):
         pointscore.mine(update.message.from_user,update.message.chat_id)
 def pointsHandler(bot,update):
-    update.message.reply_text("💎{}".format(pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
+    bot.sendMessage(update.message.from_user.id,"{}\n💎{}".format(update.message.chat.title,pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
+    update.message.delete()
 def clearpointsHandler(bot,update):
-    if not isAdmin(update,True,False,False):
+    if not isAdmin(update,False,True,False):
         return
     pointscore.clearGroup(update.message.chat_id)
     update.message.reply_text("cleared")
