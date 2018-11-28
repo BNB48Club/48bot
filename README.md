@@ -88,4 +88,4 @@ puzzle文件格式参考`_data/11111111111111.json.example`
 1. `/rank` 群管理员查看本群积分排名前十名单
 1. `/clearpoints` confadmin管理员清空本群所有积分
 1. `/clean` confadmin 清空隐藏任务，之后请立即停止机器人运行
-1. `/punish` 群管理员惩罚本群成员，清零积分
+1. `/punish` 群管理员或confadmin或dataadmin惩罚本群成员，清零积分
