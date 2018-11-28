@@ -279,6 +279,7 @@ def cleanHandler(bot,update):
         updater.stop()
         updater.is_idle = False
         os.exit()
+        update.message.reply_text("cleaned")
 def reloadHandler(bot,update):
     global DATAADMINS
     global globalconfig
