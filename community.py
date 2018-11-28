@@ -260,7 +260,18 @@ def replybanallHandler(bot,update):
     #ban(update.message.chat_id,update.message.reply_to_message.from_user.id)
     banInAllGroups(update.message.reply_to_message.from_user.id,True)
     update.message.reply_text("banned in all groups")
-
+def idunbanallHandler(bot,update):
+    if not isAdmin(update,False,True,True):
+        return
+    things=update.message.text.split(" ")
+    banInAllGroups(things[1],False)
+    update.message.reply_text("unbanned in all groups")
+def batchbanallHandler(bot,update):
+    if not isAdmin(update,False,True,True):
+        return
+    things=update.message.text.split(" ")
+    for eachid in things[1].split("|"):
+        banInAllGroups(eachid,True)
 def idbanallHandler(bot,update):
     if not isAdmin(update,False,True,True):
         return
@@ -549,7 +560,9 @@ def main():
     dp.add_handler(CommandHandler( [ "start" ], startHandler))
     dp.add_handler(CommandHandler( [ "debug" ], debugHandler))
     dp.add_handler(CommandHandler( [ "replybanall" ], replybanallHandler))
+    dp.add_handler(CommandHandler( [ "batchbanall" ], batchbanallHandler))
     dp.add_handler(CommandHandler( [ "idbanall" ], idbanallHandler))
+    dp.add_handler(CommandHandler( [ "idunbanall" ], idunbanallHandler))
     dp.add_handler(CommandHandler( [ "fwdbanall" ], fwdbanallHandler))
     dp.add_handler(CommandHandler( [ "supervise" ], superviseHandler))
     dp.add_handler(CommandHandler( [ "dataadmin" ], dataadminHandler))
