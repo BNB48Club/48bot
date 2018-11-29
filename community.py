@@ -162,6 +162,7 @@ def actualBanInAllGroups(userid,op):
             else:
                 unban(groupid,userid)
                 logger.warning("{} unbanned in {}".format(userid,groupid))
+            time.sleep(1)
         except:
             pass
 
@@ -272,6 +273,7 @@ def batchbanallHandler(bot,update):
     things=update.message.text.split(" ")
     for eachid in things[1].split("|"):
         banInAllGroups(eachid,True)
+        time.sleep(60)
 def idbanallHandler(bot,update):
     if not isAdmin(update,False,True,True):
         return
