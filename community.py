@@ -94,7 +94,11 @@ def loadConfig(globalconfig,first=True):
             GROUPS[groupid]['ENTRANCE_PROGRESS']={}
             GROUPS[groupid]['kickjobs'] = {}
         else:
-            GROUPS[groupid].update(puzzles)
+            oldgroup = GROUPS[groupid]
+            GROUPS[groupid]=puzzles
+            GROUPS[groupid]['lasthintid']=oldgroup['lasthintid']
+            GROUPS[groupid]['ENTRANCE_PROGRESS']=oldgroup['ENTRANCE_PROGRESS']
+            GROUPS[groupid]['kickjobs'] = oldgroup['kickjobs']
         ALLGROUPS[groupid]=GROUPS[groupid]['groupname']
         logger.warning("start watching %s",groupid)
 
@@ -508,9 +512,9 @@ def welcome(bot, update):
                     logger.warning("deleting exception")
 
             try:
-                GROUPS[groupid]['lasthintid'] = update.message.reply_markdown("{}: {}".format(GROUPS[groupid]['grouphint'],botname).format(newUser.mention_markdown()),quote=True).message_id
-            except:
-                logger.warning("GROUPHINT send exception")
+                GROUPS[groupid]['lasthintid'] = update.message.reply_markdown("{}: {}".format(GROUPS[groupid]['grouphint'],botname).format(newUser.mention_markdown()),quote=False).message_id
+            except Exception as e:
+                logger.warning(e)
             
 
 
