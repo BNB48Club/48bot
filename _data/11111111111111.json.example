@@ -1,9 +1,10 @@
 {
-  "onstart":"newtestgroup very beginning",
+  "groupname":"Groupname", 
+  "onstart":"This will be shown in the very beginning",
   "onpast":"This will be shown when user pass the test",
   "onfail":"This will be shown when user fail the test",
   "probation":1,
-  "grouphint":"This will be shown after user joined this group",
+  "grouphint":"欢迎{}加入\n客服1. 手机App-我的-帮助中心-在线客服\n客服2. 币安官网-右上角\"帮助中心\"-提交工单\n❌管理不是客服 ❌也不主动小窗 ❌除非你先小窗\n❌小窗不发网址 ❌更不让你转币 ❌否则全是骗子\n新用户点击右边链接完成入群测试方可发言",
   "puzzles":
   [
     {
