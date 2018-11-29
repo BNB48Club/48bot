@@ -279,18 +279,6 @@ def idbanallHandler(bot,update):
     banInAllGroups(things[1],True)
     update.message.reply_text("banned in all groups")
 
-def cleanHandler(bot,update):
-    if isAdmin(update,False,True,False):
-        updater.stop()
-        updater.is_idle = False
-        updater.job_queue.stop()
-        for job in updater.job_queue.jobs():
-            job.schedule_removal()
-            if job.name in [ "watchdogkick" ]:
-                job.run(bot)
-            logger.warning("job {} cleared".format(job.name))
-        os.exit()
-        update.message.reply_text("cleaned")
 def reloadHandler(bot,update):
     global DATAADMINS
     global globalconfig
@@ -400,12 +388,13 @@ def cleanHandler(bot,update):
         updater.job_queue.stop()
         for job in updater.job_queue.jobs():
             job.schedule_removal()
-            job.run(bot)
-            logger.warning("job {} cleared".format(job.name))
+            if job.name in ['watchdogkick']:
+                job.run(bot)
+                logger.warning("job {} cleared".format(job.name))
+        update.message.reply_text('cleaned')
         updater.stop()
         updater.is_idle = False
         os.exit()
-        update.message.reply_text('cleaned')
 def forwardHandler(bot,update):
     global ALLGROUPS
     global GROUPADMINS
