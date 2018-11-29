@@ -507,14 +507,20 @@ def welcome(bot, update):
                 except:
                     logger.warning("deleting exception")
 
-            GROUPS[groupid]['lasthintid'] = update.message.reply_text("{}: {}".format(GROUPS[groupid]['grouphint'],botname),quote=True).message_id
+            try:
+                GROUPS[groupid]['lasthintid'] = update.message.reply_markdown("{}: {}".format(GROUPS[groupid]['grouphint'],botname).format(newUser.mention_markdown()),quote=True).message_id
+            except:
+                logger.warning("GROUPHINT send exception")
+            
 
 
+            '''
             try:
                 bot.sendMessage(newUser.id,GROUPS[groupid]['onstart'],parse_mode=ParseMode.MARKDOWN)
             except:
                 #pass
                 logger.warning("send to %s(%s) failure",newUser.full_name,newUser.id)
+            '''
             
 
     update.message.delete()
