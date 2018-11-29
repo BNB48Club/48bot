@@ -500,25 +500,20 @@ def welcome(bot, update):
             if 'restricted' in newChatMember.status and not newChatMember.until_date is None:
                 # if muted before, do nothing
                 continue
-            restrict(update.message.chat_id,newUser.id,0.4)
-            logger.warning("Muted")
-            probation = GROUPS[groupid]['probation']
-            GROUPS[groupid]['kickjobs'][newUser.id] = updater.job_queue.run_once(watchdogkick,probation*60,context = {"userid":newUser.id,"groupid":groupid,"full_name":newUser.full_name})
-            logger.warning("%s minutes kicker timer started for %s in %s",GROUPS[groupid]['probation'],newUser.id,groupid)
-
-
             if GROUPS[groupid]['lasthintid'] != 0:
                 try:
                     bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
                 except:
                     logger.warning("deleting exception")
-
             try:
-                GROUPS[groupid]['lasthintid'] = update.message.reply_markdown("{}: {}".format(GROUPS[groupid]['grouphint'],botname).format(newUser.mention_markdown()),quote=False).message_id
+                GROUPS[groupid]['lasthintid'] = update.message.reply_text((GROUPS[groupid]['grouphint']+": {}").format(botname),quote=True).message_id
             except Exception as e:
                 logger.warning(e)
-            
 
+            restrict(update.message.chat_id,newUser.id,0.4)
+            probation = GROUPS[groupid]['probation']
+            GROUPS[groupid]['kickjobs'][newUser.id] = updater.job_queue.run_once(watchdogkick,probation*60,context = {"userid":newUser.id,"groupid":groupid,"full_name":newUser.full_name})
+            logger.warning("%s minutes kicker timer started for %s in %s",GROUPS[groupid]['probation'],newUser.id,groupid)
 
             '''
             try:
