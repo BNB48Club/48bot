@@ -281,18 +281,6 @@ def idbanallHandler(bot,update):
     banInAllGroups(things[1],True)
     update.message.reply_text("banned in all groups")
 
-def cleanHandler(bot,update):
-    if isAdmin(update,False,True,False):
-        updater.stop()
-        updater.is_idle = False
-        updater.job_queue.stop()
-        for job in updater.job_queue.jobs():
-            job.schedule_removal()
-            if job.name in [ "watchdogkick" ]:
-                job.run(bot)
-            logger.warning("job {} cleared".format(job.name))
-        os.exit()
-        update.message.reply_text("cleaned")
 def reloadHandler(bot,update):
     global DATAADMINS
     global globalconfig
@@ -402,12 +390,13 @@ def cleanHandler(bot,update):
         updater.job_queue.stop()
         for job in updater.job_queue.jobs():
             job.schedule_removal()
-            job.run(bot)
-            logger.warning("job {} cleared".format(job.name))
+            if job.name in ['watchdogkick']:
+                job.run(bot)
+                logger.warning("job {} cleared".format(job.name))
+        update.message.reply_text('cleaned')
         updater.stop()
         updater.is_idle = False
         os.exit()
-        update.message.reply_text('cleaned')
 def forwardHandler(bot,update):
     global ALLGROUPS
     global GROUPADMINS
@@ -520,14 +509,20 @@ def welcome(bot, update):
                 except:
                     logger.warning("deleting exception")
 
-            GROUPS[groupid]['lasthintid'] = update.message.reply_text("{}: {}".format(GROUPS[groupid]['grouphint'],botname),quote=True).message_id
+            try:
+                GROUPS[groupid]['lasthintid'] = update.message.reply_markdown("{}: {}".format(GROUPS[groupid]['grouphint'],botname).format(newUser.mention_markdown()),quote=True).message_id
+            except:
+                logger.warning("GROUPHINT send exception")
+            
 
 
+            '''
             try:
                 bot.sendMessage(newUser.id,GROUPS[groupid]['onstart'],parse_mode=ParseMode.MARKDOWN)
             except:
                 #pass
                 logger.warning("send to %s(%s) failure",newUser.full_name,newUser.id)
+            '''
             
 
     update.message.delete()
