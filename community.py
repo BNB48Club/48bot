@@ -44,6 +44,8 @@ DATAADMINS= [420909210]
 
 pointscore= Points('_data/points.db')
 
+welcomelock = threading.Lock()
+
 def loadConfig(globalconfig,first=True):
     globalconfig.read(sys.argv[1])
 
@@ -399,6 +401,9 @@ def cleanHandler(bot,update):
         updater.stop()
         updater.is_idle = False
         os.exit()
+
+        for groupid in GROUPS:
+            bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
 def forwardHandler(bot,update):
     global ALLGROUPS
     global GROUPADMINS
@@ -462,6 +467,8 @@ def rankHandler(bot,update):
     if len(res) > 0:
         update.message.reply_markdown(res,quote=False)
 def welcome(bot, update):
+    global welcomelock
+    welcomelock.acquire()
     global GROUPS
     
     try:
@@ -523,6 +530,7 @@ def welcome(bot, update):
             
 
     update.message.delete()
+    welcomelock.release()
     
 
 def error(bot, update, error):

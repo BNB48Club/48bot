@@ -19,7 +19,7 @@ class RedPacket:
     def left(self):
         return self._amount
     def draw(self,user):
-        if self._amount < 1 or user.id in self._drawed:
+        if self._amount < 1:
             return -1
         if user.id in self._drawed:
             return 0
@@ -36,3 +36,5 @@ class RedPacket:
             self._amount -= 1
             self._drawed[user.id]=[user.full_name,res]
             return res
+    def balance(self):
+        return self._balance
