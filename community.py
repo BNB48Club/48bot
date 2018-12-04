@@ -172,10 +172,13 @@ def actualBanInAllGroups(userid,op):
             pass
 
 def ban(chatid,userid):
+    clearPoint(userid,chatid)
     updater.bot.kickChatMember(chatid,userid)
 def unban(chatid,userid):
+    clearPoint(userid,chatid)
     updater.bot.unbanChatMember(chatid,userid)
 def kick(chatid,userid):
+    clearPoint(userid,chatid)
     updater.bot.kickChatMember(chatid,userid)
     updater.bot.unbanChatMember(chatid,userid)
 def watchdogkick(bot,job):
@@ -184,6 +187,7 @@ def watchdogkick(bot,job):
     logger.warning("%s(%s) is kicked from %s",job.context['full_name'],job.context['userid'],job.context['groupid'])
 
 def restrict(chatid,userid,minutes):
+    clearPoint(userid,chatid)
     updater.bot.restrictChatMember(chatid,user_id=userid,can_send_messages=False,until_date=time.time()+int(float(minutes)*60))
 
 def unrestrict(chatid,userid):
@@ -443,6 +447,20 @@ def forwardHandler(bot,update):
 def textInGroupHandler(bot,update):
     if not isAdmin(update,True,False,False):
         pointscore.mine(update.message.from_user,update.message.chat_id)
+    '''
+    try:
+        file=open("_data/blacklist_keywords.json","r")
+        WORDS=json.load(file)["words"]
+        file.close()
+    except IOError:
+    '''
+    WORDS=["徽章","0.plus"]
+    for word in WORDS:
+        if word in update.message.text:
+            restrict(update.message.chat_id,update.message.from_user.id,120)
+            update.message.delete()
+def clearPoint(uid,groupid):
+    pointscore.clearUser(uid,groupid)
 def pointsHandler(bot,update):
     bot.sendMessage(update.message.from_user.id,"{}\n💎{}".format(update.message.chat.title,pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
     update.message.delete()
@@ -572,11 +590,13 @@ def main():
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
     dp.add_handler(CommandHandler( [ "clearpoints" ], clearpointsHandler))
     dp.add_handler(CommandHandler( [ "punish" ], punishHandler))
+    dp.add_handler(CommandHandler( [ "ban" ], punishHandler))
+    dp.add_handler(CommandHandler( [ "mute" ], punishHandler))
 
     dp.add_handler(CallbackQueryHandler(callbackHandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
     dp.add_handler(MessageHandler(Filters.forwarded, forwardHandler))#'''处理转发消息'''
-    dp.add_handler(MessageHandler(Filters.group, textInGroupHandler))#'''处理转发消息'''
+    dp.add_handler(MessageHandler(Filters.group&Filters.text, textInGroupHandler))#'''处理群消息'''
     #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     dp.add_handler(MessageHandler(documentFilter(),fileHandler))#'''处理文件
 
