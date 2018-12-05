@@ -453,12 +453,12 @@ def textInGroupHandler(bot,update):
         WORDS=json.load(file)["words"]
         file.close()
     except IOError:
-    '''
     WORDS=["徽章","0.plus"]
     for word in WORDS:
         if word in update.message.text:
             restrict(update.message.chat_id,update.message.from_user.id,120)
             update.message.delete()
+    '''
 def clearPoint(uid,groupid):
     pointscore.clearUser(uid,groupid)
 def pointsHandler(bot,update):
