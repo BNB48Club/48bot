@@ -210,10 +210,10 @@ def callbackhandler(bot,update):
             update.callback_query.answer(text=u"你抢到{} Koge48积分".format(thisdraw))
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
             if redpacket.left() < 1:
-                update.callback_query.edit_message_text(text=update.callback_query.message.text,disable_web_page_preview=True,timeout=60)
+                update.callback_query.message.edit_reply_markup(timeout=60)
                 del global_redpackets[redpacket_id]
         elif thisdraw < 0:
-            update.callback_query.edit_message_text(text=update.callback_query.message.text,disable_web_page_preview=True,timeout=60)
+            update.callback_query.message.edit_reply_markup(timeout=60)
             del global_redpackets[redpacket_id]
         else:
             update.callback_query.answer("每人只能领取一次")
@@ -687,12 +687,15 @@ def cleanHandler(bot,update):
         updater.job_queue.stop()
         for job in updater.job_queue.jobs():
             job.schedule_removal()
-            if job.name in [ "dealAuction" ]
+            if job.name in [ "dealAuction" ]:
                 job.run(bot)
             logger.warning("job {} cleared".format(job.name))
         updater.stop()
         updater.is_idle = False
         os.exit()
+
+        for each in global_redpackets:
+            koge48core.changeBalance(each._fromuser.id,each.balance(),"redpacket return")       
         update.message.reply_text('cleaned')
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
