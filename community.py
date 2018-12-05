@@ -479,7 +479,7 @@ def clearpointsHandler(bot,update):
     pointscore.clearGroup(update.message.chat_id)
     update.message.reply_text("cleared")
 def rankHandler(bot,update):
-    if not isAdmin(update,True,False,False):
+    if not isAdmin(update,False,True,True):
         return
     res=""
     for tuple in pointscore.getBoard(update.message.chat_id):
