@@ -9,6 +9,7 @@ import time
 import random
 import ConfigParser
 import thread
+import threading
 from telegram import *
 from telegram.ext import *
 from threading import Thread
@@ -168,6 +169,7 @@ def actualBanInAllGroups(userid,op):
             else:
                 unban(groupid,userid)
                 logger.warning("{} unbanned in {}".format(userid,groupid))
+            time.sleep(1)
         except:
             pass
 
@@ -282,6 +284,7 @@ def batchbanallHandler(bot,update):
     things=update.message.text.split(" ")
     for eachid in things[1].split("|"):
         banInAllGroups(eachid,True)
+        time.sleep(60)
 def idbanallHandler(bot,update):
     if not isAdmin(update,False,True,True):
         return
@@ -486,7 +489,6 @@ def rankHandler(bot,update):
         update.message.reply_markdown(res,quote=False)
 def welcome(bot, update):
     global welcomelock
-    welcomelock.acquire()
     global GROUPS
     
     try:
@@ -525,9 +527,13 @@ def welcome(bot, update):
                 continue
             if GROUPS[groupid]['lasthintid'] != 0:
                 try:
+                    welcomelock.acquire()
                     bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
                 except:
                     logger.warning("deleting exception")
+                finally:
+                    welcomelock.release()
+
             try:
                 GROUPS[groupid]['lasthintid'] = update.message.reply_text((GROUPS[groupid]['grouphint']+": {}").format(botname),quote=True).message_id
             except Exception as e:
@@ -548,7 +554,6 @@ def welcome(bot, update):
             
 
     update.message.delete()
-    welcomelock.release()
     
 
 def error(bot, update, error):
