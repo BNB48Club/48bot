@@ -27,7 +27,7 @@ class Koge48:
         for each in res:
             bnbamount = each[4]
             if bnbamount > 0:
-                self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
+                self.changeBalance(each[0],secondsduration*10*bnbamount/(24*3600),'bnbairdrop')
         
     def __init__(self,host,user,passwd,database):
 

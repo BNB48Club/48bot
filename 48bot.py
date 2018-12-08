@@ -958,7 +958,7 @@ def main():
 
 
     #Start the schedule
-    job_airdrop = j.run_repeating(airdropportal,interval=86400,first=3600)
+    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=3600)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
