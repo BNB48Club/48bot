@@ -525,32 +525,28 @@ def welcome(bot, update):
             if 'restricted' in newChatMember.status and not newChatMember.until_date is None:
                 # if muted before, do nothing
                 continue
-            if GROUPS[groupid]['lasthintid'] != 0:
-                try:
-                    welcomelock.acquire()
-                    bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
-                except:
-                    logger.warning("deleting exception")
-                finally:
-                    welcomelock.release()
+
 
             try:
-                GROUPS[groupid]['lasthintid'] = update.message.reply_text((GROUPS[groupid]['grouphint']+": {}").format(botname),quote=True).message_id
-            except Exception as e:
-                logger.warning(e)
-
-            restrict(update.message.chat_id,newUser.id,0.4)
-            probation = GROUPS[groupid]['probation']
-            GROUPS[groupid]['kickjobs'][newUser.id] = updater.job_queue.run_once(watchdogkick,probation*60,context = {"userid":newUser.id,"groupid":groupid,"full_name":newUser.full_name})
-            logger.warning("%s minutes kicker timer started for %s in %s",GROUPS[groupid]['probation'],newUser.id,groupid)
-
-            '''
-            try:
-                bot.sendMessage(newUser.id,GROUPS[groupid]['onstart'],parse_mode=ParseMode.MARKDOWN)
+                bot.sendMessage(newUser.id,GROUPS[groupid]['grouphint'])
             except:
                 #pass
                 logger.warning("send to %s(%s) failure",newUser.full_name,newUser.id)
-            '''
+                try:
+                    welcomelock.acquire()
+                    if GROUPS[groupid]['lasthintid'] != 0:
+                        bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
+                    GROUPS[groupid]['lasthintid'] = update.message.reply_text((GROUPS[groupid]['grouphint']+": {}").format(botname),quote=True).message_id
+                except:
+                    logger.warning("send new hint")
+                finally:
+                    welcomelock.release()
+            finally:
+                restrict(update.message.chat_id,newUser.id,0.4)
+                probation = GROUPS[groupid]['probation']
+                GROUPS[groupid]['kickjobs'][newUser.id] = updater.job_queue.run_once(watchdogkick,probation*60,context = {"userid":newUser.id,"groupid":groupid,"full_name":newUser.full_name})
+                logger.warning("%s minutes kicker timer started for %s in %s",GROUPS[groupid]['probation'],newUser.id,groupid)
+
             
 
     update.message.delete()
