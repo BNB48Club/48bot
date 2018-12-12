@@ -228,7 +228,7 @@ def callbackHandler(bot,update):
 
     if answer == GROUPS[groupid]['puzzles'][currentpuzzleindex]['answer']:
     #correct answer
-        update.callback_query.answer(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
+        update.callback_query.answer()
         update.callback_query.message.reply_text(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postcorrect'])
         update.callback_query.message.edit_reply_markup(text=update.callback_query.message.text)
         
@@ -250,7 +250,7 @@ def callbackHandler(bot,update):
             
     else:
         #wrong answer
-        update.callback_query.answer(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postincorrect'])
+        update.callback_query.answer()
         update.callback_query.message.reply_text(GROUPS[groupid]['puzzles'][currentpuzzleindex]['postincorrect'])
         update.callback_query.message.edit_reply_markup(text=update.callback_query.message.text)
         update.callback_query.message.reply_text(GROUPS[groupid]['onfail'])
@@ -418,7 +418,7 @@ def forwardHandler(bot,update):
     suspectScam = False
     if globalconfig.has_section("scamkeys"):
         for scamkey in globalconfig.items("scamkeys"):
-            if not re.search(scamkey[0],str(fwduser.username),re.IGNORECASE) is None or not re.search(scamkey[0],fwduser.full_name,re.IGNORECASE) is None:
+            if not fwduser is None and (not re.search(scamkey[0],str(fwduser.username),re.IGNORECASE) is None or not re.search(scamkey[0],fwduser.full_name,re.IGNORECASE) is None):
                 logger.warning("{}/{} Hit scam key {}".format(fwduser.username,fwduser.full_name,scamkey))
                 suspectScam = True
                 break
