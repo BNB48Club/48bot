@@ -519,7 +519,7 @@ def rankHandler(bot,update):
     else:
         top=int(things[1])
     res=""
-    for tuple in pointscore.getBoard(update.message.chat_id):
+    for tuple in pointscore.getBoard(update.message.chat_id,top):
         res += "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
     if len(res) > 0:
         update.message.reply_markdown(res,quote=False)
@@ -534,7 +534,7 @@ def pickHandler(bot,update):
     tuple=pointscore.getRank(update.message.chat_id,rank)
     res = "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
     update.message.reply_markdown(res,quote=True)
-def welcome(bot, update):
+aef welcome(bot, update):
     global welcomelock
     global GROUPS
     
