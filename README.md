@@ -85,7 +85,9 @@ puzzle文件格式参考`_data/11111111111111.json.example`
 1. `/idbanall <userid>` dataadmin或者confadmin使用该命令，在所有管辖群中封禁该userid，并加入黑名单。
 1. `/reload` confadmin私聊机器人使用该命令，重新载入配置文件(以及配置文件中指定的数据文件)
 1. `/points` 查看自己在本群的社区积分
-1. `/rank` data管理员查看本群积分排名前十名单
+1. `/rank [N]` data管理员查看本群积分排名前N名单
+1. `/top [N]` data管理员查看本群积分大于N的名单
+1. `/pick N` data管理员查看本群积分排名第N名 如果总数不足N则返回最后一名
 1. `/clearpoints` confadmin管理员清空本群所有积分
 1. `/clean` confadmin 清空隐藏任务，之后请立即停止机器人运行
 1. `/punish` 群管理员或confadmin或dataadmin惩罚本群成员，清零积分

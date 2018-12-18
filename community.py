@@ -303,6 +303,25 @@ def reloadHandler(bot,update):
     loadConfig(globalconfig)
     update.message.reply_text("reloaded")
 
+def activityHandler(bot,update):
+    #only confadmin
+    if not isAdmin(update,False,True,False):
+        logger.warning("not admin")
+        return
+    if update.message.chat.type != "group" and update.message.chat.type != "supergroup":
+        logger.warning("not group")
+        return
+    tuples = update.message.text.split(" ")
+    if len(tuples) != 4:
+        logger.warning("not 4")
+        return
+    del tuples[0]
+    global globalconfig
+    globalconfig.set("activity",str(update.message.chat_id),"#".join(tuples))
+    with open(sys.argv[1], 'wb') as configfile:
+        globalconfig.write(configfile)
+        update.message.reply_text("activity setted")
+    
 def dataadminHandler(bot,update):
     global DATAADMINS
     global globalconfig
@@ -479,14 +498,42 @@ def clearpointsHandler(bot,update):
         return
     pointscore.clearGroup(update.message.chat_id)
     update.message.reply_text("cleared")
+def topHandler(bot,update):
+    if not isAdmin(update,False,True,True):
+        return
+    things = update.message.text.split(" ")
+    if len(things) != 2:
+        return
+    amount=int(things[1])
+    res=""
+    for tuple in pointscore.getTop(update.message.chat_id,amount):
+        res += "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
+    if len(res) > 0:
+        update.message.reply_markdown(res,quote=False)
 def rankHandler(bot,update):
     if not isAdmin(update,False,True,True):
         return
+    things = update.message.text.split(" ")
+    if len(things) == 1:
+        top=10
+    else:
+        top=int(things[1])
     res=""
     for tuple in pointscore.getBoard(update.message.chat_id):
         res += "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
     if len(res) > 0:
         update.message.reply_markdown(res,quote=False)
+def pickHandler(bot,update):
+    if not isAdmin(update,False,True,True):
+        return
+    things = update.message.text.split(" ")
+    if len(things) != 2:
+        return
+    
+    rank=int(things[1])
+    tuple=pointscore.getRank(update.message.chat_id,rank)
+    res = "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
+    update.message.reply_markdown(res,quote=True)
 def welcome(bot, update):
     global welcomelock
     global GROUPS
@@ -538,7 +585,7 @@ def welcome(bot, update):
                         bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
                     GROUPS[groupid]['lasthintid'] = update.message.reply_text((GROUPS[groupid]['grouphint']+": {}").format(botname),quote=True).message_id
                 except:
-                    logger.warning("send new hint")
+                    logger.warning("send and delete new hint exception")
                 finally:
                     welcomelock.release()
             finally:
@@ -578,6 +625,9 @@ def main():
 
     dp.add_handler(CommandHandler( [ "points" ], pointsHandler))
     dp.add_handler(CommandHandler( [ "rank" ], rankHandler))
+    dp.add_handler(CommandHandler( [ "top" ], topHandler))
+    dp.add_handler(CommandHandler( [ "pick" ], pickHandler))
+    dp.add_handler(CommandHandler( [ "activity" ], activityHandler))
     dp.add_handler(CommandHandler( [ "start" ], startHandler))
     dp.add_handler(CommandHandler( [ "debug" ], debugHandler))
     dp.add_handler(CommandHandler( [ "replybanall" ], replybanallHandler))

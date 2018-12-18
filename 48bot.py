@@ -280,6 +280,8 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'10', callback_data='LONG#10'),
                 InlineKeyboardButton(u'100', callback_data='LONG#100'),
                 InlineKeyboardButton(u'1000', callback_data='LONG#1000'),
+                InlineKeyboardButton(u'10000', callback_data='LONG#10000'),
+                InlineKeyboardButton(u'10000', callback_data='LONG#100000'),
             ]
         )
         keys.append(
@@ -288,6 +290,8 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'10', callback_data='HE#10'),
                 InlineKeyboardButton(u'100', callback_data='HE#100'),
                 InlineKeyboardButton(u'1000', callback_data='HE#1000'),
+                InlineKeyboardButton(u'10000', callback_data='HE#10000'),
+                InlineKeyboardButton(u'100000', callback_data='HE#100000'),
             ])
         keys.append(
             [
@@ -295,6 +299,8 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'10', callback_data='HU#10'),
                 InlineKeyboardButton(u'100', callback_data='HU#100'),
                 InlineKeyboardButton(u'1000', callback_data='HU#1000'),
+                InlineKeyboardButton(u'10000', callback_data='HU#10000'),
+                InlineKeyboardButton(u'100000', callback_data='HU#100000'),
             ])
     CASINO_MARKUP = InlineKeyboardMarkup(keys)
     return CASINO_MARKUP

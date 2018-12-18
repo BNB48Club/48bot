@@ -47,11 +47,23 @@ class Points:
             changes.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2],"memo":each[4]})
         return changes
     '''    
-    def getBoard(self,groupid): 
-        sql = "SELECT * FROM `points` WHERE groupid = ? order by balance desc limit 10"
-        self._mycursor.execute(sql,(groupid,))
-        top10 = self._mycursor.fetchall()
-        return top10
+    def getRank(self,groupid,rank):
+        sql = "SELECT * FROM `points` WHERE groupid = ? order by balance desc limit ?"
+        self._mycursor.execute(sql,(groupid,rank))
+        top = self._mycursor.fetchall()
+        return top[-1]
+        
+    def getTop(self,groupid,amount=10): 
+        sql = "SELECT * FROM `points` WHERE groupid = ? AND balance >= ? order by balance desc"
+        self._mycursor.execute(sql,(groupid,amount))
+        toplist = self._mycursor.fetchall()
+        return toplist
+    def getBoard(self,groupid,top=10): 
+        sql = "SELECT * FROM `points` WHERE groupid = ? order by balance desc limit ?"
+        self._mycursor.execute(sql,(groupid,top))
+        toplist = self._mycursor.fetchall()
+        return toplist
+
     def changeBalance(self,uid,name,groupid,number):
         logger.warning("%s mined one from %s",uid,groupid)
         balance = self.getBalance(uid,groupid)
