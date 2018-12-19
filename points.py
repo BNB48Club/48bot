@@ -53,7 +53,7 @@ class Points:
         top = self._mycursor.fetchall()
         return top[-1]
         
-    def getTop(self,groupid,amount=10): 
+    def getAbove(self,groupid,amount=10): 
         sql = "SELECT * FROM `points` WHERE groupid = ? AND balance >= ? order by balance desc"
         self._mycursor.execute(sql,(groupid,amount))
         toplist = self._mycursor.fetchall()

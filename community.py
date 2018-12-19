@@ -498,7 +498,7 @@ def clearpointsHandler(bot,update):
         return
     pointscore.clearGroup(update.message.chat_id)
     update.message.reply_text("cleared")
-def topHandler(bot,update):
+def aboveHandler(bot,update):
     if not isAdmin(update,False,True,True):
         return
     things = update.message.text.split(" ")
@@ -506,11 +506,11 @@ def topHandler(bot,update):
         return
     amount=int(things[1])
     res=""
-    for tuple in pointscore.getTop(update.message.chat_id,amount):
+    for tuple in pointscore.getAbove(update.message.chat_id,amount):
         res += "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
     if len(res) > 0:
         update.message.reply_markdown(res,quote=False)
-def rankHandler(bot,update):
+def topHandler(bot,update):
     if not isAdmin(update,False,True,True):
         return
     things = update.message.text.split(" ")
@@ -523,7 +523,7 @@ def rankHandler(bot,update):
         res += "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
     if len(res) > 0:
         update.message.reply_markdown(res,quote=False)
-def pickHandler(bot,update):
+def rankHandler(bot,update):
     if not isAdmin(update,False,True,True):
         return
     things = update.message.text.split(" ")
@@ -534,7 +534,7 @@ def pickHandler(bot,update):
     tuple=pointscore.getRank(update.message.chat_id,rank)
     res = "\n💎{}\t[{}](tg://user?id={})".format(tuple[3],tuple[1],tuple[0])
     update.message.reply_markdown(res,quote=True)
-aef welcome(bot, update):
+def welcome(bot, update):
     global welcomelock
     global GROUPS
     
@@ -626,7 +626,7 @@ def main():
     dp.add_handler(CommandHandler( [ "points" ], pointsHandler))
     dp.add_handler(CommandHandler( [ "rank" ], rankHandler))
     dp.add_handler(CommandHandler( [ "top" ], topHandler))
-    dp.add_handler(CommandHandler( [ "pick" ], pickHandler))
+    dp.add_handler(CommandHandler( [ "above" ], aboveHandler))
     dp.add_handler(CommandHandler( [ "activity" ], activityHandler))
     dp.add_handler(CommandHandler( [ "start" ], startHandler))
     dp.add_handler(CommandHandler( [ "debug" ], debugHandler))
