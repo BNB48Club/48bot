@@ -17,7 +17,9 @@ class Points:
         self._mydb = sqlite3.connect(dbfile,check_same_thread=False)
         self._mycursor = self._mydb.cursor()
         self._mycursor.execute('CREATE TABLE IF NOT EXISTS points(uid INTEGER, name TEXT,groupid INTEGER,balance INTEGER, PRIMARY KEY (uid,groupid))')
-        self._prob = 0.06
+        self._probfix = 0.03
+        self._probfloat = 0.03
+        self._probthreshold = 20
         return
     def clearUser(self,uid,groupid):
         clearsql = "DELETE FROM points WHERE uid = ? AND groupid = ?"
@@ -80,7 +82,7 @@ class Points:
         balance = self.getBalance(user.id,groupid)
         if balance == 0:
             balance = 1
-        if random.random()<(self._prob*10/balance):
+        if random.random()<(self._probfix + self._probfloat*self._probthreshold/balance):
             self.changeBalance(user.id,user.full_name,groupid,1)
             return True
         else:
