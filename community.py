@@ -308,7 +308,7 @@ def activityHandler(bot,update):
     if not isAdmin(update,False,True,False):
         logger.warning("not admin")
         return
-    if update.message.chat.type != "group" and update.message.chat.type != "supergroup":
+    if update.message.chat.type == "private":
         logger.warning("not group")
         return
     tuples = update.message.text.split(" ")
@@ -484,6 +484,8 @@ def textInGroupHandler(bot,update):
 def clearPoint(uid,groupid):
     pointscore.clearUser(uid,groupid)
 def pointsHandler(bot,update):
+    if update.message.chat.type == 'private':
+        return
     bot.sendMessage(update.message.from_user.id,"{}\n💎{}".format(update.message.chat.title,pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
     update.message.delete()
 def punishHandler(bot,update):

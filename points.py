@@ -77,7 +77,7 @@ class Points:
         self._mycursor.execute(updatesql,(res,uid,groupid))
         self._mydb.commit()
     def mine(self,user,groupid):
-        if random.random()<self._prob:
+        if random.random()<(self._prob*10/self.getBalance(user.id,groupid)):
             self.changeBalance(user.id,user.full_name,groupid,1)
             return True
         else:
