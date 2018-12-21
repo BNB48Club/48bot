@@ -58,7 +58,7 @@ BNB48CASINO=-1001319319354
 #BNB48PUBLISH=SirIanM
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
-ENTRANCE_THRESHOLDS={BNB48:1,BNB48CN:10}
+ENTRANCE_THRESHOLDS={BNB48:10000,BNB48CN:10}
 KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
 SAYINSUFFICIENT = {BNB48:True,BNB48CN:False}
 
@@ -269,39 +269,59 @@ def buildcasinomarkup(result=["",""]):
     global CASINO_MARKUP
     keys = [
             [
-                InlineKeyboardButton(u'龙牌:'+result[0],callback_data="FULL"),
-                InlineKeyboardButton(u'虎牌:'+result[1],callback_data="FULL")
+                InlineKeyboardButton(u'🐲:'+result[0],callback_data="FULL"),
+                InlineKeyboardButton(u'🐯:'+result[1],callback_data="FULL")
             ]
            ]
     if result[0] == "" :
         keys.append(
             [
-                InlineKeyboardButton(u'押龙:', callback_data='LONG'),
-                InlineKeyboardButton(u'10', callback_data='LONG#10'),
-                InlineKeyboardButton(u'100', callback_data='LONG#100'),
-                InlineKeyboardButton(u'1000', callback_data='LONG#1000'),
-                InlineKeyboardButton(u'10000', callback_data='LONG#10000'),
-                InlineKeyboardButton(u'10000', callback_data='LONG#100000'),
+                InlineKeyboardButton(u'押壹:', callback_data='FULL'),
+                InlineKeyboardButton(u'🐲', callback_data='LONG#1'),
+                InlineKeyboardButton(u'🐯', callback_data='HU#1'),
+                InlineKeyboardButton(u'🕊', callback_data='HE#1'),
             ]
         )
         keys.append(
             [
-                InlineKeyboardButton(u'押和:', callback_data='HE'),
-                InlineKeyboardButton(u'10', callback_data='HE#10'),
-                InlineKeyboardButton(u'100', callback_data='HE#100'),
-                InlineKeyboardButton(u'1000', callback_data='HE#1000'),
-                InlineKeyboardButton(u'10000', callback_data='HE#10000'),
-                InlineKeyboardButton(u'100000', callback_data='HE#100000'),
-            ])
+                InlineKeyboardButton(u'押拾:', callback_data='FULL'),
+                InlineKeyboardButton(u'🐲', callback_data='LONG#10'),
+                InlineKeyboardButton(u'🐯', callback_data='HU#10'),
+                InlineKeyboardButton(u'🕊', callback_data='HE#10'),
+            ]
+        )
         keys.append(
             [
-                InlineKeyboardButton(u'押虎:', callback_data='HU'),
-                InlineKeyboardButton(u'10', callback_data='HU#10'),
-                InlineKeyboardButton(u'100', callback_data='HU#100'),
-                InlineKeyboardButton(u'1000', callback_data='HU#1000'),
-                InlineKeyboardButton(u'10000', callback_data='HU#10000'),
-                InlineKeyboardButton(u'100000', callback_data='HU#100000'),
-            ])
+                InlineKeyboardButton(u'押壹佰:', callback_data='FULL'),
+                InlineKeyboardButton(u'🐲', callback_data='LONG#100'),
+                InlineKeyboardButton(u'🐯', callback_data='HU#100'),
+                InlineKeyboardButton(u'🕊', callback_data='HE#100'),
+            ]
+        )
+        keys.append(
+            [
+                InlineKeyboardButton(u'押壹仟:', callback_data='FULL'),
+                InlineKeyboardButton(u'🐲', callback_data='LONG#1000'),
+                InlineKeyboardButton(u'🐯', callback_data='HU#1000'),
+                InlineKeyboardButton(u'🕊', callback_data='HE#1000'),
+            ]
+        )
+        keys.append(
+            [
+                InlineKeyboardButton(u'押壹万:', callback_data='FULL'),
+                InlineKeyboardButton(u'🐲', callback_data='LONG#10000'),
+                InlineKeyboardButton(u'🐯', callback_data='HU#10000'),
+                InlineKeyboardButton(u'🕊', callback_data='HE#10000'),
+            ]
+        )
+        keys.append(
+            [
+                InlineKeyboardButton(u'押拾万:', callback_data='FULL'),
+                InlineKeyboardButton(u'🐲', callback_data='LONG#100000'),
+                InlineKeyboardButton(u'🐯', callback_data='HU#100000'),
+                InlineKeyboardButton(u'🕊', callback_data='HE#100000'),
+            ]
+        )
     CASINO_MARKUP = InlineKeyboardMarkup(keys)
     return CASINO_MARKUP
 
@@ -378,7 +398,7 @@ def pmcommandhandler(bot,update):
         if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]*int((time.time() - BINANCE_ANNI)/3600/24):
             update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
-            update.message.reply_markdown("从2018.7.14起至今，日均BNB持仓超过100枚方可加入。上述持仓唯一认可凭证是Koge48数量。输入 /bind 查看如何绑定BNB持仓情况领取Koge48.")
+            update.message.reply_markdown("从2018.7.14起至今，日均BNB持仓超过{}枚方可加入。上述持仓唯一认可凭证是Koge48数量。输入 /bind 查看如何绑定BNB持仓情况领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
     elif "/bind" in things[0]:
         update.message.reply_text(
             "持有1BNB，每天可以获得1 Koge48积分。\n\n持仓快照来自两部分，链上与链下。链上部分可以通过机器人提交存放BNB的钱包地址进行绑定，链下部分可以通过机器人提交币安交易所账户API进行绑定。所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。\n\n持仓快照每天进行。\n\n请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交ETH地址或币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
@@ -862,9 +882,9 @@ def welcome(bot, update):
 def checkThresholds(chatid,userid,message):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
-    if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]*int((time.time() - BINANCE_ANNI)/3600/24):
+    if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
         if SAYINSUFFICIENT[chatid]:
-            message.reply_markdown("2018.7.14至今BNB日均持仓不足{}(由{}持仓数量认定)，达标之前此消息将持续出现。".format(ENTRANCE_THRESHOLDS[chatid],getkoge48md()),disable_web_page_preview=True)
+            message.reply_markdown("Koge持仓不足{}，达标之前此消息将持续出现。".format(ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
         if KICKINSUFFICIENT[chatid]:
             kick(chatid,userid)
         

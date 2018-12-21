@@ -135,7 +135,7 @@ def reportInAllGroups(userid,fullname):
         )
 
 def banInAllGroups(userid,op=True):
-    thread = Thread(target = actualBanInAllGroups, args=[userid,op])
+    thread = Thread(target = actualBanInAllGroups, args=[int(userid),op])
     thread.start()
 
 def actualBanInAllGroups(userid,op):
@@ -577,7 +577,7 @@ def welcome(bot, update):
 
 
             try:
-                bot.sendMessage(newUser.id,GROUPS[groupid]['grouphint'])
+                bot.sendMessage(newUser.id,GROUPS[groupid]['grouphint']+": /start")
             except:
                 #pass
                 logger.warning("send to %s(%s) failure",newUser.full_name,newUser.id)
@@ -650,6 +650,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
     dp.add_handler(MessageHandler(Filters.forwarded, forwardHandler))#'''处理转发消息'''
     dp.add_handler(MessageHandler(Filters.group&Filters.text, textInGroupHandler))#'''处理群消息'''
+    dp.add_handler(MessageHandler(Filters.private&Filters.text, startHandler))#所有private消息当作start处理
     #dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     dp.add_handler(MessageHandler(documentFilter(),fileHandler))#'''处理文件
 
