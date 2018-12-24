@@ -6,6 +6,7 @@ import codecs
 import logging
 import json
 import time
+import datetime
 import random
 import ConfigParser
 import thread
@@ -42,6 +43,7 @@ GROUPS = {}
 GROUPADMINS = {}
 CONFADMINS= [420909210]
 DATAADMINS= [420909210]
+CODEBONUS={}
 
 pointscore= Points('_data/points.db')
 
@@ -59,6 +61,7 @@ def loadConfig(globalconfig,first=True):
     global ALLGROUPS
     global GROUPADMINS
     global updater
+    global CODEBONUS
 
 
     # read ADMINS
@@ -70,7 +73,13 @@ def loadConfig(globalconfig,first=True):
         for dataadmin in globalconfig.items("dataadmins"):
             if not int(dataadmin[0]) in DATAADMINS:
                 DATAADMINS.append(int(dataadmin[0]))
-
+    # parse codebonus.json
+    try:
+        file = open("_data/codebonus.json")
+        CODEBONUS = json.load(file)
+        file.close()
+    except:
+        pass
     # parse groups info
     for groupinfo in globalconfig.items("groups"):
         groupid = int(groupinfo[0])
@@ -183,6 +192,14 @@ def kick(chatid,userid):
     clearPoint(userid,chatid)
     updater.bot.kickChatMember(chatid,userid)
     updater.bot.unbanChatMember(chatid,userid)
+def resetCodebonus(bot,job):
+    global CODEBONUS
+    CODEBONUS={}
+    file = codecs.open("_data/codebonus.json","w","utf-8")
+    file.write(json.dumps(CODEBONUS))
+    file.flush()
+    file.close()
+
 def watchdogkick(bot,job):
     logger.warning("%s(%s) is being kicked from %s",job.context['full_name'],job.context['userid'],job.context['groupid'])
     kick(job.context['groupid'],job.context['userid'])
@@ -322,6 +339,22 @@ def activityHandler(bot,update):
         globalconfig.write(configfile)
         update.message.reply_text("activity setted")
     
+def codebonusHandler(bot,update):
+    if not isAdmin(update,False,True,False):
+        return
+    things = update.message.text.split(" ")
+    if len(things) != 2:
+        return
+    code = things[1]
+    global CODEBONUS
+    if not code in CODEBONUS:
+        CODEBONUS[code]=[]
+        update.message.reply_text("{} added".format(code))
+        file = codecs.open("_data/codebonus.json","w","utf-8")
+        file.write(json.dumps(CODEBONUS))
+        file.flush()
+        file.close()
+
 def dataadminHandler(bot,update):
     global DATAADMINS
     global globalconfig
@@ -424,12 +457,19 @@ def cleanHandler(bot,update):
                 job.run(bot)
                 logger.warning("job {} cleared".format(job.name))
         update.message.reply_text('cleaned')
+
+        for groupid in GROUPS:
+            bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
+        #codebonus
+        file = codecs.open("_data/codebonus.json","w","utf-8")
+        file.write(json.dumps(CODEBONUS))
+        file.flush()
+        file.close()
+
         updater.stop()
         updater.is_idle = False
         os.exit()
 
-        for groupid in GROUPS:
-            bot.deleteMessage(groupid,GROUPS[groupid]['lasthintid'])
 def forwardHandler(bot,update):
     global ALLGROUPS
     global GROUPADMINS
@@ -469,6 +509,17 @@ def forwardHandler(bot,update):
 def textInGroupHandler(bot,update):
     if not isAdmin(update,True,False,False):
         pointscore.mine(update.message.from_user,update.message.chat_id)
+    logger.warning(CODEBONUS)
+    if update.message.text in CODEBONUS:
+        if not update.message.from_user.id in CODEBONUS[update.message.text]:
+            bonus = pointscore.bonus(update.message.from_user,update.message.chat_id)
+            CODEBONUS[update.message.text].append(update.message.from_user.id)
+            update.message.reply_text("➕{}💎".format(bonus))
+            file = codecs.open("_data/codebonus.json","w","utf-8")
+            file.write(json.dumps(CODEBONUS))
+            file.flush()
+            file.close()
+
     '''
     try:
         file=open("_data/blacklist_keywords.json","r")
@@ -645,6 +696,7 @@ def main():
     dp.add_handler(CommandHandler( [ "punish" ], punishHandler))
     dp.add_handler(CommandHandler( [ "ban" ], punishHandler))
     dp.add_handler(CommandHandler( [ "mute" ], punishHandler))
+    dp.add_handler(CommandHandler( [ "codebonus" ], codebonusHandler))
 
     dp.add_handler(CallbackQueryHandler(callbackHandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
@@ -660,6 +712,7 @@ def main():
     # periodical refresh
     refreshAdmins(updater.bot,None)
     updater.job_queue.run_repeating(refreshAdmins,interval=3600,first=3600)
+    updater.job_queue.run_daily(resetCodebonus,datetime.time())
 
 
 

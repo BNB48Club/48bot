@@ -20,6 +20,7 @@ class Points:
         self._probfix = 0.03
         self._probfloat = 0.03
         self._probthreshold = 20
+        self._bonus = 5
         return
     def clearUser(self,uid,groupid):
         clearsql = "DELETE FROM points WHERE uid = ? AND groupid = ?"
@@ -78,6 +79,10 @@ class Points:
         updatesql = "UPDATE points SET balance = ? WHERE uid = ? AND groupid = ?"
         self._mycursor.execute(updatesql,(res,uid,groupid))
         self._mydb.commit()
+    def bonus(self,user,groupid):
+        bonus = int(1+self._bonus*random.random())
+        self.changeBalance(user.id,user.full_name,groupid,bonus)
+        return bonus
     def mine(self,user,groupid):
         balance = self.getBalance(user.id,groupid)
         if balance == 0:
