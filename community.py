@@ -320,6 +320,20 @@ def reloadHandler(bot,update):
     loadConfig(globalconfig)
     update.message.reply_text("reloaded")
 
+def deactivityHandler(bot,update):
+    #only confadmin
+    if not isAdmin(update,False,True,False):
+        logger.warning("not admin")
+        return
+    if update.message.chat.type == "private":
+        logger.warning("not group")
+        return
+    global globalconfig
+    globalconfig.remove_option("activity",str(update.message.chat_id))
+    with open(sys.argv[1], 'wb') as configfile:
+        globalconfig.write(configfile)
+        update.message.reply_text("activity removed")
+    
 def activityHandler(bot,update):
     #only confadmin
     if not isAdmin(update,False,True,False):
@@ -329,9 +343,10 @@ def activityHandler(bot,update):
         logger.warning("not group")
         return
     tuples = update.message.text.split(" ")
-    if len(tuples) != 4:
-        logger.warning("not 4")
-        return
+    # /activity name start end
+    #if len(tuples) != 4:
+    #    logger.warning("not 4")
+    #    return
     del tuples[0]
     global globalconfig
     globalconfig.set("activity",str(update.message.chat_id),"#".join(tuples))
@@ -339,8 +354,24 @@ def activityHandler(bot,update):
         globalconfig.write(configfile)
         update.message.reply_text("activity setted")
     
+
+def decodebonusHandler(bot,update):
+    if not isAdmin(update,False,True,True):
+        return
+    things = update.message.text.split(" ")
+    if len(things) != 2:
+        return
+    code = things[1]
+    global CODEBONUS
+    if code in CODEBONUS:
+        del CODEBONUS[code]
+        file = codecs.open("_data/codebonus.json","w","utf-8")
+        file.write(json.dumps(CODEBONUS))
+        file.flush()
+        file.close()
+        update.message.reply_text("{} removed".format(code))
 def codebonusHandler(bot,update):
-    if not isAdmin(update,False,True,False):
+    if not isAdmin(update,False,True,True):
         return
     things = update.message.text.split(" ")
     if len(things) != 2:
@@ -349,11 +380,11 @@ def codebonusHandler(bot,update):
     global CODEBONUS
     if not code in CODEBONUS:
         CODEBONUS[code]=[]
-        update.message.reply_text("{} added".format(code))
         file = codecs.open("_data/codebonus.json","w","utf-8")
         file.write(json.dumps(CODEBONUS))
         file.flush()
         file.close()
+        update.message.reply_text("{} added".format(code))
 
 def dataadminHandler(bot,update):
     global DATAADMINS
@@ -507,9 +538,15 @@ def forwardHandler(bot,update):
                 update.message.reply_text("‼️ Be careful, this guy is not an admin",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Report!',callback_data="reportInAllGroups({},'{}')".format(fwduser.id,fwduser.full_name))]]))
     
 def textInGroupHandler(bot,update):
+    enabled=[]
+    for each in globalconfig.items("activity"):
+        enabled.append(int(each[0]))
+    if not update.message.chat_id in enabled:
+        logger.warning(enabled)
+        logger.warning("不挖矿")
+        return
     if not isAdmin(update,True,False,False):
         pointscore.mine(update.message.from_user,update.message.chat_id)
-    logger.warning(CODEBONUS)
     if update.message.text in CODEBONUS:
         if not update.message.from_user.id in CODEBONUS[update.message.text]:
             bonus = pointscore.bonus(update.message.from_user,update.message.chat_id)
@@ -681,6 +718,7 @@ def main():
     dp.add_handler(CommandHandler( [ "top" ], topHandler))
     dp.add_handler(CommandHandler( [ "above" ], aboveHandler))
     dp.add_handler(CommandHandler( [ "activity" ], activityHandler))
+    dp.add_handler(CommandHandler( [ "deactivity" ], deactivityHandler))
     dp.add_handler(CommandHandler( [ "start" ], startHandler))
     dp.add_handler(CommandHandler( [ "debug" ], debugHandler))
     dp.add_handler(CommandHandler( [ "replybanall" ], replybanallHandler))
@@ -697,6 +735,7 @@ def main():
     dp.add_handler(CommandHandler( [ "ban" ], punishHandler))
     dp.add_handler(CommandHandler( [ "mute" ], punishHandler))
     dp.add_handler(CommandHandler( [ "codebonus" ], codebonusHandler))
+    dp.add_handler(CommandHandler( [ "decodebonus" ], decodebonusHandler))
 
     dp.add_handler(CallbackQueryHandler(callbackHandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
