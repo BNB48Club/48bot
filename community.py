@@ -542,8 +542,6 @@ def textInGroupHandler(bot,update):
     for each in globalconfig.items("activity"):
         enabled.append(int(each[0]))
     if not update.message.chat_id in enabled:
-        logger.warning(enabled)
-        logger.warning("不挖矿")
         return
     if not isAdmin(update,True,False,False):
         pointscore.mine(update.message.from_user,update.message.chat_id)

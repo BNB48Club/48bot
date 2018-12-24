@@ -90,4 +90,8 @@ puzzle文件格式参考`_data/11111111111111.json.example`
 1. `/rank N` data管理员查看本群积分排名第N名 如果总数不足N则返回最后一名
 1. `/clearpoints` confadmin管理员清空本群所有积分
 1. `/clean` confadmin 清空隐藏任务，之后请立即停止机器人运行
-1. `/punish` 群管理员或confadmin或dataadmin惩罚本群成员，清零积分
+1. `/mute /ban` 群管理员或confadmin或dataadmin惩罚本群成员，清零积分
+1. `/activity` confadmin在本群使用，开启聊天挖积分
+1. `/deactivity` confadmin在本群使用，关闭聊天挖积分
+1. `/codebonus 口令` dataadmin或confadmin在本群使用，新增一个口令红包口令，每天重置，聊天挖积分关闭时口令红包不生效
+1. `/decodebonus 口令` 同上，只是变成删除口令红包口令
