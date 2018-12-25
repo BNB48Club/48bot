@@ -985,7 +985,7 @@ def main():
 
 
     #Start the schedule
-    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=3600)
+    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=360)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
@@ -1011,6 +1011,7 @@ def schedule_thread():
         time.sleep(600)
 '''
 def airdropportal(bot,job):
+    koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
 
 if __name__ == '__main__':

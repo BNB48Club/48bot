@@ -19,8 +19,11 @@ class Koge48:
     def KogeDecrease(self):
         logger.warning("decreasing")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")        
-        lastts = self._mycursor.fetchone()[0]
-        secondsduration = time.time() - lastts
+        try:
+            lastts = self._mycursor.fetchone()[0]
+            secondsduration = time.time() - lastts
+        except:
+            secondsduration = 24*3600
         multi_factor = DAY_DECREASE**(secondsduration/(24*3600))
         self._mycursor.execute("SELECT * FROM `balance`")
         res = self._mycursor.fetchall()
@@ -32,8 +35,11 @@ class Koge48:
     def BNBAirDrop(self):
         logger.warning("airdroping")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")        
-        lastts = self._mycursor.fetchone()[0]
-        secondsduration = time.time() - lastts
+        try:
+            lastts = self._mycursor.fetchone()[0]
+            secondsduration = time.time() - lastts
+        except:
+            secondsduration = 24*3600
 
         self._mycursor.execute("SELECT *,offchain+onchain as total FROM `bnb`")
         res = self._mycursor.fetchall()
