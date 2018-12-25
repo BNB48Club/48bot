@@ -15,6 +15,20 @@ logger = logging.getLogger(__name__)
 
 class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
+    DAY_DECREASE = 0.9
+    def KogeDecrease(self):
+        logger.warning("decreasing")
+        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")        
+        lastts = self._mycursor.fetchone()[0]
+        secondsduration = time.time() - lastts
+        multi_factor = DAY_DECREASE**(secondsduration/(24*3600))
+        self._mycursor.execute("SELECT * FROM `balance`")
+        res = self._mycursor.fetchall()
+        for each in res:
+            uid = each[0]
+            bal = each[1]
+            self.changeBalance(each[0],each[1]*(multi_factor - 1),'decreasing')
+        logger.warning("decreased")
     def BNBAirDrop(self):
         logger.warning("airdroping")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")        
@@ -27,7 +41,8 @@ class Koge48:
         for each in res:
             bnbamount = each[4]
             if bnbamount > 0:
-                self.changeBalance(each[0],secondsduration*10*bnbamount/(24*3600),'bnbairdrop')
+                self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
+        logger.warning("airdroped")
         
     def __init__(self,host,user,passwd,database):
 
