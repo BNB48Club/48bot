@@ -194,11 +194,11 @@ def kick(chatid,userid):
     updater.bot.unbanChatMember(chatid,userid)
 def resetCodebonus(bot,job):
     global CODEBONUS
-    CODEBONUS={}
     file = codecs.open("_data/codebonus.json","w","utf-8")
-    file.write(json.dumps(CODEBONUS))
+    file.write("{}")
     file.flush()
     file.close()
+    logger.warning("reset codebonus")
 
 def watchdogkick(bot,job):
     logger.warning("%s(%s) is being kicked from %s",job.context['full_name'],job.context['userid'],job.context['groupid'])
@@ -572,7 +572,11 @@ def clearPoint(uid,groupid):
 def pointsHandler(bot,update):
     if update.message.chat.type == 'private':
         return
-    bot.sendMessage(update.message.from_user.id,"{}\n💎{}".format(update.message.chat.title,pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
+    try:
+        bot.sendMessage(update.message.from_user.id,"{}\n💎{}".format(update.message.chat.title,pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
+    except:
+        update.message.reply_text("{}\n💎.{}".format(update.message.chat.title,pointscore.getBalance(update.message.from_user.id,update.message.chat_id)))
+
     update.message.delete()
 def punishHandler(bot,update):
     if not isAdmin(update,True,True,True):
