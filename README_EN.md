@@ -27,75 +27,76 @@ name should be the username of your token, don't miss `@`
 -1000000000001 = anotherpuzzle.json
 -1000000000001 = nopuzzle
 `
-群组可以没有puzzle文件，此时后面的内容默认按群组名处理
+If Groups doesn't have puzzle file, the following commands will use the group's name as default.
 
-puzzle文件必须以json为后缀名
+puzzle file must use json as extension
 
-puzzle文件格式参考`_data/11111111111111.json.example`
+puzzle file format example: `_data/11111111111111.json.example`
 
-格式为 `groupid = puzzle文件路径`
+format `groupid = puzzle file path`
 
-其中puzzle文件路径若使用相对路径，current directory为启动机器人时的working directory
+If puzzle file path is a relative path, then the current directory is the working directory where the bot started.
 
-必须使用UTF-8编码保存
+Have to use UTF-8 encoding to save it
 ### [confadmins]
-有在线更改conf权限的用户，格式为 `userid = 备注内容`
+The user who has the rights to change config. Format: `userid = Remark`
 ### [dataadmins]
-有在线更改data权限的用户，格式为 `userid = 备注内容`
+The user who has the rights to change data. Format: `userid = Remark`
 ### [blackfiletypes]
-发送这些后缀名文件的用户会被自动封禁
+The users who send the following type of files will be banned automatically,
 
-格式为`.filetype = 备注`
+Format: `.filetype = Remark`
 ### [scamkeys]
-骗子可能使用的关键字
+The keywords that scammers possibly use,
 
-格式为`关键字  = 备注`
-## 运行方式
-配置完毕conf文件
+Format: `Keywords  = Remark`
+## How to run it
+After set the conf file,
 
-确认当前用户对\_data目录有写权限
+Please make sure the current user has the WRITE rights to the folder \_data
 
-运行下述命令
+Run the following command
 
 `python community.py [config file]`
 
-运行日志输出到stderr，请根据需要重定向
-## 功能手册
-1. 当机器人检查到有新用户加入正确配置了puzzle的群(机器人需在该群内且拥有读消息权限)时，会自动禁言该用户(需拥有ban权限)并提醒用户(需拥有发消息权限)通过机器人进行入群测试。用户完成测试后解禁，一段时间不通过则自动踢出。
-1. /supervise dataadmin在机器人加入的群中发送该命令，如果该群并未在groups中配置，机器人会将该群写入groups配置。
-1. /dataadmin confadmin在机器人加入的群中回复别人的消息，被回复者会被配置为dataadmin。
-1. /start watchdog功能中，用户私聊机器人发送该命令进行入群测试。
-1. /replybanall dataadmin或者confadmin使用该命令，在所有管辖群中封禁被回复者，并加入黑名单。
-1. `/fwdbanall` dataadmin或者confadmin使用该命令，在所有管辖群中封禁被回复消息的转发来源者，并加入黑名单。
-1. `/idbanall <userid>` dataadmin或者confadmin使用该命令，在所有管辖群中封禁该userid，并加入黑名单。
-1. `/reload` confadmin私聊机器人使用该命令，重新载入配置文件(以及配置文件中指定的数据文件)
-1. `/points` 查看自己在本群的社区积分
-1. `/rank` data管理员查看本群积分排名前十名单
-1. `/clearpoints` confadmin管理员清空本群所有积分
-1. `/clean` confadmin 清空隐藏任务，之后请立即停止机器人运行
-1. `/punish` 群管理员或confadmin或dataadmin惩罚本群成员，清零积分
+Run the log output to stderr, possibly need redirect
+## Quick Manual
+1. When the Community Bot detects a new user join in the group(which has correctly configured the puzzle file, and the bot has READ rights in this group). The bot will temporary ban the new user (needs BAN rights), and ask the new user to take a quiz (needs Send Message rights). The bot will allow the user to join in after he/she complete the quiz successfully. Otherwise it will ban the user if he/she has not finished the quiz in a certain time period.
+
+1. /supervise dataadmin could reply to a user in the group(which has the Bot), and if this user is not in the 'groups' config, this user will be added to the 'groups' config.
+1. /dataadmin confadmin could reply to a user in the group(which has the Bot), and this user will become dataadmin.
+1. /start watchdog function, user PM the Bot in order to take a quiz.
+1. /replybanall dataadmin or confadmin could use this command to ban the user(that has been replied) in ALL groups that under this admin's jurisdiction. And add this user to black list.
+1. `/fwdbanall` dataadmin or confadmin could use this command to ban the forwarded user in ALL groups that under this admin's jurisdiction. And add this user to black list.
+1. `/idbanall <userid>` dataadmin or confadmin could use this command to ban the userid in ALL groups that under this admin's jurisdiction. And add this userid to black list.
+1. `/reload` confadmin could PM the Bot to use this command to reload config files(and config the data files in the config files).
+1. `/points` Check your self points in the current group.
+1. `/rank` dataadmin check the top 10 ranking.
+1. `/clearpoints` confadmin clear all points in the current group.
+1. `/clean` confadmin clear the hidden tasks, and after that please stop the Bot immediately.
+1. `/punish` group admin, confadmin or dataadmin could clear user's points to punish the user.
 
 
 
 
 # 48Bot
-48Bot是用于BNB48俱乐部的管家机器人[@bnb48_bot](https://t.me/bnb48_bot)的管理程序
-## 功能手册
-- start - (私聊)加入BNB48 Club。如果持有Koge余额达到标准，机器人会给出入群链接。
-- cheque - (私聊)发支票。 `/cheque 想要发出的金额`
-- changes - (私聊)查看最近十条余额
-- bind - (私聊)绑定BNB空投Koge
-- mybinding - (私聊)查看绑定与空投
-- bal - 查余额 直接发送时查看自己的余额，回复别人消息时查看对方余额。
-- trans - 转账 必须回复别人消息使用。 `/trans 转账金额`
-- auction - 发起拍卖(私聊/收费) `/auction 底价 持续小时 商品描述`
-- hongbao - 发红包。 `/hongbao [金额] [个数] [祝福语]` 金额默认10，个数默认1，祝福语默认“恭喜发财”
-- redpacket - 发红包。 `/redpacket [金额] [个数] [祝福语]` 默认值同上
-- groupstats - (管理)查看本群挖矿统计
-- casino - (管理/私聊)在大赌场开龙虎赌桌
-- nocasino - (管理/私聊)本桌结束后不再开下一桌龙虎
-- restrict - (管理/收费)禁言
-- unrestrict - (管理/收费)解禁
-- promote - (收费)提升为本群管理员 回复消息使用
-- demote - (收费)剥夺本群管理员 回复消息使用
-- clean 大Boss清空隐藏任务，之后请立即停止机器人运行
+48Bot is a manager program to manage BNB48 club group[@bnb48_bot](https://t.me/bnb48_bot)
+## Quick Manual
+- start - (PM)Joining BNB48 Club。If the user has enough Koge balance the Bot will show the link to join the group.
+- cheque - (PM) Send cheque `/cheque Amount`
+- changes - (PM) Check the 10 most recently balance changes
+- bind - (PM) Binding the Koge airdrop
+- mybinding - (PM) Check my binding and Koge airdrop
+- bal - Check the Koge balance. Reply otheres with this command can check other user's balance 
+- trans - transfer Koge to others. Have to reply someone to use this command. `/trans Amount`
+- auction - Start auction(PM/Charge) `/auction StartingPrice Duration Description`
+- hongbao - send hongbao(Red envelope) `/hongbao [Amount] [Quantity] [Wishes]` Default amount is 10，Default quantity is 1，Default wishes is "恭喜发财" (Kung Hei Fat Choy)
+- redpacket - send Red envelope `/redpacket [Amount] [Quantity] [Wishes]` The same default value as above
+- groupstats - (Admin) Check the current group mining stats.
+- casino - (Admin/PM) Open the casino.
+- nocasino - (Admin/PM) Close the casino after this round.
+- restrict - (Admin/PM) Ban user from posting messages.
+- unrestrict - (Admin/PM) Unban.
+- promote - (Charge) Promote the user to be the group admin. Have to repy this user to use this command.
+- demote - (Charge) Demote the group admin to be a normal user. Have to reply this user to use this command .
+- clean Super admin clear the hidden tasks, and after that please stop the Bot immediately.
