@@ -39,8 +39,15 @@ c = db.cursor()
 
 c.execute("SELECT * FROM `apikey`")
 res = c.fetchall()
+amounts=[]
 for each in res:
     bnbamount = getBNBAmountByAPI(each[1],each[2])
+    if bnbamount!=0 and bnbamount in amounts:
+        bnbamount=0
+        print("redundant api detected!")
+        print(each[1])
+    else:
+        amounts.append(bnbamount)
     print("api: {} {}".format(each[0],bnbamount))
     c.execute("INSERT INTO bnb (uid,offchain) VALUES (%s,%s) ON DUPLICATE KEY UPDATE offchain=%s",[each[0],bnbamount,bnbamount])
 

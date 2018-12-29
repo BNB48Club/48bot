@@ -333,6 +333,8 @@ def startcasino(bot=None):
     try:
         message = updater.bot.sendMessage(BNB48CASINO, LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
     except:
+        if not CASINO_CONTINUE:
+            return
         thread = Thread(target = startcasino)
         time.sleep(10)
         thread.start()
@@ -347,7 +349,7 @@ def releaseandstartcasino(casino_id):
     thecasino = global_longhu_casinos[casino_id]
     #logger.warning("start releasing")
 
-    while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0:
+    while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0 and CASINO_CONTINUE:
         time.sleep(CASINO_INTERVAL)
 
     results = thecasino.release()
@@ -395,10 +397,11 @@ def pmcommandhandler(bot,update):
         update.message.reply_markdown(response)
     elif "/start" in things[0]:
         
-        if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]*int((time.time() - BINANCE_ANNI)/3600/24):
+        if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
+            #*int((time.time() - BINANCE_ANNI)/3600/24):
             update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
-            update.message.reply_markdown("从2018.7.14起至今，日均BNB持仓超过{}枚方可加入。上述持仓唯一认可凭证是Koge48数量。输入 /bind 查看如何绑定BNB持仓情况领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
+            update.message.reply_markdown("从2018.7.14起至今，Koge持仓超过{}枚方可加入。输入 /bind 查看如何绑定BNB持仓情况领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
     elif "/bind" in things[0]:
         update.message.reply_text(
             #"持有1BNB，每天可以获得1 Koge48积分。\n\n持仓快照来自两部分，链上与链下。链上部分可以通过机器人提交存放BNB的钱包地址进行绑定，链下部分可以通过机器人提交币安交易所账户API进行绑定。所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。\n\n持仓快照每天进行。\n\n请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交ETH地址或币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
@@ -588,7 +591,10 @@ def botcommandhandler(bot,update):
             update.message.reply_text("金额不合法")
             return
         code = koge48core.signCheque(user.id,float(things[1]))
-        update.message.reply_markdown("任意用户发送\n`{}`\n即可领取这张支票，金额{}".format(code,number))
+        if "ERROR" in code:
+            update.message.reply_text("code")
+        else:
+            update.message.reply_markdown("任意用户发送\n`{}`\n即可领取这张支票，金额{}".format(code,number))
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         user = update.message.from_user
 
@@ -633,7 +639,12 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        update.message.reply_markdown("{}的 {}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True)
+        try:
+            bot.sendMessage(user.id,"{}的 {}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+        except:
+            pass
+        if update.message.chat.type !='private':
+            update.message.delete()
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -723,6 +734,9 @@ def cleanHandler(bot,update):
 
         for each in global_redpackets:
             koge48core.changeBalance(each._fromuser.id,each.balance(),"redpacket return")       
+
+        CASINO_CONTINUE = False
+
         update.message.reply_text('cleaned')
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
@@ -878,14 +892,17 @@ def welcome(bot, update):
             bot.kickChatMember(update.message.chat_id,newUser.id)
             logger.warning('%s|%s is kicked from %s because of spam',newUser.id,newUser.full_name,update.message.chat.title)
             
-    checkThresholds(update.message.chat_id,newUser.id,update.message)
+    #checkThresholds(update.message.chat_id,newUser.id,update.message)
 
 def checkThresholds(chatid,userid,message):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
     if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
         if SAYINSUFFICIENT[chatid]:
-            message.reply_markdown("Koge持仓不足{}，达标之前此消息将持续出现。".format(ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
+            try:
+                updater.bot.sendMessage(userid,"Koge持仓不足{}，达标之前此消息将持续出现。".format(ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
+            except:
+                pass
         if KICKINSUFFICIENT[chatid]:
             kick(chatid,userid)
         
@@ -985,7 +1002,7 @@ def main():
 
 
     #Start the schedule
-    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=360)
+    job_airdrop = j.run_repeating(airdropportal,interval=3600,first=60)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)

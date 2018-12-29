@@ -24,7 +24,7 @@ class Koge48:
             secondsduration = time.time() - lastts
         except:
             secondsduration = 24*3600
-        multi_factor = DAY_DECREASE**(secondsduration/(24*3600))
+        multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
         self._mycursor.execute("SELECT * FROM `balance`")
         res = self._mycursor.fetchall()
         for each in res:
@@ -77,8 +77,15 @@ class Koge48:
         self._mydb.commit()
         
     def signCheque(self,userid,number):
+        self._mycursor.execute("SELECT * FROM `cheque` WHERE `sid` = '{}' AND `did` = 0".format(userid))
+        res = self._mycursor.fetchone()
+        if res is None:
+            return "ERROR: only one cheque at same time"
+
         balance = self.getBalance(userid)
-        assert balance >= number
+        if balance >= number:
+            return "ERROR: insufficient balance"
+
         code=""
         for i in range(8):
             code+="".join(random.sample(Koge48.SEQUENCE,4))
