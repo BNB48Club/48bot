@@ -30,7 +30,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
-PRICES={"promote":500,"restrict":10,"unrestrict":100}
+PRICES={"promote":500,"restrict":10,"unrestrict":100,"query":10}
 
 file=open("_data/flushwords.json","r")
 FLUSHWORDS = json.load(file)["words"]
@@ -276,22 +276,6 @@ def buildcasinomarkup(result=["",""]):
     if result[0] == "" :
         keys.append(
             [
-                InlineKeyboardButton(u'押壹:', callback_data='FULL'),
-                InlineKeyboardButton(u'🐲', callback_data='LONG#1'),
-                InlineKeyboardButton(u'🐯', callback_data='HU#1'),
-                InlineKeyboardButton(u'🕊', callback_data='HE#1'),
-            ]
-        )
-        keys.append(
-            [
-                InlineKeyboardButton(u'押拾:', callback_data='FULL'),
-                InlineKeyboardButton(u'🐲', callback_data='LONG#10'),
-                InlineKeyboardButton(u'🐯', callback_data='HU#10'),
-                InlineKeyboardButton(u'🕊', callback_data='HE#10'),
-            ]
-        )
-        keys.append(
-            [
                 InlineKeyboardButton(u'押壹佰:', callback_data='FULL'),
                 InlineKeyboardButton(u'🐲', callback_data='LONG#100'),
                 InlineKeyboardButton(u'🐯', callback_data='HU#100'),
@@ -416,11 +400,31 @@ def groupadminhandler(bot,update):
     if not bot.getChatMember(chatid,user.id) in admins:
         update.message.reply_text("只有管理员可以调用")
         return
-    top10 = koge48core.getGroupMiningStatus(chatid)
-    text="过去一周(7\*24小时){}挖矿排行榜:\n".format(update.message.chat.title)
+    if "groupstats" in update.message.text:
+        top10 = koge48core.getGroupMiningStatus(chatid)
+        text="过去一周(7\*24小时){}挖矿排行榜:\n".format(update.message.chat.title)
+        for each in top10:
+            text+="[{}](tg://user?id={})挖出{}Koge48积分\n".format(each[0],each[0],each[1])
+        update.message.reply_markdown(text)
+def leadingboardHandler(bot,update):
+    things = update.message.text.split(' ')
+    try:
+        amount = int(things[1])
+    except:
+        amount = 10
+
+    if koge48core.getBalance(update.message.from_user.id) < PRICES['query']*amount:
+        update.message.reply_text("持仓不足以支付本次查询费用")
+        return
+    else:
+        koge48core.changeBalance(update.message.from_user.id,-PRICES['query']*amount,'query leadingboard')
+    top10 = koge48core.getTop(amount)
+    text="Koge目前总流通量{}\n富豪榜:\n".format(koge48core.getTotal())
     for each in top10:
-        text+="[{}](tg://user?id={})挖出{}Koge48积分\n".format(each[0],each[0],each[1])
-    update.message.reply_markdown(text)
+        text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
+    update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query']*amount,update.message.from_user.full_name))
+    update.message.reply_markdown(text,quote=False)
+        
     #logger.warning(text)
     
 def getusermd(user):
@@ -592,7 +596,7 @@ def botcommandhandler(bot,update):
             return
         code = koge48core.signCheque(user.id,float(things[1]))
         if "ERROR" in code:
-            update.message.reply_text("code")
+            update.message.reply_text(code)
         else:
             update.message.reply_markdown("任意用户发送\n`{}`\n即可领取这张支票，金额{}".format(code,number))
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
@@ -953,7 +957,7 @@ def main():
         ],
         groupadminhandler)#只对管理员账号的命令做出响应
     )
-
+    dp.add_handler(CommandHandler(["leadingboard"],leadingboardHandler))
     dp.add_handler(CommandHandler(
         [
             "mybinding",

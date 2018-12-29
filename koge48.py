@@ -25,7 +25,7 @@ class Koge48:
         except:
             secondsduration = 24*3600
         multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
-        self._mycursor.execute("SELECT * FROM `balance`")
+        self._mycursor.execute("SELECT `uid`,`bal` FROM `balance`")
         res = self._mycursor.fetchall()
         for each in res:
             uid = each[0]
@@ -78,12 +78,12 @@ class Koge48:
         
     def signCheque(self,userid,number):
         self._mycursor.execute("SELECT * FROM `cheque` WHERE `sid` = '{}' AND `did` = 0".format(userid))
-        res = self._mycursor.fetchone()
-        if res is None:
+        res = self._mycursor.fetchall()
+        if not res is None or len(res) > 0:
             return "ERROR: only one cheque at same time"
 
         balance = self.getBalance(userid)
-        if balance >= number:
+        if balance < number:
             return "ERROR: insufficient balance"
 
         code=""
@@ -98,8 +98,8 @@ class Koge48:
 
     def claimCheque(self,userid,code):
         self._mycursor.execute("SELECT * FROM `cheque` WHERE `code` = '{}'".format(code))
-        res = self._mycursor.fetchone()
-        if res is None:
+        res = self._mycursor.fetchall()
+        if res is None or len(res) == 0:
             return 0
         elif res[2] != 0:
             return -1
@@ -165,6 +165,22 @@ class Koge48:
         
     def getGroupMiningStatus(self,groupid): 
         sql = "SELECT uid,count(*) as amount FROM `changelog` WHERE source={} AND unix_timestamp(ts)>{} group by uid order by amount desc limit 10".format(groupid,(time.time()-(7*24*3600)))
+        self._mycursor.execute(sql)
+        #logger.warning(sql)
+        top10 = self._mycursor.fetchall()
+        #logger.warning(json.dumps(top10,indent=4))
+        return top10
+    def getTotal(self):
+        sql = "SELECT sum(`bal`) FROM `balance` "
+        self._mycursor.execute(sql)
+        one = self._mycursor.fetchall()
+        sql = "SELECT sum(`number`) FROM `cheque` WHERE `did` = 0"
+        self._mycursor.execute(sql)
+        two = self._mycursor.fetchall()
+    
+        return one[0][0]+two[0][0]
+    def getTop(self,amount=10):
+        sql = "SELECT `uid`,`bal` FROM `balance` ORDER BY `bal` DESC LIMIT {}".format(amount)
         self._mycursor.execute(sql)
         #logger.warning(sql)
         top10 = self._mycursor.fetchall()
