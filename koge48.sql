@@ -2,10 +2,10 @@
 -- version 4.8.3
 -- https://www.phpmyadmin.net/
 --
--- 主机： localhost
--- 生成日期： 2018-09-05 14:23:42
--- 服务器版本： 5.5.61
--- PHP 版本： 7.2.8
+-- Host: localhost
+-- Generation Time: Dec 30, 2018 at 08:30 AM
+-- Server version: 5.5.62
+-- PHP Version: 7.2.11
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
@@ -19,90 +19,149 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- 数据库： `koge48`
+-- Database: `koge48`
 --
-CREATE DATABASE IF NOT EXISTS `koge48` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
-USE `koge48`;
 
 -- --------------------------------------------------------
 
 --
--- 表的结构 `apikey`
+-- Table structure for table `apikey`
 --
 
-DROP TABLE IF EXISTS `apikey`;
 CREATE TABLE `apikey` (
   `uid` int(11) NOT NULL,
   `apikey` varchar(64) CHARACTER SET latin1 NOT NULL,
   `apisecret` varchar(64) CHARACTER SET latin1 NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Used to keep user''s apikey/secret from binance';
 
 -- --------------------------------------------------------
 
 --
--- 表的结构 `balance`
+-- Table structure for table `balance`
 --
 
-DROP TABLE IF EXISTS `balance`;
 CREATE TABLE `balance` (
   `uid` int(11) NOT NULL,
+  `full_name` text NOT NULL,
   `bal` double NOT NULL DEFAULT '0',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='the balance of koge, derived from changelog.';
 
 -- --------------------------------------------------------
 
 --
--- 表的结构 `changelog`
+-- Table structure for table `bnb`
 --
 
-DROP TABLE IF EXISTS `changelog`;
+CREATE TABLE `bnb` (
+  `uid` int(11) NOT NULL,
+  `onchain` double NOT NULL DEFAULT '0',
+  `offchain` double NOT NULL DEFAULT '0',
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='regularly updated with user''s bnb balance, for airdrop';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `changelog`
+--
+
 CREATE TABLE `changelog` (
   `height` bigint(20) UNSIGNED NOT NULL,
   `uid` int(11) NOT NULL,
   `differ` double NOT NULL COMMENT 'how many coins are changed',
   `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `memo` text CHARACTER SET latin1 NOT NULL COMMENT 'how many digs during this block'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `memo` text CHARACTER SET latin1 NOT NULL COMMENT 'how many digs during this block',
+  `source` varchar(32) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='how koge is + or -';
 
 --
--- 触发器 `changelog`
+-- Triggers `changelog`
 --
-DROP TRIGGER IF EXISTS `autobalance`;
 DELIMITER $$
-CREATE TRIGGER `autobalance` AFTER INSERT ON `changelog` FOR EACH ROW INSERT INTO balance (uid,bal) VALUES (new.uid,new.differ) ON DUPLICATE KEY UPDATE balance.bal=balance.bal+new.differ
+CREATE TRIGGER `autobalance_delete` AFTER DELETE ON `changelog` FOR EACH ROW update balance set balance.bal = balance.bal - old.differ where balance.uid = old.uid
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `autobalance_insert` AFTER INSERT ON `changelog` FOR EACH ROW INSERT INTO balance (uid,bal) VALUES (new.uid,new.differ) ON DUPLICATE KEY UPDATE balance.bal=balance.bal+new.differ
 $$
 DELIMITER ;
 
+-- --------------------------------------------------------
+
 --
--- 转储表的索引
+-- Table structure for table `cheque`
+--
+
+CREATE TABLE `cheque` (
+  `number` double NOT NULL,
+  `sid` int(11) NOT NULL,
+  `did` int(11) NOT NULL DEFAULT '0',
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `code` varchar(32) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `eth`
+--
+
+CREATE TABLE `eth` (
+  `uid` int(11) NOT NULL,
+  `eth` varchar(42) NOT NULL,
+  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='used to keep user''s eth address of bnb';
+
+--
+-- Indexes for dumped tables
 --
 
 --
--- 表的索引 `apikey`
+-- Indexes for table `apikey`
 --
 ALTER TABLE `apikey`
-  ADD PRIMARY KEY (`uid`);
+  ADD PRIMARY KEY (`uid`),
+  ADD UNIQUE KEY `apikey` (`apikey`);
 
 --
--- 表的索引 `balance`
+-- Indexes for table `balance`
 --
 ALTER TABLE `balance`
   ADD PRIMARY KEY (`uid`);
 
 --
--- 表的索引 `changelog`
+-- Indexes for table `bnb`
+--
+ALTER TABLE `bnb`
+  ADD PRIMARY KEY (`uid`);
+
+--
+-- Indexes for table `changelog`
 --
 ALTER TABLE `changelog`
   ADD PRIMARY KEY (`height`),
   ADD UNIQUE KEY `id` (`height`);
 
 --
--- 在导出的表使用AUTO_INCREMENT
+-- Indexes for table `cheque`
+--
+ALTER TABLE `cheque`
+  ADD UNIQUE KEY `code` (`code`);
+
+--
+-- Indexes for table `eth`
+--
+ALTER TABLE `eth`
+  ADD PRIMARY KEY (`uid`),
+  ADD UNIQUE KEY `eth` (`eth`);
+
+--
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- 使用表AUTO_INCREMENT `changelog`
+-- AUTO_INCREMENT for table `changelog`
 --
 ALTER TABLE `changelog`
   MODIFY `height` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;

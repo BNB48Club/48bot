@@ -76,7 +76,7 @@ global_longhu_casinos = {}
 global_redpackets = {}
 global_auctions = {}
 #casino_betsize = 2
-CASINO_INTERVAL = 30
+CASINO_INTERVAL = 15
 
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
