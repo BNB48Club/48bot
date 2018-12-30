@@ -179,12 +179,15 @@ class Koge48:
         two = self._mycursor.fetchall()
     
         return one[0][0]+two[0][0]
+    def getTopCasino(self):
+        betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
+        self._mycursor.execute(betsql)
+        top10 = self._mycursor.fetchall()
+        return top10
     def getTop(self,amount=10):
         sql = "SELECT `uid`,`bal` FROM `balance` ORDER BY `bal` DESC LIMIT {}".format(amount)
         self._mycursor.execute(sql)
-        #logger.warning(sql)
         top10 = self._mycursor.fetchall()
-        #logger.warning(json.dumps(top10,indent=4))
         return top10
     def getBalance(self,userid):
         if userid in self._cache:
