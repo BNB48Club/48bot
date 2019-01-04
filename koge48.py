@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
+    MINE_SIZE = 1000
     def KogeDecrease(self):
         logger.warning("decreasing")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")        
@@ -79,7 +80,7 @@ class Koge48:
     def signCheque(self,userid,number):
         self._mycursor.execute("SELECT * FROM `cheque` WHERE `sid` = '{}' AND `did` = 0".format(userid))
         res = self._mycursor.fetchall()
-        if not res is None or len(res) > 0:
+        if len(res) > 0:
             return "ERROR: only one cheque at same time"
 
         balance = self.getBalance(userid)
@@ -98,7 +99,7 @@ class Koge48:
 
     def claimCheque(self,userid,code):
         self._mycursor.execute("SELECT * FROM `cheque` WHERE `code` = '{}'".format(code))
-        res = self._mycursor.fetchall()
+        res = self._mycursor.fetchone()
         if res is None or len(res) == 0:
             return 0
         elif res[2] != 0:
@@ -199,9 +200,9 @@ class Koge48:
     def mine(self,minerid,groupid):
         self._tries+=1;
         if random.random()<self._prob:
-            self.changeBalance(minerid,1,"mining",groupid)
+            self.changeBalance(minerid,Koge48.MINE_SIZE,"mining",groupid)
             self._tries = 0
-            logger.warning("%s mined one from %s",minerid,groupid)
-            return True
+            logger.warning("%s mined from %s",minerid,groupid)
+            return Koge48.MINE_SIZE
         else:
-            return False
+            return 0

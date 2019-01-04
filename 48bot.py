@@ -799,7 +799,7 @@ def botmessagehandler(bot, update):
         #mining
         user = update.message.from_user
         if koge48core.mine(user.id,update.message.chat_id) and not update.message.chat_id in SILENTGROUPS:
-            update.message.reply_markdown("{}挖到一个{}".format(getusermd(user),getkoge48md()),disable_web_page_preview=True)
+            update.message.reply_markdown("{}挖到{}个{}".format(getusermd(user),Koge48.MINE_SIZE,getkoge48md()),disable_web_page_preview=True)
 
 
 '''
