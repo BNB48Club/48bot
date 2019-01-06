@@ -30,7 +30,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
-PRICES={"promote":500,"restrict":10,"unrestrict":100,"query":100}
+PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":100}
 
 file=open("_data/flushwords.json","r")
 FLUSHWORDS = json.load(file)["words"]
@@ -58,9 +58,11 @@ BNB48CASINO=-1001319319354
 #BNB48PUBLISH=SirIanM
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
-ENTRANCE_THRESHOLDS={BNB48:10000,BNB48CN:10}
-KICKINSUFFICIENT = {BNB48:False,BNB48CN:False}
-SAYINSUFFICIENT = {BNB48:True,BNB48CN:False}
+ENTRANCE_THRESHOLDS={BNB48:100000}
+KICK_THRESHOLDS={BNB48:90}
+SAY_THRESHOLDS={BNB48:10000}
+KICKINSUFFICIENT = {BNB48:True}
+SAYINSUFFICIENT = {BNB48:True}
 
 kogeconfig = ConfigParser.ConfigParser()
 kogeconfig.read("conf/koge48.conf")
@@ -380,7 +382,6 @@ def pmcommandhandler(bot,update):
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
         update.message.reply_markdown(response)
     elif "/start" in things[0]:
-        
         if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
             #*int((time.time() - BINANCE_ANNI)/3600/24):
             update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
@@ -685,6 +686,7 @@ def botcommandhandler(bot,update):
         if koge48core.getBalance(update.message.from_user.id) < PRICES['promote']:
             bot.sendMessage(update.message.chat_id, text="管理员晋升/解除需要花费{} Koge48积分,再去赚点儿钱吧".format(PRICES['promote']), reply_to_message_id=update.message.message_id)
             return
+
         targetuser = update.message.reply_to_message.from_user
         targetid = update.message.reply_to_message.from_user.id
 
@@ -906,14 +908,15 @@ def welcome(bot, update):
 def checkThresholds(chatid,userid,message):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
-    if koge48core.getBalance(userid) < ENTRANCE_THRESHOLDS[chatid]:
-        if SAYINSUFFICIENT[chatid]:
-            try:
-                updater.bot.sendMessage(userid,"Koge持仓不足{}，达标之前此消息将持续出现。".format(ENTRANCE_THRESHOLDS[chatid]),disable_web_page_preview=True)
-            except:
-                pass
-        if KICKINSUFFICIENT[chatid]:
-            kick(chatid,userid)
+    balance = koge48core.getBalance(userid)
+    if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
+        kick(chatid,userid)
+        return
+    if SAYINSUFFICIENT[chatid] and balance < SAY_THRESHOLDS[chatid]:
+        try:
+            updater.bot.sendMessage(userid,"Koge持仓不足{}，此消息将持续出现。不足{}将被移除出群。".format(SAY_THRESHOLDS[chatid],KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+        except:
+            pass
         
 
 def ban(chatid,userid):
