@@ -361,7 +361,8 @@ def releaseandstartcasino(casino_id):
     thread.start()
     
 def pmcommandhandler(bot,update):
-    if update.message.chat_id != update.message.from_user.id:
+    if update.message.chat.type != 'private':
+        update.message.reply_text('该命令需私聊机器人')
         return
 
     things = update.message.text.split(' ')
@@ -401,11 +402,11 @@ def groupadminhandler(bot,update):
     if not bot.getChatMember(chatid,user.id) in admins:
         update.message.reply_text("只有管理员可以调用")
         return
-    if "groupstats" in update.message.text:
+    if "mining" in update.message.text:
         top10 = koge48core.getGroupMiningStatus(chatid)
         text="过去一周(7\*24小时){}挖矿排行榜:\n".format(update.message.chat.title)
         for each in top10:
-            text+="[{}](tg://user?id={})挖出{}Koge48积分\n".format(each[0],each[0],each[1])
+            text+="[{}](tg://user?id={})挖出{}个块\n".format(each[0],each[0],each[1])
         update.message.reply_markdown(text)
 def richHandler(bot,update):
     if koge48core.getBalance(update.message.from_user.id) < PRICES['query']:
@@ -961,7 +962,7 @@ def main():
 
     dp.add_handler(CommandHandler(
         [
-            "groupstats"
+            "mining"
         ],
         groupadminhandler)#只对管理员账号的命令做出响应
     )
@@ -972,7 +973,8 @@ def main():
             "mybinding",
             "bind",
             "changes",
-            "start"
+            "start",
+            "join"
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
     )
@@ -1007,7 +1009,7 @@ def main():
             "redpacket",
             "cheque"
         ],
-        botcommandhandler))# '''处理默认所有命令'''
+        botcommandhandler))# '''处理大群命令'''
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
 
     # log all errors
