@@ -5,24 +5,43 @@
 # 48Bot
 48Bot是用于BNB48俱乐部的管家机器人[@bnb48_bot](https://t.me/bnb48_bot)的管理程序
 ## 功能手册
-- start - (私聊)加入BNB48 Club。如果持有Koge余额达到标准，机器人会给出入群链接。
-- cheque - (私聊)发支票。 `/cheque 想要发出的金额`
-- changes - (私聊)查看最近十条余额
-- bind - (私聊)绑定BNB空投Koge
-- mybinding - (私聊)查看绑定与空投
-- bal - 查余额 直接发送时查看自己的余额，回复别人消息时查看对方余额。
-- trans - 转账 必须回复别人消息使用。 `/trans 转账金额`
-- auction - 发起拍卖(私聊/收费) `/auction 底价 持续小时 商品描述`
-- hongbao - 发红包。 `/hongbao [金额] [个数] [祝福语]` 金额默认10，个数默认1，祝福语默认“恭喜发财”
-- redpacket - 发红包。 `/redpacket [金额] [个数] [祝福语]` 默认值同上
-- groupstats - (管理)查看本群挖矿统计
-- casino - (管理/私聊)在大赌场开龙虎赌桌
-- nocasino - (管理/私聊)本桌结束后不再开下一桌龙虎
-- restrict - (管理/收费)禁言
-- unrestrict - (管理/收费)解禁
-- promote - (收费)提升为本群管理员 回复消息使用
-- demote - (收费)剥夺本群管理员 回复消息使用
-- clean 大Boss清空隐藏任务，之后请立即停止机器人运行
+auction - (私聊) /auction 底价 持续小时 商品描述
+
+start - (私聊)加入BNB48 Club
+
+join - (私聊)加入BNB48 Club
+
+bal - 查余额
+
+trans - 转账
+
+cheque - (私聊)发支票。 /cheque 金额
+
+hongbao - 发红包。 /hongbao [金额 个数 祝福语]
+
+redpacket - 发红包。 /redpacket [金额 个数 祝福语]
+
+changes - (私聊)查看最近十条余额
+
+bind - (私聊)绑定BNB空投Koge
+
+mybinding - (私聊)查看绑定与空投
+
+mining - (管理)查看本群挖矿统计
+
+restrict - (管理/收费)禁言
+
+unrestrict - (管理/收费)解禁
+
+promote - (收费)提升为本群管理员
+
+demote - (收费)剥夺本群管理员
+
+rich - (收费)查看Koge流通量、富豪榜
+
+roller - (收费)查看Koge赌场豪客榜
+
+clean - 大Boss清空隐藏任务，之后请立即停止机器人运行
 # CommunityBot
 社区机器人，用于同一机器人协调管理多个群的情形。
 ## 配置文件
