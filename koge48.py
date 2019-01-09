@@ -61,7 +61,6 @@ class Koge48:
         )
         self._mycursor = self._mydb.cursor()
 
-        self._prob = 0.06
         self._tries = 0
         self._cache = {}
         self._minets = time.time()
@@ -202,7 +201,7 @@ class Koge48:
         self._tries+=1;
         currentts = time.time()
         duration = currentts - self._minets
-        prob = self._prob*currentts/300
+        prob = duration/300
         self._minets = currentts
 
         if random.random()<prob:
