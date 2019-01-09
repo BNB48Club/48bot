@@ -64,6 +64,7 @@ class Koge48:
         self._prob = 0.06
         self._tries = 0
         self._cache = {}
+        self._minets = time.time()
         return
 
 
@@ -199,7 +200,12 @@ class Koge48:
             return balance
     def mine(self,minerid,groupid):
         self._tries+=1;
-        if random.random()<self._prob:
+        currentts = time.time()
+        duration = currentts - self._minets
+        prob = self._prob*currentts/300
+        self._minets = currentts
+
+        if random.random()<prob:
             self.changeBalance(minerid,Koge48.MINE_SIZE,"mining",groupid)
             self._tries = 0
             logger.warning("%s mined from %s",minerid,groupid)
