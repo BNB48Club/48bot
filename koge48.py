@@ -5,6 +5,7 @@ import datetime
 import time
 import mysql.connector
 import logging
+import math
 
 from binance.client import Client
 
@@ -17,6 +18,7 @@ class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
     MINE_SIZE = 1000
+    LAMDA = 1/300.00
     def KogeDecrease(self):
         logger.warning("decreasing")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")        
@@ -201,13 +203,13 @@ class Koge48:
         self._tries+=1;
         currentts = time.time()
         duration = currentts - self._minets
-        prob = duration/300
+        prob = 1-(math.e**(-duration*Koge48.LAMDA))
         self._minets = currentts
 
-        if random.random()<prob:
+        if random.random() < prob:
             self.changeBalance(minerid,Koge48.MINE_SIZE,"mining",groupid)
             self._tries = 0
-            logger.warning("%s mined from %s",minerid,groupid)
+            logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
             return Koge48.MINE_SIZE
         else:
             return 0
