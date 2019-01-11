@@ -233,8 +233,8 @@ def callbackhandler(bot,update):
         casino_betsize = float(thedatas[1])
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
-            if koge48core.getBalance(activeuser.id) < casino_betsize:
-                update.callback_query.answer(text=u"余额不足",show_alert=True)
+            if koge48core.getBalance(activeuser.id) < casino_betsize + KICK_THRESHOLDS['BNB48']:
+                update.callback_query.answer(text=u"下注后余额不足{}".format(KICK_THRESHOLDS['BNB48']),show_alert=True)
                 return
             koge48core.changeBalance(activeuser.id,-casino_betsize,"bet {} on casino".format(bet_target))        
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
