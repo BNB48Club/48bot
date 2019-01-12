@@ -608,7 +608,7 @@ def botcommandhandler(bot,update):
         else:
             update.message.reply_markdown("任意用户发送\n`{}`\n即可领取这张支票，金额{}".format(code,number))
     elif "/criteria" in things[0]:
-        update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入主群\n主群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]));
+        update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入主群\n主群发言者持仓Koge不足{}会被移除出群\n自助入群需缴纳费用{}Koge获取入群链接，使用一次后失效".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
             update.message.reply_text("需要在群内发送")
