@@ -384,7 +384,7 @@ def pmcommandhandler(bot,update):
         update.message.reply_markdown(response)
     elif "/start" in things[0] or "/join" in things[0]:
         if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
-            koge48core.changebalance(update.message.from_user.id,(KICK_THRESHOLDS[BNB48]-ENTRANCE_THRESHOLDS[BNB48]))
+            koge48core.changeBalance(update.message.from_user.id,(KICK_THRESHOLDS[BNB48]-ENTRANCE_THRESHOLDS[BNB48]))
             #*int((time.time() - BINANCE_ANNI)/3600/24):
             update.message.reply_markdown("已扣除入群费用。欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
