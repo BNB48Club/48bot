@@ -7,9 +7,11 @@
 ## 功能手册
 auction - (私聊) /auction 底价 持续小时 商品描述
 
-start - (私聊)加入BNB48 Club
+criteria - 查看入会标准
 
-join - (私聊)加入BNB48 Club
+start - (私聊/收费入会)加入BNB48 Club
+
+join - (私聊/收费入会)加入BNB48 Club
 
 bal - 查余额
 

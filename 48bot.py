@@ -384,7 +384,7 @@ def pmcommandhandler(bot,update):
         update.message.reply_markdown(response)
     elif "/start" in things[0] or "/join" in things[0]:
         if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
-            koge48core.changeBalance(update.message.from_user.id,(KICK_THRESHOLDS[BNB48]-ENTRANCE_THRESHOLDS[BNB48]))
+            koge48core.changeBalance(update.message.from_user.id,(KICK_THRESHOLDS[BNB48]-ENTRANCE_THRESHOLDS[BNB48]),"join")
             #*int((time.time() - BINANCE_ANNI)/3600/24):
             update.message.reply_markdown("已扣除入群费用。欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
@@ -625,7 +625,6 @@ def botcommandhandler(bot,update):
             return
         if balance <= 0:
             return
-        koge48core.changeBalance(user.id,-balance,"send redpacket")
 
         if len(things) > 2 and is_number(things[2]):
             amount = int(things[2])
@@ -633,6 +632,12 @@ def botcommandhandler(bot,update):
                 amount = 1
         else:
             amount = 1
+
+        if balance/amount < 0.01:
+            update.message.reply_text("单个红包平均应至少为0.01")
+            return
+
+        koge48core.changeBalance(user.id,-balance,"send redpacket")
         
         if len(things) > 3:
             title = things[3]
@@ -918,6 +923,11 @@ def checkThresholds(chatid,userid,message):
     balance = koge48core.getBalance(userid)
     if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
         kick(chatid,userid)
+        if BNB48 == update.message.chat_id:
+            try:
+                bot.promoteChatMember(update.message.chat_id, userid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
+            except:
+                pass
         try:
             updater.bot.sendMessage(userid,"Koge持仓不足{}，被移除出主群。".format(KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
         except:
