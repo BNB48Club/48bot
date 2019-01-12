@@ -59,7 +59,7 @@ BNB48CASINO=-1001319319354
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
-KICK_THRESHOLDS={BNB48:90}
+KICK_THRESHOLDS={BNB48:2000}
 SAY_THRESHOLDS={BNB48:10000}
 KICKINSUFFICIENT = {BNB48:True}
 SAYINSUFFICIENT = {BNB48:True}
@@ -382,10 +382,11 @@ def pmcommandhandler(bot,update):
         for each in changes:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
         update.message.reply_markdown(response)
-    elif "/start" in things[0]:
+    elif "/start" in things[0] or "/join" in things[0]:
         if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
+            koge48core.changebalance(update.message.from_user.id,(KICK_THRESHOLDS[BNB48]-ENTRANCE_THRESHOLDS[BNB48]))
             #*int((time.time() - BINANCE_ANNI)/3600/24):
-            update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
+            update.message.reply_markdown("已扣除入群费用。欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
             update.message.reply_markdown("从2018.7.14起至今，Koge持仓超过{}枚方可加入。输入 /bind 查看如何绑定BNB持仓情况领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
     elif "/bind" in things[0]:
@@ -606,7 +607,12 @@ def botcommandhandler(bot,update):
             update.message.reply_text(code)
         else:
             update.message.reply_markdown("任意用户发送\n`{}`\n即可领取这张支票，金额{}".format(code,number))
+    elif "/criteria" in things[0]:
+        update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入主群\n主群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
+        if update.message.chat.type == 'private':
+            update.message.reply_text("需要在群内发送")
+            return
         user = update.message.from_user
 
         if len(things) >1 and is_number(things[1]):
@@ -912,6 +918,10 @@ def checkThresholds(chatid,userid,message):
     balance = koge48core.getBalance(userid)
     if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
         kick(chatid,userid)
+        try:
+            updater.bot.sendMessage(userid,"Koge持仓不足{}，被移除出主群。".format(KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+        except:
+            pass
         return
     if SAYINSUFFICIENT[chatid] and balance < SAY_THRESHOLDS[chatid]:
         try:
@@ -1007,9 +1017,10 @@ def main():
             "desilent",
             "hongbao",
             "redpacket",
+            "criteria",
             "cheque"
         ],
-        botcommandhandler))# '''处理大群命令'''
+        botcommandhandler))# '''处理其他命令'''
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
 
     # log all errors

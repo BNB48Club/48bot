@@ -1,4 +1,3 @@
-import ConfigParser
 import random
 import json
 import datetime
@@ -18,7 +17,7 @@ class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
     MINE_SIZE = 1000
-    LAMDA = 1/300.00
+    LAMDA = 1/1000.00
     def KogeDecrease(self):
         logger.warning("decreasing")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")        
