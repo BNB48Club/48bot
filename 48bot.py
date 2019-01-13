@@ -62,7 +62,7 @@ ENTRANCE_THRESHOLDS={BNB48:100000}
 KICK_THRESHOLDS={BNB48:2000}
 SAY_THRESHOLDS={BNB48:10000}
 KICKINSUFFICIENT = {BNB48:True}
-SAYINSUFFICIENT = {BNB48:True}
+SAYINSUFFICIENT = {BNB48:False}
 
 kogeconfig = ConfigParser.ConfigParser()
 kogeconfig.read("conf/koge48.conf")
@@ -233,8 +233,8 @@ def callbackhandler(bot,update):
         casino_betsize = float(thedatas[1])
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
-            if koge48core.getBalance(activeuser.id) < casino_betsize + KICK_THRESHOLDS['BNB48']:
-                update.callback_query.answer(text=u"下注后余额不足{}".format(KICK_THRESHOLDS['BNB48']),show_alert=True)
+            if koge48core.getBalance(activeuser.id) < casino_betsize + KICK_THRESHOLDS[BNB48]:
+                update.callback_query.answer(text=u"下注后余额不足{}".format(KICK_THRESHOLDS[BNB48]),show_alert=True)
                 return
             koge48core.changeBalance(activeuser.id,-casino_betsize,"bet {} on casino".format(bet_target))        
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
@@ -388,7 +388,7 @@ def pmcommandhandler(bot,update):
             #*int((time.time() - BINANCE_ANNI)/3600/24):
             update.message.reply_markdown("已扣除入群费用。欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
-            update.message.reply_markdown("从2018.7.14起至今，Koge持仓超过{}枚方可加入。输入 /bind 查看如何绑定BNB持仓情况领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
+            update.message.reply_markdown("从2018.7.14起，Koge持仓超过{}枚方可加入。输入 /bind 查看如何绑定BNB持仓领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
     elif "/bind" in things[0]:
         update.message.reply_text(
             #"持有1BNB，每天可以获得1 Koge48积分。\n\n持仓快照来自两部分，链上与链下。链上部分可以通过机器人提交存放BNB的钱包地址进行绑定，链下部分可以通过机器人提交币安交易所账户API进行绑定。所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。\n\n持仓快照每天进行。\n\n请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交ETH地址或币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
@@ -923,7 +923,7 @@ def checkThresholds(chatid,userid,message):
     balance = koge48core.getBalance(userid)
     if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
         kick(chatid,userid)
-        if BNB48 == update.message.chat_id:
+        if BNB48 == message.chat_id:
             try:
                 bot.promoteChatMember(update.message.chat_id, userid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
             except:
@@ -1055,18 +1055,25 @@ def main():
 
 
 
-'''
-def schedule_thread():
-    print("start loop")
-    schedule.every().hour.do(koge48core.BNBAirDrop)
-    while True:
-        schedule.run_pending()
-        time.sleep(600)
-'''
 def airdropportal(bot,job):
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
-
+    try:
+        file=open("_data/bnb48.list","r")
+        bnb48list = json.load(file)["words"]
+        file.close()
+    except:
+        logger.warning("loading bnb48.list exception")
+        bnb48list = []
+    for eachuid in bnb48list:
+        try:
+            chatmember = bot.getChatMember(BNB48,eachuid)
+            balance = koge48core.getBalance(eachuid)
+            if chatmember.status in ['member','restricted'] and balance < KICK_THRESHOLDS[BNB48]:
+                kick(BNB48,eachuid)
+                logger.warning("%s kicked from BNB48",chatmember.user.full_name)
+        except:
+            pass
 if __name__ == '__main__':
     
     main()

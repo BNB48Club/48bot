@@ -19,6 +19,7 @@ class Koge48:
     MINE_SIZE = 1000
     LAMDA = 1/1000.00
     def KogeDecrease(self):
+        userlist = []
         logger.warning("decreasing")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")        
         try:
@@ -31,9 +32,11 @@ class Koge48:
         res = self._mycursor.fetchall()
         for each in res:
             uid = each[0]
+            userlist.append(uid)
             bal = each[1]
             self.changeBalance(each[0],each[1]*(multi_factor - 1),'decreasing')
         logger.warning("decreased")
+        return userlist
     def BNBAirDrop(self):
         logger.warning("airdroping")
         self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")        
