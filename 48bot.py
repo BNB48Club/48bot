@@ -233,8 +233,8 @@ def callbackhandler(bot,update):
         casino_betsize = float(thedatas[1])
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
-            if koge48core.getBalance(activeuser.id) < casino_betsize + KICK_THRESHOLDS[BNB48]:
-                update.callback_query.answer(text=u"下注后余额不足{}".format(KICK_THRESHOLDS[BNB48]),show_alert=True)
+            if koge48core.getBalance(activeuser.id) < casino_betsize:
+                update.callback_query.answer(text=u"余额不足",show_alert=True)
                 return
             koge48core.changeBalance(activeuser.id,-casino_betsize,"bet {} on casino".format(bet_target))        
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
@@ -664,9 +664,13 @@ def botcommandhandler(bot,update):
         try:
             bot.sendMessage(user.id,"{}的 {}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
+            update.message.reply_markdown("{}的 {}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True)
             pass
         if update.message.chat.type !='private':
-            update.message.delete()
+            try:
+                update.message.delete()
+            except:
+                pass
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -923,11 +927,6 @@ def checkThresholds(chatid,userid,message):
     balance = koge48core.getBalance(userid)
     if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
         kick(chatid,userid)
-        if BNB48 == message.chat_id:
-            try:
-                bot.promoteChatMember(update.message.chat_id, userid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
-            except:
-                pass
         try:
             updater.bot.sendMessage(userid,"Koge持仓不足{}，被移除出主群。".format(KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
         except:
@@ -945,6 +944,11 @@ def ban(chatid,userid):
 def unban(chatid,userid):
     updater.bot.unbanChatMember(chatid,userid)
 def kick(chatid,userid):
+    if BNB48 == message.chat_id:
+        try:
+            updater.bot.promoteChatMember(chatid, userid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
+        except:
+            pass
     updater.bot.kickChatMember(chatid,userid)
     updater.bot.unbanChatMember(chatid,userid)
 
@@ -1073,6 +1077,7 @@ def airdropportal(bot,job):
                 kick(BNB48,eachuid)
                 logger.warning("%s kicked from BNB48",chatmember.user.full_name)
         except:
+            logger.warning("airdropportal")
             pass
 if __name__ == '__main__':
     
