@@ -410,11 +410,13 @@ def groupadminhandler(bot,update):
             text+="[{}](tg://user?id={})挖出{}个块\n".format(each[0],each[0],each[1])
         update.message.reply_markdown(text)
 def richHandler(bot,update):
+    '''
     if koge48core.getBalance(update.message.from_user.id) < PRICES['query']:
         update.message.reply_text("持仓不足以支付本次查询费用")
         return
     else:
         koge48core.changeBalance(update.message.from_user.id,-PRICES['query'],'query top')
+    '''
     top10 = koge48core.getTop()
     text="Koge目前总流通量{}\n富豪榜:\n".format(koge48core.getTotal())
     for each in top10:
