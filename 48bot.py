@@ -591,7 +591,9 @@ def botcommandhandler(bot,update):
         latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
         update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/cheque" in things[0]:
-        if update.message.chat_id != update.message.from_user.id:
+        if update.message.chat.type != 'private':
+            return
+        if SirIanM != update.message.from_user.id:
             return
         if len(things) < 2:
             update.message.reply_text("命令格式: /cheque 金额(私聊)。领取支票直接私聊发送支票号即可。")
