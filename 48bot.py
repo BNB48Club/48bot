@@ -1068,7 +1068,7 @@ def airdropportal(bot,job):
     koge48core.BNBAirDrop()
     try:
         file=open("_data/bnb48.list","r")
-        bnb48list = json.load(file)["words"]
+        bnb48list = json.load(file)
         file.close()
     except:
         logger.warning("loading bnb48.list exception")
