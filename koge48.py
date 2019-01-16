@@ -82,6 +82,7 @@ class Koge48:
         self._mydb.commit()
         
     def signCheque(self,userid,number):
+        '''
         self._mycursor.execute("SELECT * FROM `cheque` WHERE `sid` = '{}' AND `did` = 0".format(userid))
         res = self._mycursor.fetchall()
         if len(res) > 0:
@@ -90,12 +91,13 @@ class Koge48:
         balance = self.getBalance(userid)
         if balance < number:
             return "ERROR: insufficient balance"
+        '''
 
         code=""
         for i in range(8):
             code+="".join(random.sample(Koge48.SEQUENCE,4))
 
-        self.changeBalance(userid,-number,"pay cheque "+code)
+        #self.changeBalance(userid,-number,"pay cheque "+code)
         newcheque = "INSERT INTO cheque (sid,number,code) VALUES (%s,%s,%s)"
         self._mycursor.execute(newcheque,(userid,number,code))
         self._mydb.commit()
@@ -128,6 +130,13 @@ class Koge48:
         #logger.warning("update balance of %s from %s to %s",userid,balance,self._cache[userid])
         return self._cache[userid]
 
+    def _getChequeBalanceFromDb(self,userid):
+        self._mycursor.execute("SELECT count(`number`) FROM `cheque` WHERE `uid` = {} AND `sid` = {} AND `did` = 0".format(userid,userid))
+        res = self._mycursor.fetchone()
+        if res is None:
+            return 0
+        else:
+            return res[0]
     def _getBalanceFromDb(self,userid):
         self._mycursor.execute("SELECT `bal` FROM `balance` WHERE `uid` = {}".format(userid))
         res = self._mycursor.fetchone()
@@ -201,6 +210,8 @@ class Koge48:
             balance = self._getBalanceFromDb(userid)
             self._cache[userid]=balance
             return balance
+    def getTotalBalance(self,userid):
+        return self.getBalance(userid) + self._getChequeBalanceFromDb(userid)
     def mine(self,minerid,groupid):
         self._tries+=1;
         currentts = time.time()

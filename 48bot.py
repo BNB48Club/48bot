@@ -421,7 +421,7 @@ def richHandler(bot,update):
     text="Koge目前总流通量{}\n富豪榜:\n".format(koge48core.getTotal())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
-    update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
+    #update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
     update.message.reply_markdown(text,quote=False)
     
 def rollerHandler(bot,update):
