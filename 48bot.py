@@ -383,12 +383,13 @@ def pmcommandhandler(bot,update):
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
         update.message.reply_markdown(response)
     elif "/start" in things[0] or "/join" in things[0]:
-        if koge48core.getBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
-            koge48core.changeBalance(update.message.from_user.id,(KICK_THRESHOLDS[BNB48]-ENTRANCE_THRESHOLDS[BNB48]),"join")
+        if koge48core.getTotalBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
+            #koge48core.changeBalance(update.message.from_user.id,(KICK_THRESHOLDS[BNB48]-ENTRANCE_THRESHOLDS[BNB48]),"join")
             #*int((time.time() - BINANCE_ANNI)/3600/24):
-            update.message.reply_markdown("已扣除入群费用。欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
+            update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
-            update.message.reply_markdown("从2018.7.14起，Koge持仓超过{}枚方可加入。输入 /bind 查看如何绑定BNB持仓领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
+            update.message.reply_markdown("欢迎加入[BNB48Club](https://t.me/bnb48club_cn)")
+            #update.message.reply_markdown("从2018.7.14起，Koge持仓超过{}枚方可加入。输入 /bind 查看如何绑定BNB持仓领取Koge48.".format(ENTRANCE_THRESHOLDS[BNB48]))
     elif "/bind" in things[0]:
         update.message.reply_text(
             #"持有1BNB，每天可以获得1 Koge48积分。\n\n持仓快照来自两部分，链上与链下。链上部分可以通过机器人提交存放BNB的钱包地址进行绑定，链下部分可以通过机器人提交币安交易所账户API进行绑定。所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。\n\n持仓快照每天进行。\n\n请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交ETH地址或币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
@@ -418,7 +419,7 @@ def richHandler(bot,update):
         koge48core.changeBalance(update.message.from_user.id,-PRICES['query'],'query top')
     '''
     top10 = koge48core.getTop()
-    text="Koge目前总流通量{}\n富豪榜:\n".format(koge48core.getTotal())
+    text="Koge目前总流通量(不含未兑现的募捐奖励){}\n富豪榜:\n".format(koge48core.getTotal())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
     #update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
@@ -597,22 +598,22 @@ def botcommandhandler(bot,update):
             return
         if SirIanM != update.message.from_user.id:
             return
-        if len(things) < 2:
-            update.message.reply_text("命令格式: /cheque 金额(私聊)。领取支票直接私聊发送支票号即可。")
+        if len(things) != 3:
+            update.message.reply_text("命令格式: /cheque 金额 UID")
             return
         user = update.message.from_user
         
-        number = float(things[-1])
-        if number <= 0 or koge48core.getBalance(user.id) < number:
+        number = float(things[1])
+        if number <= 0:
             update.message.reply_text("金额不合法")
             return
-        code = koge48core.signCheque(user.id,float(things[1]))
+        code = koge48core.signCheque(int(things[2]),float(things[1]))
         if "ERROR" in code:
             update.message.reply_text(code)
         else:
-            update.message.reply_markdown("任意用户发送\n`{}`\n即可领取这张支票，金额{}".format(code,number))
+            update.message.reply_markdown("任何人发送\n`{}`\n即可兑现这份奖励，请注意保管。\n一经兑换即开始自然衰减过程\n如不领取，Koge映射币安链时会自动计入，不会丢失\n金额{}".format(code,number))
     elif "/criteria" in things[0]:
-        update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入主群\n主群发言者持仓Koge不足{}会被移除出群\n自助入群需缴纳费用{}Koge获取入群链接，使用一次后失效".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
+        update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
             update.message.reply_text("需要在群内发送")
@@ -666,9 +667,9 @@ def botcommandhandler(bot,update):
             targetuser = update.message.reply_to_message.from_user
 
         try:
-            bot.sendMessage(user.id,"{}的 {}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(user.id,"{}的{}活动余额为{}\n总余额(包含未兑现的荣誉积分)为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id),koge48core.getTotalBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
-            update.message.reply_markdown("{}的 {}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True)
+            update.message.reply_text("请私聊机器人查询")
             pass
         if update.message.chat.type !='private':
             try:
@@ -748,9 +749,9 @@ def chequehandler(bot,update):
     if change > 0:
         update.message.reply_markdown("领取到{} {}".format(change,getkoge48md()),disable_web_page_preview=True)
     elif change == -1:
-        update.message.reply_markdown("该支票已被领取")
+        update.message.reply_markdown("该荣誉奖励已被领取")
     elif change == 0:
-        update.message.reply_markdown("不存在的支票号码")
+        update.message.reply_markdown("不存在的号码")
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
         updater.job_queue.stop()
@@ -928,7 +929,7 @@ def welcome(bot, update):
 def checkThresholds(chatid,userid,message):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
-    balance = koge48core.getBalance(userid)
+    balance = koge48core.getTotalBalance(userid)
     if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
         kick(chatid,userid)
         try:
@@ -1077,7 +1078,7 @@ def airdropportal(bot,job):
         try:
             chatmember = bot.getChatMember(BNB48,eachuid)
             balance = koge48core.getBalance(eachuid)
-            if chatmember.status in ['member','restricted'] and balance < KICK_THRESHOLDS[BNB48]:
+            if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted'] and balance < KICK_THRESHOLDS[BNB48]:
                 kick(BNB48,eachuid)
                 logger.warning("%s kicked from BNB48",chatmember.user.full_name)
         except:

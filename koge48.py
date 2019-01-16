@@ -28,7 +28,7 @@ class Koge48:
         except:
             secondsduration = 24*3600
         multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
-        self._mycursor.execute("SELECT `uid`,`bal` FROM `balance`")
+        self._mycursor.execute("SELECT `uid`,`bal` FROM `balance` WHERE `bal` > 1")
         res = self._mycursor.fetchall()
         for each in res:
             uid = each[0]
@@ -131,7 +131,7 @@ class Koge48:
         return self._cache[userid]
 
     def _getChequeBalanceFromDb(self,userid):
-        self._mycursor.execute("SELECT count(`number`) FROM `cheque` WHERE `uid` = {} AND `sid` = {} AND `did` = 0".format(userid,userid))
+        self._mycursor.execute("SELECT sum(`number`) FROM `cheque` WHERE `sid` = {} AND `did` = 0".format(userid,userid))
         res = self._mycursor.fetchone()
         if res is None:
             return 0
@@ -188,11 +188,11 @@ class Koge48:
         sql = "SELECT sum(`bal`) FROM `balance` "
         self._mycursor.execute(sql)
         one = self._mycursor.fetchall()
-        sql = "SELECT sum(`number`) FROM `cheque` WHERE `did` = 0"
-        self._mycursor.execute(sql)
-        two = self._mycursor.fetchall()
+        #sql = "SELECT sum(`number`) FROM `cheque` WHERE `did` = 0"
+        #self._mycursor.execute(sql)
+        #two = self._mycursor.fetchall()
     
-        return one[0][0]+two[0][0]
+        return one[0][0]
     def getTopCasino(self):
         betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
         self._mycursor.execute(betsql)
