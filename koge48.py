@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import random
 import json
 import datetime
@@ -102,15 +103,23 @@ class Koge48:
         self._mycursor.execute(newcheque,(userid,number,code))
         self._mydb.commit()
         return code
-
-    def claimCheque(self,userid,code):
+    def queryCheque(self,code):
         self._mycursor.execute("SELECT * FROM `cheque` WHERE `code` = '{}'".format(code))
+        res = self._mycursor.fetchone()
+        if res is None or len(res) == 0:
+            return "无效的奖励代码"
+        elif res[2] != 0:
+            return "已被{}领取".format(res[2])
+        else:
+            number = res[0]
+            return "奖励金额{} 尚未领取".format(number)
+    def redeemCheque(self,userid,code):
+        self._mycursor.execute("SELECT * FROM `cheque` WHERE `code` = '{}' AND `sid` = {}".format(code,userid))
         res = self._mycursor.fetchone()
         if res is None or len(res) == 0:
             return 0
         elif res[2] != 0:
             return -1
-            #expired
         else:
             number = res[0]
             self.changeBalance(userid,number,"cheque "+res[4],res[1])
@@ -211,7 +220,10 @@ class Koge48:
             self._cache[userid]=balance
             return balance
     def getTotalBalance(self,userid):
-        return self.getBalance(userid) + self._getChequeBalanceFromDb(userid)
+        if not self._getChequeBalanceFromDb(userid) is None:
+            return self.getBalance(userid) + float(self._getChequeBalanceFromDb(userid))
+        else:
+            return self.getBalance(userid)
     def mine(self,minerid,groupid):
         self._tries+=1;
         currentts = time.time()

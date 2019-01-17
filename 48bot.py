@@ -376,6 +376,14 @@ def pmcommandhandler(bot,update):
             for each in bindstatus['airdrops']:
                 response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
         update.message.reply_text(response)
+    elif "/redeem" in things[0]:
+        change = koge48core.redeemCheque(update.message.from_user.id,things[1])
+        if change > 0:
+            update.message.reply_markdown("领取到{} {}".format(change,getkoge48md()),disable_web_page_preview=True)
+        elif change == -1:
+            update.message.reply_markdown("该奖励已被领取")
+        elif change == 0:
+            update.message.reply_markdown("不存在的奖励号码")
     elif "/changes" in things[0]:
         changes=koge48core.getRecentChanges(update.message.from_user.id)
         response = "最近的变动记录:\n"
@@ -611,7 +619,7 @@ def botcommandhandler(bot,update):
         if "ERROR" in code:
             update.message.reply_text(code)
         else:
-            update.message.reply_markdown("任何人发送\n`{}`\n即可兑现这份奖励，请注意保管。\n一经兑换即开始自然衰减过程\n如不领取，Koge映射币安链时会自动计入，不会丢失\n金额{}".format(code,number))
+            update.message.reply_markdown("发送\n\/redeem `{}`\n即可兑现这份奖励\n直接发送代码可以查询奖励金额与兑换情况\n一经兑换即开始自然衰减过程\n如不领取，Koge映射币安链时会自动计入，不会丢失\n金额{}".format(code,number))
     elif "/criteria" in things[0]:
         update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
@@ -743,15 +751,10 @@ def botcommandhandler(bot,update):
         logger.warning("SILENTGROUPS updated")
     return
 def chequehandler(bot,update):
-    if update.message.chat_id != update.message.from_user.id:
+    if update.message.chat.type != 'private':
         return
-    change = koge48core.claimCheque(update.message.from_user.id,update.message.text)
-    if change > 0:
-        update.message.reply_markdown("领取到{} {}".format(change,getkoge48md()),disable_web_page_preview=True)
-    elif change == -1:
-        update.message.reply_markdown("该荣誉奖励已被领取")
-    elif change == 0:
-        update.message.reply_markdown("不存在的号码")
+    result= koge48core.queryCheque(update.message.text)
+    update.message.reply_markdown(result)
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
         updater.job_queue.stop()
@@ -1001,6 +1004,7 @@ def main():
         [
             "mybinding",
             "bind",
+            "redeem",
             "changes",
             "start",
             "join"
