@@ -18,7 +18,7 @@ class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
     MINE_SIZE = 1000
-    LAMDA = 1/3600.00
+    LAMDA = 1/1800.00
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")

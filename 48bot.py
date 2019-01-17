@@ -617,7 +617,7 @@ def botcommandhandler(bot,update):
         if "ERROR" in code:
             update.message.reply_text(code)
         else:
-            update.message.reply_markdown("发送\n/redeem `{}`\n即可兑现这份奖励\n直接发送代码可以查询奖励金额与兑换情况\n一经兑换即开始自然衰减过程\n如不领取，Koge映射币安链时会自动计入，不会丢失\n金额{}".format(code,number))
+            update.message.reply_markdown("`{}`\n直接发送代码可以查询奖励金额与兑换情况\n如果需要转换成成活动金额，使用/redeem 命令\n注意活动金额会有自然衰减过程\n奖励金额币安链时会自动计入，不会衰减\n金额{}".format(code,number))
     elif "/criteria" in things[0]:
         update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
@@ -796,7 +796,7 @@ def botmessagehandler(bot, update):
     if BNB48CASINO == update.message.chat_id:
         bot.deleteMessage(update.message.chat_id,update.message.message_id)
         return
-    checkThresholds(update.message.chat_id,update.message.from_user.id,update.message)
+    checkThresholds(update.message.chat_id,update.message.from_user.id)
 
     message_text = update.message.text
     #logger.warning(message_text)
@@ -925,24 +925,25 @@ def welcome(bot, update):
             bot.kickChatMember(update.message.chat_id,newUser.id)
             logger.warning('%s|%s is kicked from %s because of spam',newUser.id,newUser.full_name,update.message.chat.title)
             
-    #checkThresholds(update.message.chat_id,newUser.id,update.message)
 
-def checkThresholds(chatid,userid,message):
+def checkThresholds(chatid,userid):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
+    chatmember = bot.getChatMember(chatid,userid)
     balance = koge48core.getTotalBalance(userid)
-    if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
-        kick(chatid,userid)
-        try:
-            updater.bot.sendMessage(userid,"Koge持仓不足{}，被移除出主群。".format(KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-        except:
-            pass
-        return
-    if SAYINSUFFICIENT[chatid] and balance < SAY_THRESHOLDS[chatid]:
-        try:
-            updater.bot.sendMessage(userid,"Koge持仓不足{}，此消息将持续出现。不足{}将被移除出群。".format(SAY_THRESHOLDS[chatid],KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-        except:
-            pass
+    if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted']:
+        if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
+            kick(chatid,userid)
+            try:
+                updater.bot.sendMessage(userid,"Koge持仓不足{}，被移除出主群。".format(KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+            except:
+                pass
+            return
+        if SAYINSUFFICIENT[chatid] and balance < SAY_THRESHOLDS[chatid]:
+            try:
+                updater.bot.sendMessage(userid,"Koge持仓不足{}，此消息将持续出现。不足{}将被移除出群。".format(SAY_THRESHOLDS[chatid],KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+            except:
+                pass
         
 
 def ban(chatid,userid):
@@ -1079,11 +1080,7 @@ def airdropportal(bot,job):
         bnb48list = []
     for eachuid in bnb48list:
         try:
-            chatmember = bot.getChatMember(BNB48,eachuid)
-            balance = koge48core.getBalance(eachuid)
-            if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted'] and balance < KICK_THRESHOLDS[BNB48]:
-                kick(BNB48,eachuid)
-                logger.warning("%s kicked from BNB48",chatmember.user.full_name)
+            checkThresholds(BNB48,eachuid)
         except:
             logger.warning("airdropportal")
             pass
