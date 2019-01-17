@@ -419,20 +419,18 @@ def groupadminhandler(bot,update):
             text+="[{}](tg://user?id={})挖出{}个块\n".format(each[0],each[0],each[1])
         update.message.reply_markdown(text)
 def richHandler(bot,update):
-    '''
-    if koge48core.getBalance(update.message.from_user.id) < PRICES['query']:
-        update.message.reply_text("持仓不足以支付本次查询费用")
-        return
-    else:
-        koge48core.changeBalance(update.message.from_user.id,-PRICES['query'],'query top')
-    '''
     top10 = koge48core.getTop()
     text="Koge目前总流通量(不含未兑现的募捐奖励){}\n富豪榜:\n".format(koge48core.getTotal())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
-    #update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
     update.message.reply_markdown(text,quote=False)
     
+def donatorHandler(bot,update):
+    top10 = koge48core.getTopDonator()
+    text="已确认的募捐总额BNB:{}\n募捐金额排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
+    for each in top10:
+        text+="[{}](tg://user?id={})\n".format(each[0],each[0])
+    update.message.reply_markdown(text,quote=False)
 def rollerHandler(bot,update):
     if koge48core.getBalance(update.message.from_user.id) < PRICES['query']*10:
         update.message.reply_text("持仓不足以支付本次查询费用")
@@ -619,7 +617,7 @@ def botcommandhandler(bot,update):
         if "ERROR" in code:
             update.message.reply_text(code)
         else:
-            update.message.reply_markdown("发送\n\/redeem `{}`\n即可兑现这份奖励\n直接发送代码可以查询奖励金额与兑换情况\n一经兑换即开始自然衰减过程\n如不领取，Koge映射币安链时会自动计入，不会丢失\n金额{}".format(code,number))
+            update.message.reply_markdown("发送\n/redeem `{}`\n即可兑现这份奖励\n直接发送代码可以查询奖励金额与兑换情况\n一经兑换即开始自然衰减过程\n如不领取，Koge映射币安链时会自动计入，不会丢失\n金额{}".format(code,number))
     elif "/criteria" in things[0]:
         update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
@@ -952,7 +950,7 @@ def ban(chatid,userid):
 def unban(chatid,userid):
     updater.bot.unbanChatMember(chatid,userid)
 def kick(chatid,userid):
-    if BNB48 == message.chat_id:
+    if BNB48 == chatid:
         try:
             updater.bot.promoteChatMember(chatid, userid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
         except:
@@ -1000,6 +998,7 @@ def main():
     )
     dp.add_handler(CommandHandler(["rich"],richHandler))
     dp.add_handler(CommandHandler(["roller"],rollerHandler))
+    dp.add_handler(CommandHandler(["donator"],donatorHandler))
     dp.add_handler(CommandHandler(
         [
             "mybinding",

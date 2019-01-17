@@ -202,6 +202,12 @@ class Koge48:
         #two = self._mycursor.fetchall()
     
         return one[0][0]
+    def getTotalDonation(self):
+        sql = "SELECT sum(`number`) FROM `cheque` "
+        self._mycursor.execute(sql)
+        one = self._mycursor.fetchall()
+        return one[0][0]/10000
+        
     def getTopCasino(self):
         betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
         self._mycursor.execute(betsql)
@@ -209,6 +215,11 @@ class Koge48:
         return top10
     def getTop(self,amount=10):
         sql = "SELECT `uid`,`bal` FROM `balance` ORDER BY `bal` DESC LIMIT {}".format(amount)
+        self._mycursor.execute(sql)
+        top10 = self._mycursor.fetchall()
+        return top10
+    def getTopDonator(self,amount=10):
+        sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
         self._mycursor.execute(sql)
         top10 = self._mycursor.fetchall()
         return top10
