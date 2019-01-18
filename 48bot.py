@@ -427,7 +427,7 @@ def richHandler(bot,update):
     
 def donatorHandler(bot,update):
     top10 = koge48core.getTopDonator()
-    text="已确认的募捐总额BNB:{}\n募捐金额排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
+    text="发放给募捐者的荣誉Koge总量:{}\n募捐金额排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
     for each in top10:
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
@@ -617,7 +617,7 @@ def botcommandhandler(bot,update):
         if "ERROR" in code:
             update.message.reply_text(code)
         else:
-            update.message.reply_markdown("`{}`\n直接发送代码可以查询奖励金额与兑换情况\n如果需要转换成成活动金额，使用/redeem 命令\n注意活动金额会有自然衰减过程\n奖励金额币安链时会自动计入，不会衰减\n金额{}".format(code,number))
+            update.message.reply_markdown("`{}`\n直接发送代码可以查询奖励金额与兑换情况\n金额{}".format(code,number))
     elif "/criteria" in things[0]:
         update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
@@ -914,6 +914,10 @@ def welcome(bot, update):
     #筛选垃圾消息
     isSpam = False
     for newUser in update.message.new_chat_members:
+        if  update.message.chat_id == BNB48CN and update.message.from_user.id != newUser.id and not newUser.is_bot and koge48core.getBalance(newUser.id) == 0:
+            koge48core.changeBalance(newUser.id,Koge48.MINE_SIZE,"invited",update.message.from_user.id)
+            koge48core.changeBalance(update.message.from_user.id,Koge48.MINE_SIZE,"inviting",newUser.id)
+            update.message.reply_text("{}邀请{}，两人各挖到{}积分".format(update.message.from_user.full_name,newUser.full_name,Koge48.MINE_SIZE))
         for SPAMWORD in SPAMWORDS:
             if SPAMWORD in newUser.full_name:
                 isSpam = True
@@ -929,7 +933,7 @@ def welcome(bot, update):
 def checkThresholds(chatid,userid):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
-    chatmember = bot.getChatMember(chatid,userid)
+    chatmember = updater.bot.getChatMember(chatid,userid)
     balance = koge48core.getTotalBalance(userid)
     if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted']:
         if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:

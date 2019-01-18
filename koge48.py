@@ -18,7 +18,7 @@ class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
     MINE_SIZE = 1000
-    LAMDA = 1/1800.00
+    LAMDA = 1/1000.00
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
@@ -206,7 +206,7 @@ class Koge48:
         sql = "SELECT sum(`number`) FROM `cheque` "
         self._mycursor.execute(sql)
         one = self._mycursor.fetchall()
-        return one[0][0]/10000
+        return one[0][0]
         
     def getTopCasino(self):
         betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
