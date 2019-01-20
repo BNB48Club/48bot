@@ -5,13 +5,11 @@
 # 48Bot
 48Bot是用于BNB48俱乐部的管家机器人[@bnb48_bot](https://t.me/bnb48_bot)的管理程序
 ## 功能手册
-auction - (私聊) /auction 底价 持续小时 商品描述
-
 criteria - 查看入会标准
 
-start - (私聊/收费入会)加入BNB48 Club
+start - (私聊)加入BNB48 Club
 
-join - (私聊/收费入会)加入BNB48 Club
+join - (私聊)加入BNB48 Club
 
 bal - 查余额
 
@@ -31,19 +29,13 @@ mybinding - (私聊)查看绑定与空投
 
 mining - (管理)查看本群挖矿统计
 
-restrict - (管理/收费)禁言
 
-unrestrict - (管理/收费)解禁
+rich - 查看Koge流通量、富豪榜
 
-promote - (收费)提升为本群管理员
-
-demote - (收费)剥夺本群管理员
-
-rich - (收费)查看Koge流通量、富豪榜
-
-roller - (收费)查看Koge赌场豪客榜
+roller - 查看赌场运营情况
 
 clean - 大Boss清空隐藏任务，之后请立即停止机器人运行
+
 # CommunityBot
 社区机器人，用于同一机器人协调管理多个群的情形。
 ## 配置文件
