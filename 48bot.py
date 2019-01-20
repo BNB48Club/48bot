@@ -45,10 +45,6 @@ SILENTGROUPS = json.load(file)['groups']
 file.close()
 
 SirIanM=420909210
-Gui=434121211
-
-coinrumorbot=405689392
-bnb48_bot=571331274
 
 BNB48=-1001136778297
 BNB48CN= -1001345282090
@@ -56,6 +52,7 @@ BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 #BNB48CASINO=SirIanM
 #BNB48PUBLISH=SirIanM
+BNB48BOT = 571331274
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
@@ -237,6 +234,7 @@ def callbackhandler(bot,update):
                 update.callback_query.answer(text=u"余额不足",show_alert=True)
                 return
             koge48core.changeBalance(activeuser.id,-casino_betsize,"bet {} on casino".format(bet_target))        
+            koge48core.changeBalance(BNB48BOT,casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))        
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
             #CASINO_LOG+=u"\n{} 押注 {} {} Koge48积分".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
             update.callback_query.edit_message_text(
@@ -341,6 +339,7 @@ def releaseandstartcasino(casino_id):
     results = thecasino.release()
     for each in results['payroll']:
         koge48core.changeBalance(each,results['payroll'][each],"casino pay")
+        koge48core.changeBalance(BNB48BOT,-results['payroll'][each],"casino pay to {}".format(each))
 
     displaytext = global_longhu_casinos[casino_id].getLog()
     del global_longhu_casinos[casino_id]
@@ -432,16 +431,23 @@ def donatorHandler(bot,update):
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
 def rollerHandler(bot,update):
+    '''
     if koge48core.getBalance(update.message.from_user.id) < PRICES['query']*10:
         update.message.reply_text("持仓不足以支付本次查询费用")
         return
     else:
-        koge48core.changeBalance(update.message.from_user.id,-PRICES['query'],'query top')
+        koge48core.changeBalance(update.message.from_user.id,-PRICES['query'],'query roller')
+    '''
     top10 = koge48core.getTopCasino()
     text="赌场下注豪客榜:\n"
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
-    update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
+    changes=koge48core.getRecentChanges(BNB48BOT)
+    text+= "小秘书账户结余:{}\n".format(koge48core.getBalance(BNB48BOT))
+    text+= "小秘书最近的变动记录:\n"
+    for each in changes:
+        text += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
+    #update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
     update.message.reply_markdown(text,quote=False)
     
 def getusermd(user):
@@ -1031,15 +1037,15 @@ def main():
         ],
         siriancommandhandler)#
     )
-    dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
+    #dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
     dp.add_handler(CommandHandler(
         [
             "trans",
             "bal",
-            "promote",
-            "demote",
-            "restrict",
-            "unrestrict",
+            #"promote",
+            #"demote",
+            #"restrict",
+            #"unrestrict",
             "silent",
             "desilent",
             "hongbao",
