@@ -8,3 +8,4 @@ test.py
 *.db
 log.*
 temp
+_data*
