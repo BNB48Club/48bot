@@ -226,7 +226,10 @@ def callbackhandler(bot,update):
 
         thedatas = update.callback_query.data.split('#')
         bet_target = thedatas[0]
-        casino_betsize = float(thedatas[1])
+        if "ALLIN" == thedatas[1]:
+            casino_betsize = koge48core.getBalance(activeuser.id)
+        else:
+            casino_betsize = float(thedatas[1])
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
             if koge48core.getBalance(activeuser.id) < casino_betsize:
@@ -303,6 +306,14 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'🐲', callback_data='LONG#100000'),
                 InlineKeyboardButton(u'🐯', callback_data='HU#100000'),
                 InlineKeyboardButton(u'🕊', callback_data='HE#100000'),
+            ]
+        )
+        keys.append(
+            [
+                InlineKeyboardButton(u'Allin!:', callback_data='FULL'),
+                InlineKeyboardButton(u'🐲', callback_data='LONG#ALLIN'),
+                InlineKeyboardButton(u'🐯', callback_data='HU#ALLIN'),
+                InlineKeyboardButton(u'🕊', callback_data='HE#ALLIN'),
             ]
         )
     CASINO_MARKUP = InlineKeyboardMarkup(keys)
