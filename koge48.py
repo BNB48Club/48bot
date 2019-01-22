@@ -19,6 +19,7 @@ class Koge48:
     DAY_DECREASE = 0.9
     MINE_SIZE = 1000
     LAMDA = 1/1000.00
+    BNB48BOT = 571331274
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
@@ -130,7 +131,7 @@ class Koge48:
         
     def changeBalance(self,userid,number,memo="",source=0):
         balance = self.getBalance(userid)
-        assert balance + float(number) > -0.001
+        assert userid == Koge48.BNB48BOT  or balance + float(number) > -0.001
         newblocksql = "INSERT INTO changelog (uid,differ,memo,source) VALUES (%s,%s,%s,%s)"
         self._mycursor.execute(newblocksql,(userid,number,memo,source))
         self._mydb.commit()
@@ -208,8 +209,13 @@ class Koge48:
         one = self._mycursor.fetchall()
         return one[0][0]
         
+    def getTopProfiter(self):
+        betsql = "SELECT `uid`,sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%casino%' AND `height` > 507406 GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
+        self._mycursor.execute(betsql)
+        top10 = self._mycursor.fetchall()
+        return top10
     def getTopCasino(self):
-        betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
+        betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' AND `height` > 507406 GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
         self._mycursor.execute(betsql)
         top10 = self._mycursor.fetchall()
         return top10
