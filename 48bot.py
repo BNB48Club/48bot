@@ -385,6 +385,20 @@ def pmcommandhandler(bot,update):
             for each in bindstatus['airdrops']:
                 response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
         update.message.reply_text(response)
+    elif "/send" in things[0] and len(things) >=3:
+        if float(things[1]) <= 0:
+            return
+        if int(things[2]) <= 0:
+            return
+        user = update.message.from_user
+        targetuserid = int(things[2])
+        transamount = float(things[1])
+
+        if not koge48core.getBalance(user.id) > transamount:
+            return
+        koge48core.changeBalance(user.id,-transamount,"send to {}".format(targetuserid),targetuserid)
+        koge48core.changeBalance(targetuserid,transamount,"trans from "+user.full_name,user.id)
+        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),targetuserid,transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/redeem" in things[0]:
         change = koge48core.redeemCheque(update.message.from_user.id,things[1])
         if change > 0:
@@ -615,12 +629,25 @@ def botcommandhandler(bot,update):
         targetuser = update.message.reply_to_message.from_user
         transamount = float(things[1])
 
-        if not koge48core.getBalance(user.id) > float(things[1]):
+        if not koge48core.getBalance(user.id) > transamount:
             return
         
         koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
         latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
         update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+    elif "/send" in things[0] and len(things) >=3:
+        if float(things[1]) <= 0:
+            return
+        if int(things[2]) <= 0:
+            return
+        user = update.message.from_user
+        targetuserid = int(things[2])
+        transamount = float(things[1])
+
+        if not koge48core.getBalance(user.id) > transamount:
+            return
+        koge48core.changeBalance(user.id,-transamount,u"send to "+targetuserid,targetuserid)
+        koge48core.changeBalance(targetuserid,transamount,u"trans from "+user.full_name,user.id)
     elif "/cheque" in things[0]:
         if update.message.chat.type != 'private':
             return
@@ -1033,6 +1060,7 @@ def main():
             "redeem",
             "changes",
             "start",
+            "send",
             "join"
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
