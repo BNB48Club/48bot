@@ -228,6 +228,8 @@ def callbackhandler(bot,update):
         bet_target = thedatas[0]
         if "ALLIN" == thedatas[1]:
             casino_betsize = koge48core.getBalance(activeuser.id)
+            if casino_betsize <= 0:
+                return;
         else:
             casino_betsize = float(thedatas[1])
 
@@ -1081,7 +1083,7 @@ def main():
         ],
         siriancommandhandler)#
     )
-    #dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
+    dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
     dp.add_handler(CommandHandler(
         [
             "trans",
