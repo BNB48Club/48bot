@@ -586,7 +586,7 @@ def punishHandler(bot,update):
         update.message.reply_markdown("{} 💎0".format(update.message.reply_to_message.from_user.mention_markdown()))
     
 def clearpointsHandler(bot,update):
-    if not isAdmin(update,False,True,False):
+    if not isAdmin(update,False,True,True):
         return
     pointscore.clearGroup(update.message.chat_id)
     update.message.reply_text("cleared")
