@@ -30,7 +30,7 @@ class Koge48:
         except:
             secondsduration = 24*3600
         multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
-        self._mycursor.execute("SELECT `uid`,`bal` FROM `balance` WHERE `bal` > 1")
+        self._mycursor.execute("SELECT `uid`,`bal` FROM `balance` WHERE `bal` > 100 or `bal` < -100")
         res = self._mycursor.fetchall()
         for each in res:
             uid = each[0]
