@@ -422,7 +422,10 @@ def fwdbanallHandler(bot,update):
     update.message.reply_text("banned in all groups")
 
 def getAdminsInThisGroup(groupid):
-    admins = updater.bot.get_chat_administrators(groupid)
+    try:
+        admins = updater.bot.get_chat_administrators(groupid)
+    except:
+        admins = []
     RESULTS=[]
     for admin in admins:
         RESULTS.append(admin.user.id)
