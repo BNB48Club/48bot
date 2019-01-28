@@ -692,6 +692,8 @@ def botcommandhandler(bot,update):
             amount = int(things[2])
             if amount < 1:
                 amount = 1
+            if amount > 100:
+                amount = 100
         else:
             amount = 1
 
