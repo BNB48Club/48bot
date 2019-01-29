@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
-    MINE_SIZE = 1000
-    LAMDA = 1/1000.00
+    MINE_SIZE = 100
+    LAMDA = 1/600.00
     BNB48BOT = 571331274
     def KogeDecrease(self):
         userlist = []
