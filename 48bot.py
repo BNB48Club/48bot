@@ -229,6 +229,7 @@ def callbackhandler(bot,update):
         if "ALLIN" == thedatas[1]:
             casino_betsize = koge48core.getBalance(activeuser.id)
             if casino_betsize <= 0:
+                update.callback_query.answer()
                 return;
         else:
             casino_betsize = float(thedatas[1])
