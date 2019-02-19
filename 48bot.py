@@ -55,7 +55,7 @@ BNB48CASINO=-1001319319354
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
-KICK_THRESHOLDS={BNB48:2000}
+KICK_THRESHOLDS={BNB48:3000}
 SAY_THRESHOLDS={BNB48:10000}
 KICKINSUFFICIENT = {BNB48:True}
 SAYINSUFFICIENT = {BNB48:False}
@@ -279,6 +279,7 @@ def buildcasinomarkup(result=["",""]):
             ]
            ]
     if result[0] == "" :
+        '''
         keys.append(
             [
                 InlineKeyboardButton(u'押壹佰:', callback_data='FULL'),
@@ -287,6 +288,7 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'🕊', callback_data='HE#100'),
             ]
         )
+        '''
         keys.append(
             [
                 InlineKeyboardButton(u'押壹仟:', callback_data='FULL'),
@@ -446,7 +448,7 @@ def groupadminhandler(bot,update):
         update.message.reply_markdown(text)
 def richHandler(bot,update):
     top10 = koge48core.getTop()
-    text="Koge目前总流通量(不含未兑现的募捐奖励){}\n富豪榜:\n".format(koge48core.getTotal())
+    text="Koge目前总流通量(含募捐奖励){}\n富豪榜:\n".format(koge48core.getTotal())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
     update.message.reply_markdown(text,quote=False)
@@ -479,7 +481,7 @@ def rollerHandler(bot,update):
     text+= "小秘书账户结余:{}\n".format(koge48core.getBalance(Koge48.BNB48BOT))
     text+= "小秘书最近的变动记录:\n"
     for each in changes:
-        text += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
+        text += "{}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
     #update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
     update.message.reply_markdown(text,quote=False)
     

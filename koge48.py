@@ -198,11 +198,10 @@ class Koge48:
         sql = "SELECT sum(`bal`) FROM `balance` "
         self._mycursor.execute(sql)
         one = self._mycursor.fetchall()
-        #sql = "SELECT sum(`number`) FROM `cheque` WHERE `did` = 0"
-        #self._mycursor.execute(sql)
-        #two = self._mycursor.fetchall()
-    
-        return one[0][0]
+        sql = "SELECT sum(`number`) FROM `cheque` WHERE `did` = 0"
+        self._mycursor.execute(sql)
+        two = self._mycursor.fetchall()
+        return one[0][0]+two[0][0]
     def getTotalDonation(self):
         sql = "SELECT sum(`number`) FROM `cheque` "
         self._mycursor.execute(sql)
@@ -220,7 +219,12 @@ class Koge48:
         top10 = self._mycursor.fetchall()
         return top10
     def getTop(self,amount=10):
-        sql = "SELECT `uid`,`bal` FROM `balance` ORDER BY `bal` DESC LIMIT {}".format(amount)
+        sql = "SELECT table1.uid, table1.active + COALESCE(table2.deactive,0) AS `total` from (SELECT SUM(`bal`) AS `active` , `uid` FROM `balance` GROUP BY `uid`) AS `table1` LEFT JOIN (SELECT SUM(`number`) AS `deactive`, `sid` FROM `cheque` WHERE `did` = 0 GROUP BY `sid`) AS `table2` ON table1.uid = table2.sid ORDER BY `total` DESC LIMIT {}".format(amount)
+        self._mycursor.execute(sql)
+        top10 = self._mycursor.fetchall()
+        return top10
+    def getTopFrozenDonator(self,amount=10):
+        sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` WHERE `did`=0 GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
         self._mycursor.execute(sql)
         top10 = self._mycursor.fetchall()
         return top10
