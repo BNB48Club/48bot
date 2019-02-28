@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 import re
 import logging
@@ -447,15 +448,15 @@ def groupadminhandler(bot,update):
             text+="[{}](tg://user?id={})挖出{}个块\n".format(each[0],each[0],each[1])
         update.message.reply_markdown(text)
 def richHandler(bot,update):
-    top10 = koge48core.getTop()
-    text="Koge目前总流通量(含募捐奖励){}\n富豪榜:\n".format(koge48core.getTotal())
+    top10 = koge48core.getTop(20)
+    text="系统绑定BNB持仓总数{}\nKoge解锁部分(会衰减){}\nKoge锁仓部分(捐献所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
     update.message.reply_markdown(text,quote=False)
     
 def donatorHandler(bot,update):
     top10 = koge48core.getTopDonator()
-    text="发放给募捐者的荣誉Koge总量:{}\n募捐金额排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
+    text="捐赠获得的锁仓Koge总量:{}\n锁仓排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
     for each in top10:
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
@@ -673,7 +674,7 @@ def botcommandhandler(bot,update):
         else:
             update.message.reply_markdown("`{}`\n直接发送代码可以查询奖励金额与兑换情况\n金额{}".format(code,number))
     elif "/criteria" in things[0]:
-        update.message.reply_text("持仓Koge大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
+        update.message.reply_text("持仓Koge(含锁仓)大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
             update.message.reply_text("需要在群内发送")
@@ -729,7 +730,7 @@ def botcommandhandler(bot,update):
             targetuser = update.message.reply_to_message.from_user
 
         try:
-            bot.sendMessage(user.id,"{}的{}活动余额为{}\n总余额(包含未兑现的荣誉积分)为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id),koge48core.getTotalBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(user.id,"{}的{}活动余额为{}\n总余额(含锁仓)为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id),koge48core.getTotalBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
             update.message.reply_text("请私聊机器人查询")
             pass
@@ -847,6 +848,55 @@ def apihandler(bot,update):
     koge48core.setApiKey(update.message.from_user.id,api[0],api[1])
     update.message.reply_text("apikey绑定完成，注意绑定过程不会验证api的有效性")
     return
+
+
+BNBFAUCETLIST=[]
+def bnbfaucetHandler(bot,update):
+    words = update.message.text.split(' ')
+    if len(words) != 2:
+        update.message.reply_text("/bnbfaucettestnet <Your Address>")
+        return
+    address = words[1]
+    if not re.search("^tbnb\w{39}$",address):
+        update.message.reply_text("invalid address")
+        return
+    if address in BNBFAUCETLIST:
+        update.message.reply_text("One application for each address")
+    else:
+        try:
+            originout = os.popen("/home/ec2-user/sendBnb.sh {} 100 '100 BNB from FAUCET, BNB48 Club ®️'".format(address)).read()
+            output = json.loads(originout)
+            if 'code' in output and output['code'] != 0:
+                update.message.reply_text(output['message'])
+            else:
+                update.message.reply_text("100 BNB Sent\nhttps://testnet-explorer.binance.org/tx/{}".format(output['TxHash']),disable_web_page_preview=True)
+                BNBFAUCETLIST.append(address)
+        except:
+            update.message.reply_text(originout)
+
+KOGEFAUCETLIST=[]
+def kogefaucetHandler(bot,update):
+    words = update.message.text.split(' ')
+    if len(words) != 2:
+        update.message.reply_text("/kogefaucettestnet <Your Address>")
+        return
+    address = words[1]
+    if not re.search("^tbnb\w{39}$",address):
+        update.message.reply_text("invalid address")
+        return
+    if address in KOGEFAUCETLIST:
+        update.message.reply_text("One application for each address")
+    else:
+        try:
+            originout = os.popen("/home/ec2-user/sendKoge.sh {} 1000 '1000 KOGE from FAUCET, BNB48 Club ®️'".format(address)).read()
+            output = json.loads(originout)
+            if 'code' in output and output['code'] != 0:
+                update.message.reply_text(output['message'])
+            else:
+                update.message.reply_text("1000 KOGE Sent\nhttps://testnet-explorer.binance.org/tx/{}".format(output['TxHash']),disable_web_page_preview=True)
+                KOGEFAUCETLIST.append(address)
+        except:
+            update.message.reply_text(originout)
 
 def botmessagehandler(bot, update):
     if BNB48CASINO == update.message.chat_id:
@@ -1029,6 +1079,8 @@ mytoken = selectBot(bots)
 updater = Updater(token=mytoken, request_kwargs={'read_timeout': 30, 'connect_timeout': 15})
 j = updater.job_queue
 
+
+
 def main():
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
@@ -1048,6 +1100,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
     #dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
+    #dp.add_handler(RegexHandler("^tbnb\w{39}$",kogefaucethandler))
     dp.add_handler(RegexHandler("^\w{32}$",chequehandler))
 
 
@@ -1060,6 +1113,8 @@ def main():
     dp.add_handler(CommandHandler(["rich"],richHandler))
     dp.add_handler(CommandHandler(["roller"],rollerHandler))
     dp.add_handler(CommandHandler(["donator"],donatorHandler))
+    #dp.add_handler(CommandHandler(["kogefaucettestnet"],kogefaucetHandler))
+    #dp.add_handler(CommandHandler(["bnbfaucettestnet"],bnbfaucetHandler))
     dp.add_handler(CommandHandler(
         [
             "mybinding",

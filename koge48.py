@@ -195,15 +195,24 @@ class Koge48:
         #logger.warning(json.dumps(top10,indent=4))
         return top10
     def getTotal(self):
+        return self.getTotalFree()+self.getTotalFrozen()
+    def getTotalFree(self):
         sql = "SELECT sum(`bal`) FROM `balance` "
         self._mycursor.execute(sql)
         one = self._mycursor.fetchall()
+        return one[0][0]
+    def getTotalFrozen(self):
         sql = "SELECT sum(`number`) FROM `cheque` WHERE `did` = 0"
         self._mycursor.execute(sql)
         two = self._mycursor.fetchall()
-        return one[0][0]+two[0][0]
+        return two[0][0]
     def getTotalDonation(self):
         sql = "SELECT sum(`number`) FROM `cheque` "
+        self._mycursor.execute(sql)
+        one = self._mycursor.fetchall()
+        return one[0][0]
+    def getTotalBNB(self):
+        sql = "SELECT sum(`offchain`) FROM `bnb` "
         self._mycursor.execute(sql)
         one = self._mycursor.fetchall()
         return one[0][0]
