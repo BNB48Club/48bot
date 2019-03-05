@@ -19,6 +19,7 @@ from koge48 import Koge48
 from casino import LonghuCasino
 from redpacket import RedPacket
 from auction import Auction
+from collect48 import collectFrom
 #import schedule
 
 reload(sys)  
@@ -391,6 +392,14 @@ def pmcommandhandler(bot,update):
             for each in bindstatus['airdrops']:
                 response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
         update.message.reply_text(response)
+    elif "/get20" in things[0]:
+        text = "每个持有至少1BNB的币安账户都可以为20个测试网地址每个[领取](https://www.binance.com/en/dex/testnet/address)200测试BNB，下面是20个地址。\n领取完成之后回到这个界面，依次输入每个地址(一次一个)领取Koge奖励。\n要麻烦您输入20次，非常抱歉了。\n"
+        for each in koge48core.get20Addresses():
+            text += "`"
+            text += each
+            text += "`"
+            text += "\n"
+        update.message.reply_markdown(text)
     elif "/send" in things[0] and len(things) >=3:
         if float(things[1]) <= 0:
             return
@@ -449,7 +458,7 @@ def groupadminhandler(bot,update):
         update.message.reply_markdown(text)
 def richHandler(bot,update):
     top10 = koge48core.getTop(20)
-    text="系统绑定BNB持仓总数{}\nKoge解锁部分(会衰减){}\nKoge锁仓部分(捐献所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
+    text="系统绑定BNB持仓总数{}\nKoge解锁部分(会衰减){}\nKoge锁仓部分(捐赠所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
     update.message.reply_markdown(text,quote=False)
@@ -849,6 +858,19 @@ def apihandler(bot,update):
     update.message.reply_text("apikey绑定完成，注意绑定过程不会验证api的有效性")
     return
 
+def committestbnbHandler(bot,update):
+    if update.message.text == 'tbnb1fvrl4s3njcdtp2zy04z9d7w5jneke37rezmmk2':
+        update.message.reply_text("不要调皮")
+        return
+
+    howmany = collectFrom(update.message.text,'tbnb1fvrl4s3njcdtp2zy04z9d7w5jneke37rezmmk2')/100000000.0
+    if howmany > 0:
+        koge48core.registerTestBNB(update.message.from_user.id,update.message.text,howmany)
+        update.message.reply_text("感谢成功帮助搜集{}测试BNB，已经为您送上{} Koge".format(howmany,howmany*5))
+    else:
+        update.message.reply_text("这个地址没有可用的BNB\n请检查该地址是否是从机器人领取到的\n请确认是否已经正确填写到币安的测试币领取网页中\n如果均确认，请稍后再试")
+    res = koge48core.getAllCommit(update.message.from_user.id)
+    update.message.reply_text("截至目前俱乐部共收集到{}枚测试BNB，其中您收集到{}BNB".format(res[0],res[1]))
 
 BNBFAUCETLIST=[]
 def bnbfaucetHandler(bot,update):
@@ -1100,7 +1122,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
     #dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
-    #dp.add_handler(RegexHandler("^tbnb\w{39}$",kogefaucethandler))
+    dp.add_handler(RegexHandler("^tbnb\w{39}$",committestbnbHandler))
     dp.add_handler(RegexHandler("^\w{32}$",chequehandler))
 
 
@@ -1123,7 +1145,8 @@ def main():
             "changes",
             "start",
             "send",
-            "join"
+            "join",
+            "get20"
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
     )

@@ -217,6 +217,33 @@ class Koge48:
         one = self._mycursor.fetchall()
         return one[0][0]
         
+    def getAllCommit(self,uid):
+        getsql = "SELECT sum(`used`) FROM `bnctest` WHERE `used`>1"
+        self._mycursor.execute(getsql)
+        total = self._mycursor.fetchall()[0][0]
+        getsql = "SELECT sum(`used`) FROM `bnctest` WHERE `used`>1 AND `uid`={}".format(uid)
+        self._mycursor.execute(getsql)
+        my = self._mycursor.fetchall()[0][0]
+        return (total,my)
+    def get20Addresses(self):
+        getsql = "SELECT `addr`,`id` FROM `bnctest` WHERE `used`=0 LIMIT 20"
+        self._mycursor.execute(getsql)
+        addr20= self._mycursor.fetchall()
+        res = []
+        for each in addr20:
+            res.append(each[0])
+            setsql = "UPDATE `bnctest` SET `used` = '1' WHERE `bnctest`.`id` = %s"; 
+            self._mycursor.execute(setsql,(each[1],))
+        self._mydb.commit()
+        return res
+            
+    def registerTestBNB(self,uid,addr,howmany):
+        self.changeBalance(uid,howmany*5,"donate testbnb",Koge48.BNB48BOT)
+        self.changeBalance(Koge48.BNB48BOT,-howmany*5,"award because of testbnb",uid)
+        upsql="UPDATE `bnctest` SET `used` = %s , `uid` = %s WHERE `bnctest`.`addr` = %s"
+        self._mycursor.execute(upsql,(howmany,uid,addr))
+        self._mydb.commit()
+        
     def getTopProfiter(self):
         betsql = "SELECT `uid`,sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%casino%' AND `height` > 507406 GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
         self._mycursor.execute(betsql)
