@@ -57,7 +57,7 @@ BNB48CASINO=-1001319319354
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
-KICK_THRESHOLDS={BNB48:3000}
+KICK_THRESHOLDS={BNB48:10000}
 SAY_THRESHOLDS={BNB48:10000}
 KICKINSUFFICIENT = {BNB48:True}
 SAYINSUFFICIENT = {BNB48:False}
@@ -458,14 +458,14 @@ def groupadminhandler(bot,update):
         update.message.reply_markdown(text)
 def richHandler(bot,update):
     top10 = koge48core.getTop(20)
-    text="系统绑定BNB持仓总数{}\nKoge解锁部分(会衰减){}\nKoge锁仓部分(捐赠所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
+    text="所有绑定API领KOGE空投的账户共计持有BNB {}\nKoge解锁部分(会衰减){}\nKoge锁仓部分(捐赠所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
     update.message.reply_markdown(text,quote=False)
     
 def donatorHandler(bot,update):
     top10 = koge48core.getTopDonator()
-    text="捐赠获得的锁仓Koge总量:{}\n锁仓排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
+    text="捐赠发放的Koge总量:{}\n锁仓排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
     for each in top10:
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
@@ -859,11 +859,14 @@ def apihandler(bot,update):
     return
 
 def committestbnbHandler(bot,update):
-    if update.message.text == 'tbnb1fvrl4s3njcdtp2zy04z9d7w5jneke37rezmmk2':
+    #update.message.reply_text("关闭维护24小时，3.10日开放")
+    #return
+
+    if update.message.text in ('tbnb1fvrl4s3njcdtp2zy04z9d7w5jneke37rezmmk2','tbnb10txc8ug99f5qvqxf3ga4r46tz88ks8sryvmsue'):
         update.message.reply_text("不要调皮")
         return
 
-    howmany = collectFrom(update.message.text,'tbnb1fvrl4s3njcdtp2zy04z9d7w5jneke37rezmmk2')/100000000.0
+    howmany = collectFrom(update.message.text,'tbnb10txc8ug99f5qvqxf3ga4r46tz88ks8sryvmsue')/100000000.0
     if howmany > 0:
         koge48core.registerTestBNB(update.message.from_user.id,update.message.text,howmany)
         update.message.reply_text("感谢成功帮助搜集{}测试BNB，已经为您送上{} Koge".format(howmany,howmany*5))
