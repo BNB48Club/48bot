@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import requests
 import os
 import sys
 import re
@@ -9,9 +10,11 @@ import codecs
 import random
 import ConfigParser
 from threading import Thread
+import threading
 from telegram import *
 #KeyboardButton, ParseMode, ReplyKeyboardMarkup
 from telegram.ext import *
+from telegram.ext.dispatcher import run_async
 # import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 from selectBot import selectBot
 from botsapi import bots
@@ -46,6 +49,8 @@ file=open("_data/silents.json","r")
 SILENTGROUPS = json.load(file)['groups']
 file.close()
 
+commitlock = threading.Lock()
+
 SirIanM=420909210
 
 BNB48=-1001136778297
@@ -57,9 +62,9 @@ BNB48CASINO=-1001319319354
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
-KICK_THRESHOLDS={BNB48:10000}
+KICK_THRESHOLDS={BNB48:10000,BNB48CN:10000}
 SAY_THRESHOLDS={BNB48:10000}
-KICKINSUFFICIENT = {BNB48:True}
+KICKINSUFFICIENT = {BNB48:True,BNB48CN:True}
 SAYINSUFFICIENT = {BNB48:False}
 
 kogeconfig = ConfigParser.ConfigParser()
@@ -394,9 +399,10 @@ def pmcommandhandler(bot,update):
         update.message.reply_text(response)
     elif "/get20" in things[0]:
         text = "每个持有至少1BNB的币安账户都可以为20个测试网地址每个[领取](https://www.binance.com/en/dex/testnet/address)200测试BNB，下面是20个地址。\n领取完成之后回到这个界面，依次输入每个地址(一次一个)领取Koge奖励。\n要麻烦您输入20次，非常抱歉了。\n"
-        for each in koge48core.get20Addresses():
+        rawAddr = requests.get('http://52.194.34.140:5000/add/20').json()
+        for each in rawAddr:
             text += "`"
-            text += each
+            text += each['address']
             text += "`"
             text += "\n"
         update.message.reply_markdown(text)
@@ -858,22 +864,43 @@ def apihandler(bot,update):
     update.message.reply_text("apikey绑定完成，注意绑定过程不会验证api的有效性")
     return
 
+LASTCOMMIT = {}
+@run_async
 def committestbnbHandler(bot,update):
     #update.message.reply_text("关闭维护24小时，3.10日开放")
     #return
+    '''
+    if update.message.from_user.id in LASTCOMMIT:
+        till = time.time() - LASTCOMMIT[update.message.from_user.id]
+    else:
+        till = 1
+    if till < 1:
+        update.message.reply_text("1秒提交一次")
+        return
+    else:
+        LASTCOMMIT[update.message.from_user.id] = time.time()
+    '''
+        
 
     if update.message.text in ('tbnb1fvrl4s3njcdtp2zy04z9d7w5jneke37rezmmk2','tbnb10txc8ug99f5qvqxf3ga4r46tz88ks8sryvmsue'):
         update.message.reply_text("不要调皮")
         return
 
-    howmany = collectFrom(update.message.text,'tbnb10txc8ug99f5qvqxf3ga4r46tz88ks8sryvmsue')/100000000.0
+    #commitlock.acquire()
+    raw = requests.get('http://52.194.34.140:5000/trans/{}'.format(update.message.text)).json()
+    if raw['status']=='Fail':
+        howmany = 0
+    else:
+        howmany = 200#float(raw['msg'])
+    #howmany = collectFrom(update.message.text,'tbnb10txc8ug99f5qvqxf3ga4r46tz88ks8sryvmsue')/100000000.0
     if howmany > 0:
         koge48core.registerTestBNB(update.message.from_user.id,update.message.text,howmany)
         update.message.reply_text("感谢成功帮助搜集{}测试BNB，已经为您送上{} Koge".format(howmany,howmany*5))
     else:
         update.message.reply_text("这个地址没有可用的BNB\n请检查该地址是否是从机器人领取到的\n请确认是否已经正确填写到币安的测试币领取网页中\n如果均确认，请稍后再试")
-    res = koge48core.getAllCommit(update.message.from_user.id)
-    update.message.reply_text("截至目前俱乐部共收集到{}枚测试BNB，其中您收集到{}BNB".format(res[0],res[1]))
+    #res = koge48core.getAllCommit(update.message.from_user.id)
+    #update.message.reply_text("截至目前俱乐部共收集到{}枚测试BNB，其中您收集到{}BNB".format(res[0],res[1]))
+    #commitlock.release()
 
 BNBFAUCETLIST=[]
 def bnbfaucetHandler(bot,update):
@@ -1193,7 +1220,7 @@ def main():
 
 
     #Start the schedule
-    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=60)
+    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=5)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
@@ -1211,8 +1238,13 @@ def main():
 
 
 def airdropportal(bot,job):
-    koge48core.KogeDecrease()
-    koge48core.BNBAirDrop()
+    try:
+        file=open("_data/bnb48cn.list","r")
+        bnb48cnlist = json.load(file)
+        file.close()
+    except:
+        logger.warning("loading bnb48cn.list exception")
+        bnb48cnlist = []
     try:
         file=open("_data/bnb48.list","r")
         bnb48list = json.load(file)
@@ -1220,12 +1252,24 @@ def airdropportal(bot,job):
     except:
         logger.warning("loading bnb48.list exception")
         bnb48list = []
+    for eachuid in bnb48cnlist:
+        try:
+            checkThresholds(BNB48CN,eachuid)
+        except Exception as e:
+            print(e)
+            print(eachuid)
+            pass
     for eachuid in bnb48list:
         try:
             checkThresholds(BNB48,eachuid)
-        except:
-            logger.warning("airdropportal")
+        except Exception as e:
+            print(e)
+            print(eachuid)
             pass
+
+    koge48core.KogeDecrease()
+    koge48core.BNBAirDrop()
+    return
 if __name__ == '__main__':
     
     main()

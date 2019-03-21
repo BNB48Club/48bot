@@ -23,7 +23,7 @@ class Koge48:
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
-        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")        
+        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")
         try:
             lastts = self._mycursor.fetchone()[0]
             secondsduration = time.time() - lastts
@@ -41,7 +41,7 @@ class Koge48:
         return userlist
     def BNBAirDrop(self):
         logger.warning("airdroping")
-        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")        
+        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")
         try:
             lastts = self._mycursor.fetchone()[0]
             secondsduration = time.time() - lastts
@@ -240,7 +240,7 @@ class Koge48:
     def registerTestBNB(self,uid,addr,howmany):
         self.changeBalance(uid,howmany*5,"donate testbnb",Koge48.BNB48BOT)
         self.changeBalance(Koge48.BNB48BOT,-howmany*5,"award because of testbnb",uid)
-        upsql="UPDATE `bnctest` SET `used` = %s , `uid` = %s WHERE `bnctest`.`addr` = %s"
+        upsql="INSERT INTO `bnctest` (`used`,`uid`,`addr`) VALUES (%s,%s,%s)"
         self._mycursor.execute(upsql,(howmany,uid,addr))
         self._mydb.commit()
         
