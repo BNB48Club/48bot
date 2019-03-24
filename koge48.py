@@ -17,272 +17,260 @@ logger = logging.getLogger(__name__)
 class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
-    MINE_SIZE = 100
-    LAMDA = 1/600.00
+    MINE_SIZE = 1000
+    LAMDA = 1/6000.0
     BNB48BOT = 571331274
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
-        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")
+        cursor = self._mycursor()
+        cursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")
         try:
-            lastts = self._mycursor.fetchone()[0]
+            lastts = cursor.fetchone()[0]
             secondsduration = time.time() - lastts
         except:
             secondsduration = 24*3600
+        if secondsduration < 1000:
+            logger.warning("skip")
+            return
         multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
-        self._mycursor.execute("SELECT `uid`,`bal` FROM `balance` WHERE `bal` > 100 or `bal` < -100")
-        res = self._mycursor.fetchall()
+        cursor.execute("SELECT `uid`,sum(`differ`) AS `bal` FROM `changelog` GROUP BY `uid`")
+        res = cursor.fetchall()
         for each in res:
             uid = each[0]
             userlist.append(uid)
             bal = each[1]
-            self.changeBalance(each[0],each[1]*(multi_factor - 1),'decreasing')
+            if abs(bal) > 100:
+                self.changeBalance(uid,bal*(multi_factor - 1),'decreasing')
         logger.warning("decreased")
+        self._close(cursor)
         return userlist
     def BNBAirDrop(self):
         logger.warning("airdroping")
-        self._mycursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")
+        cursor = self._mycursor()
+        cursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")
         try:
-            lastts = self._mycursor.fetchone()[0]
+            lastts = cursor.fetchone()[0]
             secondsduration = time.time() - lastts
         except:
             secondsduration = 24*3600
 
-        self._mycursor.execute("SELECT *,offchain+onchain as total FROM `bnb`")
-        res = self._mycursor.fetchall()
+        if secondsduration < 1000:
+            logger.warning("skip")
+            return
+
+
+        cursor.execute("SELECT *,offchain+onchain as total FROM `bnb`")
+        res = cursor.fetchall()
 
         for each in res:
             bnbamount = each[4]
             if bnbamount > 0:
                 self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
         logger.warning("airdroped")
+        self._close(cursor)
         
     def __init__(self,host,user,passwd,database):
 
-        self._mydb = mysql.connector.connect(
-            host=host,
-            user=user,
-            passwd=passwd,
-            database=database
-        )
-        self._mycursor = self._mydb.cursor()
-
-        self._tries = 0
-        self._cache = {}
+        self._host=host
+        self._user=user
+        self._passwd=passwd
+        self._database=database
         self._minets = time.time()
+        self._cursor_conn_map = {}
         return
 
+    def _mycursor(self):
+        theconn = mysql.connector.connect(
+            host=self._host,
+            user=self._user,
+            passwd=self._passwd,
+            database=self._database
+        )
+        thecursor = theconn.cursor()
+        self._cursor_conn_map[thecursor]=theconn
+        return thecursor
+        
+    def _commit(self,cursor):
+        self._cursor_conn_map[cursor].commit()
+
+    def _close(self,cursor):
+        cursor.close()
+        self._cursor_conn_map[cursor].close()
+        del self._cursor_conn_map[cursor]
 
     def setEthAddress(self,userid,eth):
         updatesql = "INSERT INTO eth (uid,eth) VALUES (%s,%s) ON DUPLICATE KEY UPDATE eth=%s"
-        self._mycursor.execute(updatesql,(userid,eth,eth))
-        self._mydb.commit()
+        cursor = self._mycursor()
+        cursor.execute(updatesql,(userid,eth,eth))
+        self._commit(cursor)
+        self._close(cursor)
 
     def setApiKey(self,userid,apikey,apisecret):
         updatesql = "INSERT INTO apikey (uid,apikey,apisecret) VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE apikey=%s,apisecret=%s"
-        self._mycursor.execute(updatesql,(userid,apikey,apisecret,apikey,apisecret))
-        self._mydb.commit()
-        
-    def signCheque(self,userid,number):
-        '''
-        self._mycursor.execute("SELECT * FROM `cheque` WHERE `sid` = '{}' AND `did` = 0".format(userid))
-        res = self._mycursor.fetchall()
-        if len(res) > 0:
-            return "ERROR: only one cheque at same time"
+        cursor = self._mycursor()
+        cursor.execute(updatesql,(userid,apikey,apisecret,apikey,apisecret))
+        self._commit(cursor)
+        self._close(cursor)
 
-        balance = self.getBalance(userid)
-        if balance < number:
-            return "ERROR: insufficient balance"
-        '''
-
-        code=""
-        for i in range(8):
-            code+="".join(random.sample(Koge48.SEQUENCE,4))
-
-        #self.changeBalance(userid,-number,"pay cheque "+code)
-        newcheque = "INSERT INTO cheque (sid,number,code) VALUES (%s,%s,%s)"
-        self._mycursor.execute(newcheque,(userid,number,code))
-        self._mydb.commit()
-        return code
-    def queryCheque(self,code):
-        self._mycursor.execute("SELECT * FROM `cheque` WHERE `code` = '{}'".format(code))
-        res = self._mycursor.fetchone()
-        if res is None or len(res) == 0:
-            return "无效的奖励代码"
-        elif res[2] != 0:
-            return "已被{}领取".format(res[2])
-        else:
-            number = res[0]
-            return "奖励金额{} 尚未领取".format(number)
-    def redeemCheque(self,userid,code):
-        self._mycursor.execute("SELECT * FROM `cheque` WHERE `code` = '{}' AND `sid` = {}".format(code,userid))
-        res = self._mycursor.fetchone()
-        if res is None or len(res) == 0:
-            return 0
-        elif res[2] != 0:
-            return -1
-        else:
-            number = res[0]
-            self.changeBalance(userid,number,"cheque "+res[4],res[1])
-            updatesql = "UPDATE `cheque` SET `did` = %s WHERE `code` = %s";
-            self._mycursor.execute(updatesql,(userid,code))
-            self._mydb.commit()
-            return number
-        
     def changeBalance(self,userid,number,memo="",source=0):
         balance = self.getBalance(userid)
-        assert userid == Koge48.BNB48BOT  or balance + float(number) > -0.001
+        assert userid == Koge48.BNB48BOT  or balance + number > 0
         newblocksql = "INSERT INTO changelog (uid,differ,memo,source) VALUES (%s,%s,%s,%s)"
-        self._mycursor.execute(newblocksql,(userid,number,memo,source))
-        self._mydb.commit()
+        cursor = self._mycursor()
+        cursor.execute(newblocksql,(userid,number,memo,source))
+        self._commit(cursor)
+        self._close(cursor)
+        return balance + number
 
-        self._cache[userid]=balance + float(number)
-        #logger.warning("update balance of %s from %s to %s",userid,balance,self._cache[userid])
-        return self._cache[userid]
+    def changeChequeBalance(self,userid,number,memo="",source=0):
+        balance = self._getChequeBalanceFromDb(userid)
+        assert balance + number > 0
+        newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
+        cursor = self._mycursor()
+        cursor.execute(newblocksql,(userid,number,memo,source))
+        self._commit(cursor)
+        self._close(cursor)
+        return balance + number
 
+        
     def _getChequeBalanceFromDb(self,userid):
-        self._mycursor.execute("SELECT sum(`number`) FROM `cheque` WHERE `sid` = {} AND `did` = 0".format(userid,userid))
-        res = self._mycursor.fetchone()
-        if res is None:
+        cursor = self._mycursor()
+        cursor.execute("SELECT sum(`number`) FROM `cheque` WHERE `sid` = {}".format(userid,userid))
+        res = cursor.fetchone()
+        self._close(cursor)
+        if res[0] is None:
             return 0
         else:
             return res[0]
     def _getBalanceFromDb(self,userid):
-        self._mycursor.execute("SELECT `bal` FROM `balance` WHERE `uid` = {}".format(userid))
-        res = self._mycursor.fetchone()
-        if res is None:
+        cursor = self._mycursor()
+        cursor.execute("SELECT sum(`differ`) FROM `changelog` WHERE `uid` = {}".format(userid))
+        res = cursor.fetchone()
+        self._close(cursor)
+        if res[0] is None:
             return 0
         else:
             return res[0]
     def getAirDropStatus(self,userid):
+        cursor = self._mycursor()
         #get eth
-        self._mycursor.execute("SELECT eth FROM `eth` WHERE `uid` = {}".format(userid))
-        res = self._mycursor.fetchone()
+        cursor.execute("SELECT eth FROM `eth` WHERE `uid` = {}".format(userid))
+        res = cursor.fetchone()
         if not res is None:
             eth = res[0]
         else:
             eth=""
         #get api
-        self._mycursor.execute("SELECT apikey,apisecret FROM `apikey` WHERE `uid` = {}".format(userid))
-        api = self._mycursor.fetchone()
+        cursor.execute("SELECT apikey,apisecret FROM `apikey` WHERE `uid` = {}".format(userid))
+        api = cursor.fetchone()
         if api is None:
             api = ["",""]
         #get bnb balance
-        self._mycursor.execute("SELECT onchain,offchain FROM `bnb` WHERE `uid` = {}".format(userid))
-        bnb = self._mycursor.fetchone()
+        cursor.execute("SELECT onchain,offchain FROM `bnb` WHERE `uid` = {}".format(userid))
+        bnb = cursor.fetchone()
         if bnb is None:
             bnb = [0,0]
         #get last 10 airdrop
-        self._mycursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE  `memo` LIKE '%bnbairdrop%' AND `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
+        cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE  `memo` LIKE '%bnbairdrop%' AND `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
         airdrops=[]
         currentts = time.time()
-        for each in self._mycursor.fetchall():
+        for each in cursor.fetchall():
             airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2]})
+        self._close(cursor)
         return {"eth":eth,"api":api,"bnb":bnb,"airdrops":airdrops}
     def getRecentChanges(self,userid):       
-        self._mycursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
+        cursor = self._mycursor()
+        cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
         changes=[]
         currentts = time.time()
-        for each in self._mycursor.fetchall():
+        for each in cursor.fetchall():
             changes.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2],"memo":each[4]})
+        self._close(cursor)
         return changes
         
     def getGroupMiningStatus(self,groupid): 
+        cursor = self._mycursor()
         sql = "SELECT uid,count(*) as amount FROM `changelog` WHERE source={} AND unix_timestamp(ts)>{} group by uid order by amount desc limit 10".format(groupid,(time.time()-(7*24*3600)))
-        self._mycursor.execute(sql)
+        cursor.execute(sql)
         #logger.warning(sql)
-        top10 = self._mycursor.fetchall()
-        #logger.warning(json.dumps(top10,indent=4))
+        top10 = cursor.fetchall()
+        self._close(cursor)
         return top10
     def getTotal(self):
         return self.getTotalFree()+self.getTotalFrozen()
     def getTotalFree(self):
-        sql = "SELECT sum(`bal`) FROM `balance` "
-        self._mycursor.execute(sql)
-        one = self._mycursor.fetchall()
+        cursor = self._mycursor()
+        sql = "SELECT sum(`differ`) FROM `changelog` "
+        cursor.execute(sql)
+        one = cursor.fetchall()
+        self._close(cursor)
         return one[0][0]
     def getTotalFrozen(self):
-        sql = "SELECT sum(`number`) FROM `cheque` WHERE `did` = 0"
-        self._mycursor.execute(sql)
-        two = self._mycursor.fetchall()
+        cursor = self._mycursor()
+        sql = "SELECT sum(`number`) FROM `cheque`"
+        cursor.execute(sql)
+        two = cursor.fetchall()
+        self._close(cursor)
         return two[0][0]
     def getTotalDonation(self):
+        cursor = self._mycursor()
         sql = "SELECT sum(`number`) FROM `cheque` "
-        self._mycursor.execute(sql)
-        one = self._mycursor.fetchall()
+        cursor.execute(sql)
+        one = cursor.fetchall()
+        self._close(cursor)
         return one[0][0]
     def getTotalBNB(self):
+        cursor = self._mycursor()
         sql = "SELECT sum(`offchain`) FROM `bnb` "
-        self._mycursor.execute(sql)
-        one = self._mycursor.fetchall()
+        cursor.execute(sql)
+        one = cursor.fetchall()
+        self._close(cursor)
         return one[0][0]
         
-    def getAllCommit(self,uid):
-        getsql = "SELECT sum(`used`) FROM `bnctest` WHERE `used`>1"
-        self._mycursor.execute(getsql)
-        total = self._mycursor.fetchall()[0][0]
-        getsql = "SELECT sum(`used`) FROM `bnctest` WHERE `used`>1 AND `uid`={}".format(uid)
-        self._mycursor.execute(getsql)
-        my = self._mycursor.fetchall()[0][0]
-        return (total,my)
-    def get20Addresses(self):
-        getsql = "SELECT `addr`,`id` FROM `bnctest` WHERE `used`=0 LIMIT 20"
-        self._mycursor.execute(getsql)
-        addr20= self._mycursor.fetchall()
-        res = []
-        for each in addr20:
-            res.append(each[0])
-            setsql = "UPDATE `bnctest` SET `used` = '1' WHERE `bnctest`.`id` = %s"; 
-            self._mycursor.execute(setsql,(each[1],))
-        self._mydb.commit()
-        return res
-            
-    def registerTestBNB(self,uid,addr,howmany):
-        self.changeBalance(uid,howmany*5,"donate testbnb",Koge48.BNB48BOT)
-        self.changeBalance(Koge48.BNB48BOT,-howmany*5,"award because of testbnb",uid)
-        upsql="INSERT INTO `bnctest` (`used`,`uid`,`addr`) VALUES (%s,%s,%s)"
-        self._mycursor.execute(upsql,(howmany,uid,addr))
-        self._mydb.commit()
-        
     def getTopProfiter(self):
+        cursor = self._mycursor()
         betsql = "SELECT `uid`,sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%casino%' AND `height` > 507406 GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
-        self._mycursor.execute(betsql)
-        top10 = self._mycursor.fetchall()
+        cursor.execute(betsql)
+        top10 = cursor.fetchall()
+        self._close(cursor)
         return top10
+
     def getTopCasino(self):
+        cursor = self._mycursor()
         betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' AND `height` > 507406 GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
-        self._mycursor.execute(betsql)
-        top10 = self._mycursor.fetchall()
+        cursor.execute(betsql)
+        top10 = cursor.fetchall()
+        self._close(cursor)
         return top10
     def getTop(self,amount=10):
-        sql = "SELECT table1.uid, table1.active + COALESCE(table2.deactive,0) AS `total` from (SELECT SUM(`bal`) AS `active` , `uid` FROM `balance` GROUP BY `uid`) AS `table1` LEFT JOIN (SELECT SUM(`number`) AS `deactive`, `sid` FROM `cheque` WHERE `did` = 0 GROUP BY `sid`) AS `table2` ON table1.uid = table2.sid ORDER BY `total` DESC LIMIT {}".format(amount)
-        self._mycursor.execute(sql)
-        top10 = self._mycursor.fetchall()
+        cursor = self._mycursor()
+        sql = "SELECT table1.uid, table1.active + COALESCE(table2.deactive,0) AS `total` from (SELECT SUM(`differ`) AS `active` , `uid` FROM `changelog` GROUP BY `uid`) AS `table1` LEFT JOIN (SELECT SUM(`number`) AS `deactive`, `sid` FROM `cheque` GROUP BY `sid`) AS `table2` ON table1.uid = table2.sid ORDER BY `total` DESC LIMIT {}".format(amount)
+        cursor.execute(sql)
+        top10 = cursor.fetchall()
+        self._close(cursor)
         return top10
     def getTopFrozenDonator(self,amount=10):
-        sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` WHERE `did`=0 GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
-        self._mycursor.execute(sql)
-        top10 = self._mycursor.fetchall()
-        return top10
-    def getTopDonator(self,amount=10):
+        cursor = self._mycursor()
         sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
-        self._mycursor.execute(sql)
-        top10 = self._mycursor.fetchall()
+        cursor.execute(sql)
+        top10 = cursor.fetchall()
+        self._close(cursor)
+        return top10
+    def getTopDonator(self,amount=20):
+        cursor = self._mycursor()
+        sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
+        cursor.execute(sql)
+        top10 = cursor.fetchall()
+        self._close(cursor)
         return top10
     def getBalance(self,userid):
-        if userid in self._cache:
-            return self._cache[userid]
-        else:
-            balance = self._getBalanceFromDb(userid)
-            self._cache[userid]=balance
-            return balance
+        return self._getBalanceFromDb(userid)
+    def getChequeBalance(self,userid):
+        return self._getChequeBalanceFromDb(userid)
     def getTotalBalance(self,userid):
-        if not self._getChequeBalanceFromDb(userid) is None:
-            return self.getBalance(userid) + float(self._getChequeBalanceFromDb(userid))
-        else:
-            return self.getBalance(userid)
+        return self._getBalanceFromDb(userid) + self._getChequeBalanceFromDb(userid)
     def mine(self,minerid,groupid):
-        self._tries+=1;
         currentts = time.time()
         duration = currentts - self._minets
         prob = 1-(math.e**(-duration*Koge48.LAMDA))
@@ -290,7 +278,6 @@ class Koge48:
 
         if random.random() < prob:
             self.changeBalance(minerid,Koge48.MINE_SIZE,"mining",groupid)
-            self._tries = 0
             logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
             return Koge48.MINE_SIZE
         else:

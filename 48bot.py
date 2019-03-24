@@ -49,7 +49,6 @@ file=open("_data/silents.json","r")
 SILENTGROUPS = json.load(file)['groups']
 file.close()
 
-commitlock = threading.Lock()
 
 SirIanM=420909210
 
@@ -61,9 +60,9 @@ BNB48CASINO=-1001319319354
 #BNB48PUBLISH=SirIanM
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
-ENTRANCE_THRESHOLDS={BNB48:100000}
-KICK_THRESHOLDS={BNB48:10000,BNB48CN:10000}
-SAY_THRESHOLDS={BNB48:10000}
+ENTRANCE_THRESHOLDS={BNB48:160000}
+KICK_THRESHOLDS={BNB48:160000,BNB48CN:10000}
+SAY_THRESHOLDS={BNB48:200000}
 KICKINSUFFICIENT = {BNB48:True,BNB48CN:True}
 SAYINSUFFICIENT = {BNB48:False}
 
@@ -322,7 +321,7 @@ def buildcasinomarkup(result=["",""]):
         )
         keys.append(
             [
-                InlineKeyboardButton(u'Allin!:', callback_data='FULL'),
+                InlineKeyboardButton(u'ALLIN:', callback_data='FULL'),
                 InlineKeyboardButton(u'🐲', callback_data='LONG#ALLIN'),
                 InlineKeyboardButton(u'🐯', callback_data='HU#ALLIN'),
                 InlineKeyboardButton(u'🕊', callback_data='HE#ALLIN'),
@@ -397,15 +396,6 @@ def pmcommandhandler(bot,update):
             for each in bindstatus['airdrops']:
                 response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
         update.message.reply_text(response)
-    elif "/get20" in things[0]:
-        text = "每个持有至少1BNB的币安账户都可以为20个测试网地址每个[领取](https://www.binance.com/en/dex/testnet/address)200测试BNB，下面是20个地址。\n领取完成之后回到这个界面，依次输入每个地址(一次一个)领取Koge奖励。\n要麻烦您输入20次，非常抱歉了。\n"
-        rawAddr = requests.get('http://52.194.34.140:5000/add/20').json()
-        for each in rawAddr:
-            text += "`"
-            text += each['address']
-            text += "`"
-            text += "\n"
-        update.message.reply_markdown(text)
     elif "/send" in things[0] and len(things) >=3:
         if float(things[1]) <= 0:
             return
@@ -419,7 +409,7 @@ def pmcommandhandler(bot,update):
             return
         koge48core.changeBalance(user.id,-transamount,"send to {}".format(targetuserid),targetuserid)
         koge48core.changeBalance(targetuserid,transamount,"trans from "+user.full_name,user.id)
-        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),targetuserid,transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{}向{}转账{} 活动{}".format(getusermd(user),targetuserid,transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/redeem" in things[0]:
         change = koge48core.redeemCheque(update.message.from_user.id,things[1])
         if change > 0:
@@ -464,14 +454,14 @@ def groupadminhandler(bot,update):
         update.message.reply_markdown(text)
 def richHandler(bot,update):
     top10 = koge48core.getTop(20)
-    text="所有绑定API领KOGE空投的账户共计持有BNB {}\nKoge解锁部分(会衰减){}\nKoge锁仓部分(捐赠所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
+    text="所有绑定API领KOGE空投的账户共计持有BNB {}\nKoge解锁部分(会衰减){}\nKoge永久部分(捐赠所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
     update.message.reply_markdown(text,quote=False)
     
 def donatorHandler(bot,update):
-    top10 = koge48core.getTopDonator()
-    text="捐赠发放的Koge总量:{}\n锁仓排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
+    top10 = koge48core.getTopDonator(20)
+    text="捐赠发放的永久Koge总量:{}\n排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
     for each in top10:
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
@@ -650,12 +640,27 @@ def botcommandhandler(bot,update):
         targetuser = update.message.reply_to_message.from_user
         transamount = float(things[1])
 
-        if not koge48core.getBalance(user.id) > transamount:
+        if not koge48core.getBalance(user.id) >= transamount:
+            update.message.reply_text('活动Koge余额不足')
             return
         
         koge48core.changeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
         latestbalance = koge48core.changeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
-        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{}向{}转账{} 活动{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+    elif "/kogetrans" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
+        if float(things[1]) <= 0:
+            return
+        user = update.message.from_user
+        targetuser = update.message.reply_to_message.from_user
+        transamount = float(things[1])
+
+        if not koge48core.getChequeBalance(user.id) >= transamount:
+            update.message.reply_text('永久Koge余额不足')
+            return
+
+        koge48core.changeChequeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
+        latestbalance = koge48core.changeChequeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
+        update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/send" in things[0] and len(things) >=3:
         if float(things[1]) <= 0:
             return
@@ -680,16 +685,15 @@ def botcommandhandler(bot,update):
         user = update.message.from_user
         
         number = float(things[1])
+
         if number <= 0:
             update.message.reply_text("金额不合法")
             return
-        code = koge48core.signCheque(int(things[2]),float(things[1]))
-        if "ERROR" in code:
-            update.message.reply_text(code)
-        else:
-            update.message.reply_markdown("`{}`\n直接发送代码可以查询奖励金额与兑换情况\n金额{}".format(code,number))
+
+        latest = koge48core.changeChequeBalance(user.id,number,"signed by SirIanM")
+        update.message.reply_markdown("添加成功，目前最新余额{}".format(latest))
     elif "/criteria" in things[0]:
-        update.message.reply_text("持仓Koge(含锁仓)大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
+        update.message.reply_text("持仓Koge(含永久)大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
             update.message.reply_text("需要在群内发送")
@@ -745,16 +749,23 @@ def botcommandhandler(bot,update):
             targetuser = update.message.reply_to_message.from_user
 
         try:
-            bot.sendMessage(user.id,"{}的{}活动余额为{}\n总余额(含锁仓)为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id),koge48core.getTotalBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(user.id,"{}的{}活动余额为{}\n永久余额请使用 /kogebal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
-            update.message.reply_text("请私聊机器人查询")
+            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}活动余额为{}\n永久余额请使用 /kogebal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             pass
-        if update.message.chat.type !='private':
-            try:
-                update.message.delete()
-            except:
-                pass
+    elif "/kogebal" in things[0]:
+        user = update.message.from_user
 
+        if update.message.reply_to_message is None:
+            targetuser = user
+        else:
+            targetuser = update.message.reply_to_message.from_user
+
+        try:
+            bot.sendMessage(user.id,"{}的{}永久余额为{}\n活动余额请使用/bal命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+        except:
+            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}永久余额为{}\n活动余额请使用/bal命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            pass
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
         user = update.message.from_user
@@ -847,7 +858,7 @@ def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
     eth = update.message.text
-    ethrichlist = [ "0x00c5e04176d95a286fcce0e68c683ca0bfec8454", "0xfe9e8709d3215310075d67e3ed32a380ccf451c8", "0x001866ae5b3de6caa5a51543fd9fb64f524f5478", "0x115635b91717c4d96d092e3f0b72155283ef400f", "0x2b8d5c9209fbd500fd817d960830ac6718b88112", "0xa92c9e965c6b6068a90ccde5af00a4da49fbf162", "0xb8c9647a497732f032e8789b24573e0f6bcd678e", "0x5e660c9cefb1a9651971cdafc13fef604a40aa92", "0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be", "0x299bdb1fadbad944d7ebb863568e699265907880", "0xce67898df439190e9c487eabe35320318fdd7746", "0x54f3e53bea04a3989114b8885ac16cc0fadcf2ec", "0x1fb9f75ec3bc42d71b0afb9ad177d5d7306c97ea", "0x30ed5f8dcced1a040fd6f7c9e319c4a0fa0eb037", "0xbd91471befdf2861a904a2bb5c58fb42189d216a", "0x2e49cf10d079efd3dc7176307af34adae34b43a7", "0xe21dd2e22a7281b63bcd1b0dfc73dff6678b0b64", "0x2ba2aee80303f89de1c4721cee75a2f41f21b4a1", "0x9a3dbe3d2d9e79b622fca709e1b2bcc766cd464c", "0xaf88abb5479ce1365bcd38be59c8123f4787c7b9", "0x15da3e506967f39a9a7195fe450c587c2cb2ad14", "0x00f9451385bf75910d80374eb42edf36d1a3f243", "0xdc52ce74855c7272974406a672603937664ce507", "0x75a373f4e651be36719faf7d4fa79999e9a1ee2b", "0x52032989864bb4cb17c7f9fad4c25b19d36ba7de", "0x0681d8db095565fe8a346fa0277bffde9c0edbbf", "0xf2549fba1da6e17a1e82478a0b0a945adb7416c7", "0xeee9592cec2001f395c1f871ff3088cbd1b75e9d", "0xa487a9dacb856793d4845a0f5c9fbf7068ffeaa9", "0xdd2d0fafc1bd34eb698884c21220d5bf9e5affac", "0x18a257dad57fb1813c687dfac6bc0ae2f3eeaeb2", "0x2cd1196cc6108bc3687e4891a0c67182aeb34649", "0x19575ec860760267160de1dfc5cc698b15923f0e", "0x564286362092d8e7936f0549571a803b203aaced", "0xd551234ae421e3bcba99a0da6d736074f22192ff", "0xe2720f4abb5bbf05f20221ca08281f0beb2672a4", "0xed2e188eedbc58bbf2845c63ef16b5eb1fa5742c", "0x009843872eda1e866b3104568af87dc87c536fc5", "0xf61c5c1aa5ba784c3f12da30c35f6b12a25c8f87", "0x65b0bf8ee4947edd2a500d74e50a3d757dc79de0", "0x915d7915f2b469bb654a7d903a5d4417cb8ea7df", "0xf82021207e4f548c69b021af5981d0877cc197ef", "0x9364f1b110f15e87f6fe06e3d0ecfa47238c6642", "0xdf7f56092799156ba5d59d0be242d3e28856fae5", "0x889bb192b972a7e1b6fcfdb01396935357876165", "0x86aa0f6a399f1279659fa7b57f80825eea12228f", "0xc3ae368407e15cdef5561da58de1a1cc9a937086", "0x7d854d8c6f4182a5c7e3e7d6a0d289eb6062009b", "0x13b9a956ab3b84ea950d84ace88461277dcd47be", "0x5abef7fc05bce3248a032c4e0d27be3bd4c35936", "0x1c4b70a3968436b9a0a9cf5205c787eb81bb558c", "0x58be970a5b33aee9766ff965f4d4b823268994d1", "0x1bd7452f318559daa57385a71256027b0d802ed7", "0xd953a49c53c2a4db1cf37ac2ecef2dd082938795", "0x81cd16ee6a008c3d12f332bdd2fd653717f71af3", "0x134c230ecdab04ce9b5e7ea22e1313642adcb340", "0x841b5b0c5f903b24b1eb98bbf282417aa68ba2b3", "0xa73d9021f67931563fdfe3e8f66261086319a1fc", "0x89f40fde58eee6d66f8f67cbba21886c3640c3e5", "0x924141f1df09d3d188bcee813b21544248c0bcd8", "0xdbada8db753b4f7992bbd6cf4c8b2c99a6195a30", "0x0cbab4716306e9d8dd698f370faaaa4b3048d115", "0x1f4ce32ea4ab217fb01b4840e03e44cd9aac7f4e", "0xb5148070dde4bdcde894cfafbaf1d31820ad9cef", "0xda8e12cc4262e0213e037fe7335430b1d73a69ab", "0x6199a4ac62c622a29a4158089f67a3b28fa67051", "0xe0b2e151e404880f132383b5ace9e45f0f72f874", "0xb3c70518b55bea5141c271593bbfef34489c106d", "0x90448c9fd29910f79a92abfb61a8e807977488c1", "0x11e0715a208b33a76824c1ff543d2814eba389bc", "0x79d2a32436bf9e19c78204e072158b60eb4b087b", "0x9d1e720e5d128afe7d863bddedf047cce7e48796", "0x2761edbd41cce8b8dbb00823a449fd966c5b28db", "0xa628143f0292b7f4d4ba644414c57ee4003b79ff", "0xe788cca0477ad766321292e67bdadf09a05bbdf8", "0xd7e0dc071ef38544a072ce6f333a8697bc11c1b5", "0xfdafc34dfafe2ce42a7f4392a6f843c948fadde4", "0x21e616d330395ab9eca5bade392bcbccb3795297", "0xb8c77482e45f1f44de1745f52c74426c631bdd52", "0xe93431fd2eee59305a1bc7e80ad925853823a31b", "0xd75eebece0db5e544f32cf2404e7aa5509d739a5", "0xa1d157e01e797e4a64606e6304f3b6288211dcfe", "0xbd6456f4ea57351a6e00a9a816fc6003a0170ba3", "0x8699cee9cca0f1e2e627059ef7dcd46e9735b9d5", "0xd4b8817b45dc9cf996381ad7595d066e55a6b965", "0xb0cf97d42b3abcb002d6385bf54f16e602de4061", "0xd410ea959d63fae73c8e2b61fbf92fffc229b144", "0xe9da0d4d2acc12bbb8543f300eaf0882ea3b4ef8", "0xaeec6f5aca72f3a005af1b3420ab8c8c7009bac8", "0x5de9b9bd567bd425a94f993602583de6c4822243", "0x3aac5c3cb540e311316d3b0ebfe3559b586b0af5", "0x3e5d0c6bc202421c0b06cac59bf8dfdf36991ae6", "0x96ba6bee78d09b335e3fe01f9173e8de93ea8466", "0x0d0707963952f2fba59dd06f2b425ace40b492fe", "0xfc83b1ad1662a0071d107e84ae253a7c6aab40e7", "0x1bc217f4c4083be683de399401caa0fc2d73b975", "0xacd99090c637a657e1cfc642261319e36866096b", "0xeb5e459cb3af4a3e56fb43dc1b0c948a95ab3a38", "0xad640188745ff9a9fbbfd13a30e1fc48c0b93761", "0x7b2247cb372d34f0f253d92ec88f33317fc5bf12"]
+    ethrichlist=[]
     if eth in ethrichlist:
         update.message.reply_text("请不要拿链上富豪榜地址冒充，如果这个地址确实属于你，请私聊@SirIanM")
     else:
@@ -864,43 +875,6 @@ def apihandler(bot,update):
     update.message.reply_text("apikey绑定完成，注意绑定过程不会验证api的有效性")
     return
 
-LASTCOMMIT = {}
-@run_async
-def committestbnbHandler(bot,update):
-    #update.message.reply_text("关闭维护24小时，3.10日开放")
-    #return
-    '''
-    if update.message.from_user.id in LASTCOMMIT:
-        till = time.time() - LASTCOMMIT[update.message.from_user.id]
-    else:
-        till = 1
-    if till < 1:
-        update.message.reply_text("1秒提交一次")
-        return
-    else:
-        LASTCOMMIT[update.message.from_user.id] = time.time()
-    '''
-        
-
-    if update.message.text in ('tbnb1fvrl4s3njcdtp2zy04z9d7w5jneke37rezmmk2','tbnb10txc8ug99f5qvqxf3ga4r46tz88ks8sryvmsue'):
-        update.message.reply_text("不要调皮")
-        return
-
-    #commitlock.acquire()
-    raw = requests.get('http://52.194.34.140:5000/trans/{}'.format(update.message.text)).json()
-    if raw['status']=='Fail':
-        howmany = 0
-    else:
-        howmany = 200#float(raw['msg'])
-    #howmany = collectFrom(update.message.text,'tbnb10txc8ug99f5qvqxf3ga4r46tz88ks8sryvmsue')/100000000.0
-    if howmany > 0:
-        koge48core.registerTestBNB(update.message.from_user.id,update.message.text,howmany)
-        update.message.reply_text("感谢成功帮助搜集{}测试BNB，已经为您送上{} Koge".format(howmany,howmany*5))
-    else:
-        update.message.reply_text("这个地址没有可用的BNB\n请检查该地址是否是从机器人领取到的\n请确认是否已经正确填写到币安的测试币领取网页中\n如果均确认，请稍后再试")
-    #res = koge48core.getAllCommit(update.message.from_user.id)
-    #update.message.reply_text("截至目前俱乐部共收集到{}枚测试BNB，其中您收集到{}BNB".format(res[0],res[1]))
-    #commitlock.release()
 
 BNBFAUCETLIST=[]
 def bnbfaucetHandler(bot,update):
@@ -1095,9 +1069,11 @@ def checkThresholds(chatid,userid):
     balance = koge48core.getTotalBalance(userid)
     if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted']:
         if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
-            kick(chatid,userid)
             try:
-                updater.bot.sendMessage(userid,"Koge持仓不足{}，被移除出主群。".format(KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                kick(chatid,userid)
+                #updater.bot.sendMessage(userid,"Koge持仓{}不足{}，被移除出群。".format(balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                updater.bot.sendMessage(chatid,"感觉{}Koge持仓{}不足{}，移除出群前看看对不对。".format(userid,balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                logger.warning("{}Koge持仓{}不足{}，被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
             except:
                 pass
             return
@@ -1152,8 +1128,6 @@ def main():
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
     #dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
-    dp.add_handler(RegexHandler("^tbnb\w{39}$",committestbnbHandler))
-    dp.add_handler(RegexHandler("^\w{32}$",chequehandler))
 
 
     dp.add_handler(CommandHandler(
@@ -1176,7 +1150,6 @@ def main():
             "start",
             "send",
             "join",
-            "get20"
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
     )
@@ -1200,7 +1173,9 @@ def main():
     dp.add_handler(CommandHandler(
         [
             "trans",
+            "kogetrans",
             "bal",
+            "kogebal",
             #"promote",
             #"demote",
             #"restrict",
