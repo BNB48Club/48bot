@@ -115,7 +115,7 @@ class Koge48:
 
     def changeBalance(self,userid,number,memo="",source=0):
         balance = self.getBalance(userid)
-        assert userid == Koge48.BNB48BOT  or balance + number > 0
+        assert userid == Koge48.BNB48BOT  or balance + number >= 0
         newblocksql = "INSERT INTO changelog (uid,differ,memo,source) VALUES (%s,%s,%s,%s)"
         cursor = self._mycursor()
         cursor.execute(newblocksql,(userid,number,memo,source))
@@ -125,7 +125,7 @@ class Koge48:
 
     def changeChequeBalance(self,userid,number,memo="",source=0):
         balance = self._getChequeBalanceFromDb(userid)
-        assert balance + number > 0
+        assert balance + number >= 0
         newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
         cursor = self._mycursor()
         cursor.execute(newblocksql,(userid,number,memo,source))

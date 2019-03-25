@@ -685,12 +685,12 @@ def botcommandhandler(bot,update):
         user = update.message.from_user
         
         number = float(things[1])
-
+        targetuid = int(things[2])
         if number <= 0:
             update.message.reply_text("金额不合法")
             return
 
-        latest = koge48core.changeChequeBalance(user.id,number,"signed by SirIanM")
+        latest = koge48core.changeChequeBalance(targetuid,number,"signed by SirIanM")
         update.message.reply_markdown("添加成功，目前最新余额{}".format(latest))
     elif "/criteria" in things[0]:
         update.message.reply_text("持仓Koge(含永久)大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
@@ -753,6 +753,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}活动余额为{}\n永久余额请使用 /kogebal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             pass
+        update.message.delete()
     elif "/kogebal" in things[0]:
         user = update.message.from_user
 
@@ -766,6 +767,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}永久余额为{}\n活动余额请使用/bal命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             pass
+        update.message.delete()
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
         user = update.message.from_user
