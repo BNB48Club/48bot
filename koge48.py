@@ -42,6 +42,9 @@ class Koge48:
             bal = each[1]
             if abs(bal) > 100:
                 self.changeBalance(uid,bal*(multi_factor - 1),'decreasing')
+            else:
+                cursor.execute("DELETE FROM `changelog` WHERE `uid` = {}",(uid,))
+        self._commit(cursor)
         logger.warning("decreased")
         self._close(cursor)
         return userlist
