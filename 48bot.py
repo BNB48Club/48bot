@@ -23,6 +23,7 @@ from casino import LonghuCasino
 from redpacket import RedPacket
 from auction import Auction
 from collect48 import collectFrom
+from ppt2img import genPNG
 #import schedule
 
 reload(sys)  
@@ -53,6 +54,7 @@ file.close()
 SirIanM=420909210
 
 BNB48=-1001136778297
+BNB48MEDIA=-1001180438510
 BNB48CN= -1001345282090
 BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
@@ -61,9 +63,9 @@ BNB48CASINO=-1001319319354
 BNB48PUBLISH=-1001180859399
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:160000}
-KICK_THRESHOLDS={BNB48:160000,BNB48CN:10000}
+KICK_THRESHOLDS={BNB48:160000}
 SAY_THRESHOLDS={BNB48:200000}
-KICKINSUFFICIENT = {BNB48:True,BNB48CN:True}
+KICKINSUFFICIENT = {BNB48:True}
 SAYINSUFFICIENT = {BNB48:False}
 
 kogeconfig = ConfigParser.ConfigParser()
@@ -418,6 +420,12 @@ def pmcommandhandler(bot,update):
             update.message.reply_markdown("该奖励已被领取")
         elif change == 0:
             update.message.reply_markdown("不存在的奖励号码")
+    elif "/kogechanges" in things[0]:
+        changes=koge48core.getChequeRecentChanges(update.message.from_user.id)
+        response = "最近的永久Koge变动记录:\n"
+        for each in changes:
+            response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
+        update.message.reply_markdown(response)
     elif "/changes" in things[0]:
         changes=koge48core.getRecentChanges(update.message.from_user.id)
         response = "最近的变动记录:\n"
@@ -692,6 +700,43 @@ def botcommandhandler(bot,update):
 
         latest = koge48core.changeChequeBalance(targetuid,number,"signed by SirIanM")
         update.message.reply_markdown("添加成功，目前最新余额{}".format(latest))
+    elif "/community" in things[0]:
+        markdown = "[BNB48 中文](https://t.me/bnb48club_cn)"
+        markdown += "\n"
+        markdown += "[BNB48 English](https://t.me/bnb48club_en)"
+        markdown += "\n"
+        markdown += "[BNB48 公示](https://t.me/bnb48club_publish)"
+        if update.message.chat_id == BNB48:
+            markdown += "\n"
+            markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQzKkX-kmP-kPg)"
+            markdown += "\n"
+            markdown+= "[BNB48 媒体宣传](https://t.me/joinchat/GRaQmkZcD-64Z916W4UGcQ)"
+            markdown += "\n"
+            markdown+= "[BNB48 技术开发](https://t.me/joinchat/GRaQmlISUPTUpyQ6Cr8loQ)"
+            markdown += "\n"
+            markdown+= "[BNB48 移民咨询](https://t.me/joinchat/GRaQmlAedWNp17FfmQWwUw)"
+            markdown += "\n"
+            markdown+= "[BNB48 大赌场](https://t.me/joinchat/GRaQmk6jNzrBP1XQcCkSKg)"
+            markdown += "\n"
+            markdown+= "[BNB48 翻墙交流](https://t.me/joinchat/GRaQmkzYU3o6J74AexgA_g)"
+            markdown += "\n"
+            markdown+= "[BNB48 场外交易](https://t.me/joinchat/GRaQmljsjZWJNfOGjiXj2Q)"
+            markdown += "\n"
+            markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROXWCyPOWY1ig)"
+        update.message.reply_markdown(markdown,disable_web_page_preview=True)
+    elif "/rapidnews" in things[0]:
+        if update.message.chat_id != BNB48MEDIA:
+            update.message.reply_text("该功能仅在BNB48 Media群内生效")
+            return
+        if len(things) < 3:
+            update.message.reply_text("必须提供 标题 与 内容")
+            return
+        title = things[1]
+        del things[0]
+        del things[0]
+        content = " ".join(things)
+        update.message.reply_text("正在生成快讯图片...该操作较耗时也较耗费资源，请务必耐心，不要重复发送。")
+        bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
     elif "/criteria" in things[0]:
         update.message.reply_text("持仓Koge(含永久)大于等于{}可私聊机器人自助加入私密群\n私密群发言者持仓Koge不足{}会被移除出群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
@@ -765,7 +810,7 @@ def botcommandhandler(bot,update):
         try:
             bot.sendMessage(user.id,"{}的{}永久余额为{}\n活动余额请使用/bal命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
-            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}永久余额为{}\n活动余额请使用/bal命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}永久余额为{}\n活动余额请使用 /bal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             pass
         update.message.delete()
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
@@ -1149,6 +1194,7 @@ def main():
             "bind",
             "redeem",
             "changes",
+            "kogechanges",
             "start",
             "send",
             "join",
@@ -1187,7 +1233,9 @@ def main():
             "hongbao",
             "redpacket",
             "criteria",
-            "cheque"
+            "cheque",
+            "community",
+            "rapidnews"
         ],
         botcommandhandler))# '''处理其他命令'''
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))

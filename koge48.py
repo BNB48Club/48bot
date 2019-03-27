@@ -42,8 +42,6 @@ class Koge48:
             bal = each[1]
             if abs(bal) > 100:
                 self.changeBalance(uid,bal*(multi_factor - 1),'decreasing')
-            else:
-                cursor.execute("DELETE FROM `changelog` WHERE `uid` = {}",(uid,))
         self._commit(cursor)
         logger.warning("decreased")
         self._close(cursor)
@@ -182,6 +180,15 @@ class Koge48:
             airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2]})
         self._close(cursor)
         return {"eth":eth,"api":api,"bnb":bnb,"airdrops":airdrops}
+    def getChequeRecentChanges(self,userid):       
+        cursor = self._mycursor()
+        cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `cheque` WHERE `sid` = {} ORDER BY id DESC LIMIT 10".format(userid))
+        changes=[]
+        currentts = time.time()
+        for each in cursor.fetchall():
+            changes.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"number":each[1],"memo":each[4]})
+        self._close(cursor)
+        return changes
     def getRecentChanges(self,userid):       
         cursor = self._mycursor()
         cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
