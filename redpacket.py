@@ -31,7 +31,7 @@ class RedPacket:
             return res
         else:
             average = self._balance/float(self._amount)
-            res = round(random.uniform(0,2*average),2)
+            res = max(round(random.uniform(0,2*average),2),0.01)
             self._balance -= res
             self._amount -= 1
             self._drawed[user.id]=[user.full_name,res]

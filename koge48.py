@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
-    MINE_SIZE = 1000
+    MINE_MIN_SIZE = 10
+    MINE_DIFFER_SIZE = 90
     LAMDA = 1/6000.0
     BNB48BOT = 571331274
     def KogeDecrease(self):
@@ -126,7 +127,7 @@ class Koge48:
 
     def changeChequeBalance(self,userid,number,memo="",source=0):
         balance = self._getChequeBalanceFromDb(userid)
-        assert balance + number >= 0
+        assert userid == Koge48.BNB48BOT or balance + number >= 0
         newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
         cursor = self._mycursor()
         cursor.execute(newblocksql,(userid,number,memo,source))
@@ -240,29 +241,22 @@ class Koge48:
         
     def getTopProfiter(self):
         cursor = self._mycursor()
-        betsql = "SELECT `uid`,sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%casino%' AND `height` > 507406 GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
-        cursor.execute(betsql)
+        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
+        cursor.execute(betsql,(Koge48.BNB48BOT,))
         top10 = cursor.fetchall()
         self._close(cursor)
         return top10
 
     def getTopCasino(self):
         cursor = self._mycursor()
-        betsql = "SELECT `uid`,-sum(`differ`) as `total` FROM `changelog` WHERE `memo` LIKE '%bet %on casino%' AND `height` > 507406 GROUP BY `uid` ORDER BY `total` DESC LIMIT 10"
-        cursor.execute(betsql)
+        betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%bet %on casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
+        cursor.execute(betsql,(Koge48.BNB48BOT,))
         top10 = cursor.fetchall()
         self._close(cursor)
         return top10
     def getTop(self,amount=10):
         cursor = self._mycursor()
-        sql = "SELECT table1.uid, table1.active + COALESCE(table2.deactive,0) AS `total` from (SELECT SUM(`differ`) AS `active` , `uid` FROM `changelog` GROUP BY `uid`) AS `table1` LEFT JOIN (SELECT SUM(`number`) AS `deactive`, `sid` FROM `cheque` GROUP BY `sid`) AS `table2` ON table1.uid = table2.sid ORDER BY `total` DESC LIMIT {}".format(amount)
-        cursor.execute(sql)
-        top10 = cursor.fetchall()
-        self._close(cursor)
-        return top10
-    def getTopFrozenDonator(self,amount=10):
-        cursor = self._mycursor()
-        sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
+        sql = "SELECT table1.uid, table1.active + COALESCE(table2.deactive,0) AS `total` from (SELECT SUM(`differ`) AS `active` , `uid` FROM `changelog` GROUP BY `uid`) AS `table1` LEFT JOIN (SELECT SUM(`number`) AS `deactive`, `sid` FROM `cheque` GROUP BY `sid`) AS `table2` ON table1.uid = table2.sid OR table2.sid = table1.uid ORDER BY `total` DESC LIMIT {}".format(amount)
         cursor.execute(sql)
         top10 = cursor.fetchall()
         self._close(cursor)
@@ -287,8 +281,10 @@ class Koge48:
         self._minets = currentts
 
         if random.random() < prob:
-            self.changeBalance(minerid,Koge48.MINE_SIZE,"mining",groupid)
+            value = Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random()
+            self.changeChequeBalance(minerid,value,"mining",groupid)
+            self.changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
             logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
-            return Koge48.MINE_SIZE
+            return value
         else:
             return 0
