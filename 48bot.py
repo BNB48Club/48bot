@@ -407,6 +407,7 @@ def startcasino(bot=None):
         time.sleep(10)
         thread.start()
         return
+    logger.warning("casino start")
     casino_id = message.message_id
     global_longhu_casinos[casino_id]=LonghuCasino()
     global CASINO_IS_BETTING
@@ -416,19 +417,21 @@ def startcasino(bot=None):
 
 def stopbetcasino(casino_id):
     time.sleep(CASINO_INTERVAL)
+    thecasino = global_longhu_casinos[casino_id]
+    while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0 and CASINO_CONTINUE:
+        time.sleep(CASINO_INTERVAL)
+
+    logger.warning("casino stop")
     global CASINO_IS_BETTING
     CASINO_IS_BETTING=False
     thread = Thread(target = releaseandstartcasino, args=[casino_id])
     thread.start()
     
 def releaseandstartcasino(casino_id):
+    logger.warning("casino release")
     time.sleep(2)
     thecasino = global_longhu_casinos[casino_id]
     #logger.warning("start releasing")
-
-    while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0 and CASINO_CONTINUE:
-        time.sleep(CASINO_INTERVAL)
-
     results = thecasino.release()
     bigwin=False
     for each in results['payroll']:
@@ -1015,6 +1018,7 @@ def cleanHandler(bot,update):
             koge48core.changeChequeBalance(each._fromuser.id,each.balance(),"redpacket return")       
 
         CASINO_CONTINUE = False
+        CASINO_IS_BETTING = False
 
         update.message.reply_text('cleaned')
 def ethhandler(bot,update):
