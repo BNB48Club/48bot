@@ -7,7 +7,7 @@ class LonghuCasino:
     @staticmethod
     def getRule(key=None):
         if key == "FULL" or key is None:
-            return "龙虎斗\n龙虎各发一张比大小 A最大\n押中龙虎拿回本金再得1倍奖励\n押中和拿回本金再得8倍奖励"
+            return "🐲🐯各发一张比大小 A最大\n押中🐲或🐯拿回本金再得1倍奖励\n押中🕊拿回本金再得8倍奖励"
         elif key in ["LONG","HU"]:
             return "押中拿回本金再得1倍奖励"
         elif key == "HE":

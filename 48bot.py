@@ -61,6 +61,7 @@ BNB48CN= -1001345282090
 BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
+BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
 #BNB48CASINO=SirIanM
 #BNB48PUBLISH=SirIanM
 BINANCE_ANNI = 1531526400
@@ -180,10 +181,47 @@ def dealAuction(bot,job):
             pass
 
 
+def slotPlay():
+    SLOTICONS=["0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","🎰","8️⃣","9️⃣"]
+    result = int(random.random()*1000)
+    number = 0
+    if result == 777:
+        number = 500
+    elif result >=770 and result <=779:
+        number = 20
+    elif result >=700 and result <=799:
+        number = 3
+    return (number,SLOTICONS[result/100]+SLOTICONS[result/10%10]+SLOTICONS[result%10])
+
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
-    if message_id in global_auctions:
+    if "SLOT#" in update.callback_query.data:
+        thedatas = update.callback_query.data.split('#')
+        betsize=int(thedatas[1])
+        koge48core.changeChequeBalance(activeuser.id,-betsize,"bet SLOT on casino")
+        koge48core.changeChequeBalance(Koge48.BNB48BOT,betsize,"bet SLOT on casino",activeuser.id)
+
+        slotresults = slotPlay()
+        display = slotresults[1]
+
+        if slotresults[0] > 0:
+            display += " 中{}倍".format(slotresults[0])
+            koge48core.changeChequeBalance(activeuser.id,betsize*slotresults[0],"casino pay to {}".format(activeuser.full_name,activeuser.id))
+            if slotresults[0] > 3:
+                bot.sendMessage(BNB48CN,"{} \n {}在老虎机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+
+        update.callback_query.answer(display)
+
+        updater.bot.edit_message_text(
+            chat_id=update.callback_query.message.chat_id,
+            message_id=message_id,
+            text = display,
+            reply_markup=buildslotmarkup()
+        )
+            
+
+    elif message_id in global_auctions:
     	auction_id = message_id
         auction = global_auctions[auction_id]
         newprice = int(update.callback_query.data)
@@ -282,6 +320,15 @@ def buildredpacketmarkup():
             [InlineKeyboardButton('打开红包',callback_data="VOID")]
         ]
     )
+def buildslotmarkup():
+    keys = [
+            [
+                InlineKeyboardButton("押拾個KOGE",callback_data="SLOT#10"),
+                InlineKeyboardButton("押壹佰KOGE",callback_data="SLOT#100")
+            ]
+           ]
+    return InlineKeyboardMarkup(keys)
+
 def buildcasinomarkup(result=["",""]):
     global CASINO_MARKUP
     keys = [
@@ -291,6 +338,7 @@ def buildcasinomarkup(result=["",""]):
             ]
            ]
     if result[0] == "" :
+        '''
         keys.append(
             [
                 InlineKeyboardButton(u'押拾个:', callback_data='FULL'),
@@ -299,6 +347,7 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'🕊', callback_data='HE#10'),
             ]
         )
+        '''
         keys.append(
             [
                 InlineKeyboardButton(u'押壹佰:', callback_data='FULL'),
@@ -332,7 +381,6 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'🕊', callback_data='HE#100000'),
             ]
         )
-        '''
         keys.append(
             [
                 InlineKeyboardButton(u'ALLIN:', callback_data='FULL'),
@@ -341,6 +389,7 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'🕊', callback_data='HE#ALLIN'),
             ]
         )
+        '''
     CASINO_MARKUP = InlineKeyboardMarkup(keys)
     return CASINO_MARKUP
 
@@ -372,7 +421,10 @@ def releaseandstartcasino(casino_id):
         time.sleep(CASINO_INTERVAL)
 
     results = thecasino.release()
+    bigwin=False
     for each in results['payroll']:
+        if results['payroll'][each] > 5000:
+            bigwin=True
         koge48core.changeChequeBalance(each,results['payroll'][each],"casino pay")
         koge48core.changeChequeBalance(Koge48.BNB48BOT,-results['payroll'][each],"casino pay to {}".format(each),each)
 
@@ -380,6 +432,8 @@ def releaseandstartcasino(casino_id):
     del global_longhu_casinos[casino_id]
 
     try:
+        if bigwin:
+            displaytext+="\n去[大赌场]("+BNB48CASINOLINK+")试试手气"
         #logger.warning(results['win'])
         updater.bot.edit_message_text(
             chat_id=BNB48CASINO,
@@ -387,8 +441,11 @@ def releaseandstartcasino(casino_id):
             text = displaytext,
             reply_markup=buildcasinomarkup(result=results['result'])
         )
-    except:
-        logger.warning("releaseandstartcasino exception: maybe a timeout")
+        if bigwin:
+            updater.bot.forwardMessage(BNB48CN,BNB48CASINO,casino_id)
+    except Exception as e:
+        print(e)
+        logger.warning("releaseandstartcasino exception above")
         pass
 
     thread = Thread(target=startcasino)
@@ -410,6 +467,8 @@ def pmcommandhandler(bot,update):
             for each in bindstatus['airdrops']:
                 response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
         update.message.reply_text(response)
+    elif "/slot" in things[0]:
+        update.message.reply_text(text="随机转出三列图标，777赢500倍，77x赢20倍，7xx赢3倍",reply_markup=buildslotmarkup(),quote=False)
     elif "/send" in things[0] and len(things) >=3:
         if float(things[1]) <= 0:
             return
@@ -419,7 +478,7 @@ def pmcommandhandler(bot,update):
         targetuserid = int(things[2])
         transamount = float(things[1])
 
-        if not koge48core.getBalance(user.id) > transamount:
+        if not koge48core.getChequeBalance(user.id) > transamount:
             return
         koge48core.changeChequeBalance(user.id,-transamount,"send to {}".format(targetuserid),targetuserid)
         koge48core.changeChequeBalance(targetuserid,transamount,"trans from "+user.full_name,user.id)
@@ -496,7 +555,8 @@ def rollerHandler(bot,update):
         koge48core.changeBalance(update.message.from_user.id,-PRICES['query'],'query roller')
     '''
     top10 = koge48core.getTopCasino()
-    text="赌场豪客榜(下注榜):\n"
+    text="[点击进入KOGE虚拟赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)\n\n"
+    text+="赌场豪客榜(下注榜):\n"
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
 
@@ -511,7 +571,7 @@ def rollerHandler(bot,update):
     for each in changes:
         text += "{}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
     #update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
-    update.message.reply_markdown(text,quote=False)
+    update.message.reply_markdown(text,quote=False,disable_web_page_preview=True)
     
 def getusermd(user):
     #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
@@ -530,6 +590,8 @@ def siriancommandhandler(bot,update):
 
     if "/kick" in things[0] and not targetuser is None:
         kick(update.message.chat_id,targetuser.id)
+    elif "/slot" in things[0]:
+        update.message.reply_text(text="随机转出三列图标，777赢500倍，77x赢20倍，7xx赢3倍",reply_markup=buildslotmarkup(),quote=False)
     elif "/kick" in things[0]:
         kick(long(things[1],long(things[2])))
     elif "/ban" in things[0] and not targetuser is None:
@@ -723,6 +785,8 @@ def botcommandhandler(bot,update):
         markdown += "[BNB48 Camp](https://t.me/bnb48club_en)"
         markdown += "\n"
         markdown += "[BNB48 公示](https://t.me/bnb48club_publish)"
+        markdown += "\n"
+        markdown+= "[BNB48 大赌场]("+BNB48CASINOLINK+")"
         if update.message.chat_id == BNB48:
             markdown += "\n"
             markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
@@ -736,8 +800,6 @@ def botcommandhandler(bot,update):
             markdown+= "[BNB48 孵化器](https://t.me/joinchat/GRaQmlWXCEJIJN3niyUUhg)"
             markdown += "\n"
             markdown+= "[BNB48 移民咨询](https://t.me/joinchat/GRaQmlAedWPaQFjyfoTDYg)"
-            markdown += "\n"
-            markdown+= "[BNB48 大赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)"
             markdown += "\n"
             markdown+= "[BNB48 翻墙交流](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
             markdown += "\n"
@@ -784,7 +846,7 @@ def botcommandhandler(bot,update):
         update.message.reply_text("正在生成快讯图片...该操作较耗时也较耗费资源，请务必耐心，不要重复发送。")
         bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
     elif "/criteria" in things[0]:
-        update.message.reply_text("持仓Koge(含永久)大于等于{}可私聊机器人自助加入正式群\n持仓Koge不足{}会被移除出正式群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
+        update.message.reply_text("持仓Koge(永久+活动)大于等于{}可私聊机器人自助加入正式群\n持仓Koge不足{}会被移除出正式群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
             update.message.reply_text("需要在群内发送")
@@ -796,7 +858,7 @@ def botcommandhandler(bot,update):
         else:
             balance = 10
 
-        if koge48core.getBalance(user.id) < balance:
+        if koge48core.getChequeBalance(user.id) < balance:
             update.message.reply_text("余额不足")
             return
         if balance <= 0:
@@ -1050,7 +1112,7 @@ def botmessagehandler(bot, update):
         user = update.message.from_user
         mined=koge48core.mine(user.id,update.message.chat_id)
         if mined and not update.message.chat_id in SILENTGROUPS:
-            update.message.reply_markdown("{}挖到{}个*永久*{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
+            update.message.reply_markdown("{}挖到{}个{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
 
 
 '''
@@ -1239,20 +1301,6 @@ def main():
     #dp.add_handler(CommandHandler(["bnbfaucettestnet"],bnbfaucetHandler))
     dp.add_handler(CommandHandler(
         [
-            "mybinding",
-            "bind",
-            "redeem",
-            "changes",
-            "kogechanges",
-            "start",
-            "send",
-            "join",
-        ],
-        pmcommandhandler)#处理私聊机器人发送的命令
-    )
-
-    dp.add_handler(CommandHandler(
-        [
             "casino",
             "nocasino",
             "spam",
@@ -1263,10 +1311,26 @@ def main():
             "ban",
             "unban",
             "groupid",
+            "slot",
             "kogebonus",
         ],
         siriancommandhandler)#
     )
+    dp.add_handler(CommandHandler(
+        [
+            "mybinding",
+            "bind",
+            "redeem",
+            "changes",
+            "kogechanges",
+            "start",
+            "send",
+            "slot",
+            "join",
+        ],
+        pmcommandhandler)#处理私聊机器人发送的命令
+    )
+
     dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
     dp.add_handler(CommandHandler(
         [
