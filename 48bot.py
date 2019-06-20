@@ -37,7 +37,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 BLACKLIST= set()
-PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":100}
+PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 
 file=open("_data/flushwords.json","r")
 FLUSHWORDS = json.load(file)["words"]
@@ -62,6 +62,7 @@ BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
+CASINO_IS_BETTING=False
 #BNB48CASINO=SirIanM
 #BNB48PUBLISH=SirIanM
 BINANCE_ANNI = 1531526400
@@ -85,7 +86,7 @@ global_longhu_casinos = {}
 global_redpackets = {}
 global_auctions = {}
 #casino_betsize = 2
-CASINO_INTERVAL = 15
+CASINO_INTERVAL = 10
 
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
@@ -234,20 +235,18 @@ def callbackhandler(bot,update):
         if not auction['bidder'] is None and activeuser.id == auction['bidder'].id:
             update.callback_query.answer("不得对自己加价")
             return
-        if koge48core.getChequeBalance(activeuser.id) >= newprice:
-            if not auction['bidder'] is None:
-                koge48core.changeChequeBalance(auction['bidder'].id,auction['price'],"auction {} beated".format(auction_id))
-                try:
-                    bot.sendMessage(auction['bidder'].id,"你在[拍卖](https://t.me/bnb48club_publish/{}) 中的出价刚刚被 {} 超越".format(auction_id,activeuser.mention_markdown()),parse_mode=ParseMode.MARKDOWN)
-                except TelegramError:
-                    pass
-            koge48core.changeChequeBalance(activeuser.id,-newprice,"auction {} bid".format(auction_id))
-            auction['bidder']=activeuser
-            auction['price']=newprice
-            update.callback_query.edit_message_text(text=auctionTitle(auction),reply_markup=buildAuctionMarkup(newprice),parse_mode=ParseMode.MARKDOWN)
-            update.callback_query.answer()
-        else:
-            update.callback_query.answer("钱不够")
+
+        koge48core.changeChequeBalance(activeuser.id,-newprice,"auction {} bid".format(auction_id))
+        if not auction['bidder'] is None:
+            koge48core.changeChequeBalance(auction['bidder'].id,auction['price'],"auction {} beated".format(auction_id))
+            try:
+                bot.sendMessage(auction['bidder'].id,"你在[拍卖](https://t.me/bnb48club_publish/{}) 中的出价刚刚被 {} 超越".format(auction_id,activeuser.mention_markdown()),parse_mode=ParseMode.MARKDOWN)
+            except TelegramError:
+                pass
+        auction['bidder']=activeuser
+        auction['price']=newprice
+        update.callback_query.edit_message_text(text=auctionTitle(auction),reply_markup=buildAuctionMarkup(newprice),parse_mode=ParseMode.MARKDOWN)
+        update.callback_query.answer()
 
     elif message_id in global_redpackets:
         redpacket_id = message_id
@@ -265,13 +264,13 @@ def callbackhandler(bot,update):
             del global_redpackets[redpacket_id]
         else:
             update.callback_query.answer("每人只能领取一次")
-    elif message_id in global_longhu_casinos:
+    elif CASINO_IS_BETTING and message_id in global_longhu_casinos:
         casino_id = message_id
         thecasino = global_longhu_casinos[casino_id]
 
         if not "#" in update.callback_query.data:
-            answer=LonghuCasino.getRule(update.callback_query.data) + "\n你的可用余额:{} 永久Koge48积分".format(koge48core.getChequeBalance(activeuser.id))
-            update.callback_query.answer(answer)
+            #answer=LonghuCasino.getRule(update.callback_query.data) + "\n你的可用余额:{} 永久Koge48积分".format(koge48core.getChequeBalance(activeuser.id))
+            update.callback_query.answer()
             return
 
         thedatas = update.callback_query.data.split('#')
@@ -285,16 +284,17 @@ def callbackhandler(bot,update):
             casino_betsize = float(thedatas[1])
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
-            if koge48core.getChequeBalance(activeuser.id) < casino_betsize:
-                update.callback_query.answer(text=u"余额不足",show_alert=True)
-                return
+            #if koge48core.getChequeBalance(activeuser.id) < casino_betsize:
+            #    update.callback_query.answer(text=u"余额不足",show_alert=True)
+            #    return
             koge48core.changeChequeBalance(activeuser.id,-casino_betsize,"bet {} on casino".format(bet_target))
             koge48core.changeChequeBalance(Koge48.BNB48BOT,casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target),activeuser.id)
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
             #CASINO_LOG+=u"\n{} 押注 {} {} Koge48积分".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
             update.callback_query.edit_message_text(
                 text=LonghuCasino.getRule()+"\n------------\n"+global_longhu_casinos[casino_id].getLog(),
-                reply_markup=CASINO_MARKUP
+                reply_markup=CASINO_MARKUP,
+                parse_mode='Markdown'
             )
             update.callback_query.answer(text=u"押注成功")
         else:
@@ -366,7 +366,7 @@ def buildcasinomarkup(result=["",""]):
         )
         keys.append(
             [
-                InlineKeyboardButton(u'押壹万:', callback_data='FULL'),
+                InlineKeyboardButton(u'押壹萬:', callback_data='FULL'),
                 InlineKeyboardButton(u'🐲', callback_data='LONG#10000'),
                 InlineKeyboardButton(u'🐯', callback_data='HU#10000'),
                 InlineKeyboardButton(u'🕊', callback_data='HE#10000'),
@@ -399,7 +399,7 @@ def startcasino(bot=None):
     if not CASINO_CONTINUE:
         return
     try:
-        message = updater.bot.sendMessage(BNB48CASINO, LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
+        message = updater.bot.sendMessage(BNB48CASINO, LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup(),parse_mode="Markdown")
     except:
         if not CASINO_CONTINUE:
             return
@@ -409,11 +409,20 @@ def startcasino(bot=None):
         return
     casino_id = message.message_id
     global_longhu_casinos[casino_id]=LonghuCasino()
+    global CASINO_IS_BETTING
+    CASINO_IS_BETTING=True
+    thread = Thread(target = stopbetcasino, args=[casino_id])
+    thread.start()
+
+def stopbetcasino(casino_id):
+    time.sleep(CASINO_INTERVAL)
+    global CASINO_IS_BETTING
+    CASINO_IS_BETTING=False
     thread = Thread(target = releaseandstartcasino, args=[casino_id])
     thread.start()
     
 def releaseandstartcasino(casino_id):
-    time.sleep(CASINO_INTERVAL)
+    time.sleep(2)
     thecasino = global_longhu_casinos[casino_id]
     #logger.warning("start releasing")
 
@@ -439,6 +448,7 @@ def releaseandstartcasino(casino_id):
             chat_id=BNB48CASINO,
             message_id=casino_id,
             text = displaytext,
+            parse_mode='Markdown',
             reply_markup=buildcasinomarkup(result=results['result'])
         )
         if bigwin:
@@ -547,15 +557,10 @@ def donatorHandler(bot,update):
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
 def rollerHandler(bot,update):
-    '''
-    if koge48core.getBalance(update.message.from_user.id) < PRICES['query']*10:
-        update.message.reply_text("持仓不足以支付本次查询费用")
-        return
-    else:
-        koge48core.changeBalance(update.message.from_user.id,-PRICES['query'],'query roller')
-    '''
+    koge48core.changeChequeBalance(update.message.from_user.id,-PRICES['query'],'query roller')
+    koge48core.changeChequeBalance(Koge48.BNB48BOT,PRICES['query'],'query roller')
     top10 = koge48core.getTopCasino()
-    text="[点击进入KOGE虚拟赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)\n\n"
+    text="本次查询费用由`{}`支付\n[点击进入KOGE虚拟赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)\n\n".format(update.message.from_user.full_name)
     text+="赌场豪客榜(下注榜):\n"
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
@@ -761,6 +766,8 @@ def botcommandhandler(bot,update):
         koge48core.changeChequeBalance(user.id,-transamount,u"trans to "+targetuser.full_name,targetuser.id)
         latestbalance = koge48core.changeChequeBalance(targetuser.id,transamount,u"trans from "+user.full_name,user.id)
         update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+    elif "/slot" in things[0]:
+        update.message.reply_text(text="随机转出三列图标，777赢500倍，77x赢20倍，7xx赢3倍",reply_markup=buildslotmarkup(),quote=False)
     elif "/cheque" in things[0]:
         if update.message.chat.type != 'private':
             return
@@ -1311,7 +1318,7 @@ def main():
             "ban",
             "unban",
             "groupid",
-            "slot",
+            #"slot",
             "kogebonus",
         ],
         siriancommandhandler)#
@@ -1325,7 +1332,7 @@ def main():
             "kogechanges",
             "start",
             "send",
-            "slot",
+            #"slot",
             "join",
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
@@ -1351,6 +1358,7 @@ def main():
             "community",
             "rapidnews",
             "posttg",
+            "slot",
             "postweibo"
         ],
         botcommandhandler))# '''处理其他命令'''
