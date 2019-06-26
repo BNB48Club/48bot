@@ -19,7 +19,7 @@ class Koge48:
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 10
     MINE_DIFFER_SIZE = 90
-    LAMDA = 1/6000.0
+    LAMDA = 1/1000.0
     BNB48BOT = 571331274
     def KogeDecrease(self):
         userlist = []
@@ -125,7 +125,23 @@ class Koge48:
         self._close(cursor)
         return balance + number
 
-    def changeChequeBalance(self,userid,number,memo="",source=0):
+    def transferChequeBalance(self,sourceid,targetid,number,memo=""):
+        balance = self._getChequeBalanceFromDb(sourceid)
+        assert sourceid == Koge48.BNB48BOT or balance - number >= 0
+        balance = self._getChequeBalanceFromDb(targetid)
+        assert targetid == Koge48.BNB48BOT or balance + number >= 0
+        newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
+        cursor = self._mycursor()
+        cursor.execute(newblocksql,(sourceid,-number,memo,targetid))
+        cursor.execute(newblocksql,(targetid,number,memo,sourceid))
+        self._commit(cursor)
+        self._close(cursor)
+        return balance + number
+        
+    def signCheque(self,userid,number,memo="",source=0):
+        return changeChequeBalance(self,userid,number,memo,source)
+
+    def _changeChequeBalance(self,userid,number,memo="",source=0):
         balance = self._getChequeBalanceFromDb(userid)
         assert userid == Koge48.BNB48BOT or balance + number >= 0
         newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
@@ -202,7 +218,7 @@ class Koge48:
         
     def getGroupMiningStatus(self,groupid): 
         cursor = self._mycursor()
-        sql = "SELECT uid,count(*) as amount FROM `changelog` WHERE source={} AND unix_timestamp(ts)>{} group by uid order by amount desc limit 10".format(groupid,(time.time()-(7*24*3600)))
+        sql = "SELECT sid,count(*) as amount FROM `cheque` WHERE source={} AND sid <> {} AND unix_timestamp(ts)>{} group by sid order by amount desc limit 10".format(groupid,Koge48.BNB48BOT,(time.time()-(7*24*3600)))
         cursor.execute(sql)
         #logger.warning(sql)
         top10 = cursor.fetchall()
@@ -274,16 +290,19 @@ class Koge48:
         return self._getChequeBalanceFromDb(userid)
     def getTotalBalance(self,userid):
         return self._getBalanceFromDb(userid) + self._getChequeBalanceFromDb(userid)
-    def mine(self,minerid,groupid):
-        currentts = time.time()
-        duration = currentts - self._minets
-        prob = 1-(math.e**(-duration*Koge48.LAMDA))
-        self._minets = currentts
+    def mine(self,minerid,groupid,chance=None):
+        if chance is None:
+            currentts = time.time()
+            duration = currentts - self._minets
+            self._minets = currentts
+            prob = 1-(math.e**(-duration*Koge48.LAMDA))
+        else:
+            prob = float(chance)
 
         if random.random() < prob:
             value = Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random()
-            self.changeChequeBalance(minerid,value,"mining",groupid)
-            self.changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
+            self._changeChequeBalance(minerid,value,"mining",groupid)
+            self._changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
             logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
             return value
         else:
