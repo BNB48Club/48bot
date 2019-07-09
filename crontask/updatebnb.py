@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import configparser
+import time
 from binance.client import Client
 import json
 from web3.auto.infura import w3
@@ -11,8 +12,10 @@ def getBNBAmountByAPI(key,secret):
     try:
         client = Client(key,secret)
         bnb = client.get_asset_balance(asset='BNB')
+        time.sleep(1)
         return float(bnb['locked']) + float(bnb['free'])
-    except:
+    except Exception as e:
+        print(e)
         return 0
 
 ########################################

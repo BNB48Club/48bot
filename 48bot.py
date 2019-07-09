@@ -106,8 +106,27 @@ def is_number(s):
     except ValueError:
         pass
     return False
+
+
+SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🥭"]
+
+def slotDesc():
+    res=""
+    res+=(SLOTICONS[7]*3 + " 250倍\n")
+    res+=(SLOTICONS[1]*3 + " 30倍\n")
+    res+=(SLOTICONS[2]*3 + " 30倍\n")
+    res+=(SLOTICONS[3]*3 + " 30倍\n")
+    res+=(SLOTICONS[4]*3 + " 30倍\n")
+    res+=(SLOTICONS[5]*3 + " 30倍\n")
+    res+=(SLOTICONS[6]*3 + " 30倍\n")
+    res+=(SLOTICONS[8]*3 + " 30倍\n")
+    res+=(SLOTICONS[9]*3 + " 30倍\n")
+    res+=(SLOTICONS[0]*3 + " 30倍\n")
+    res+=(SLOTICONS[7]*2 + "  20倍\n")
+    res+=(SLOTICONS[7] + "   3倍")
+    return res
+
 def slotPlay():
-    SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🥭"]
     result = int(random.random()*1000)
     number = 0
     if result == 777:
@@ -201,28 +220,16 @@ def callbackhandler(bot,update):
                 parse_mode='Markdown'
             )
             update.callback_query.answer(text=u"押注成功")
+            '''
             mined=koge48core.mine(activeuser.id,BNB48CASINO,0.01*casino_betsize/100)
             if mined:
                 update.callback_query.message.reply_markdown("{}本次下注挖到{}个{}".format(getusermd(activeuser),mined,getkoge48md()),disable_web_page_preview=True)
+            '''
         else:
             update.callback_query.answer(text=u"不存在的押注信息")
             bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
     else:
         update.callback_query.answer()
-
-'''
-def buildAuctionMarkup(price):
-    p1 = max(1,int(price*0.01))
-    p10 = max(10,int(price*0.1))
-    p100 = max(100,price)
-    p1000 = max(1000,price*10)
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("+{}".format(p1),callback_data=str(price+p1)),InlineKeyboardButton('+{}'.format(p10),callback_data=str(price+p10))],
-            [InlineKeyboardButton('+{}'.format(p100),callback_data=str(price+p100)), InlineKeyboardButton('+{}'.format(p1000),callback_data=str(price+p1000))]
-        ]
-    )
-'''
 
 def buildredpacketmarkup():
     return InlineKeyboardMarkup(
@@ -233,11 +240,19 @@ def buildredpacketmarkup():
 def buildslotmarkup():
     keys = [
             [
-                InlineKeyboardButton("押拾個KOGE",callback_data="SLOT#10"),
-                InlineKeyboardButton("押壹佰KOGE",callback_data="SLOT#100")
+                InlineKeyboardButton("拾",callback_data="SLOT#10"),
+                InlineKeyboardButton("佰",callback_data="SLOT#100")
             ]
            ]
     return InlineKeyboardMarkup(keys)
+
+def casinobuttons(number):
+    return [
+                InlineKeyboardButton('{}:'.format(number), callback_data='FULL'),
+                InlineKeyboardButton('🐲', callback_data='LONG#{}'.format(number)),
+                InlineKeyboardButton('🐯', callback_data='HU#{}'.format(number)),
+                InlineKeyboardButton('🕊', callback_data='HE#{}'.format(number))
+            ]
 
 def buildcasinomarkup(result=["",""]):
     global CASINO_MARKUP
@@ -248,49 +263,11 @@ def buildcasinomarkup(result=["",""]):
             ]
            ]
     if result[0] == "" :
+        keys.append(casinobuttons(1000))
+        keys.append(casinobuttons(5000))
+        keys.append(casinobuttons(10000))
+        keys.append(casinobuttons(50000))
         '''
-        keys.append(
-            [
-                InlineKeyboardButton(u'押拾个:', callback_data='FULL'),
-                InlineKeyboardButton(u'🐲', callback_data='LONG#10'),
-                InlineKeyboardButton(u'🐯', callback_data='HU#10'),
-                InlineKeyboardButton(u'🕊', callback_data='HE#10'),
-            ]
-        )
-        '''
-        keys.append(
-            [
-                InlineKeyboardButton(u'押壹佰:', callback_data='FULL'),
-                InlineKeyboardButton(u'🐲', callback_data='LONG#100'),
-                InlineKeyboardButton(u'🐯', callback_data='HU#100'),
-                InlineKeyboardButton(u'🕊', callback_data='HE#100'),
-            ]
-        )
-        keys.append(
-            [
-                InlineKeyboardButton(u'押壹仟:', callback_data='FULL'),
-                InlineKeyboardButton(u'🐲', callback_data='LONG#1000'),
-                InlineKeyboardButton(u'🐯', callback_data='HU#1000'),
-                InlineKeyboardButton(u'🕊', callback_data='HE#1000'),
-            ]
-        )
-        keys.append(
-            [
-                InlineKeyboardButton(u'押壹萬:', callback_data='FULL'),
-                InlineKeyboardButton(u'🐲', callback_data='LONG#10000'),
-                InlineKeyboardButton(u'🐯', callback_data='HU#10000'),
-                InlineKeyboardButton(u'🕊', callback_data='HE#10000'),
-            ]
-        )
-        '''
-        keys.append(
-            [
-                InlineKeyboardButton(u'押拾万:', callback_data='FULL'),
-                InlineKeyboardButton(u'🐲', callback_data='LONG#100000'),
-                InlineKeyboardButton(u'🐯', callback_data='HU#100000'),
-                InlineKeyboardButton(u'🕊', callback_data='HE#100000'),
-            ]
-        )
         keys.append(
             [
                 InlineKeyboardButton(u'ALLIN:', callback_data='FULL'),
@@ -326,13 +303,23 @@ def startcasino(bot=None):
     thread.start()
 
 def stopbetcasino(casino_id):
+    global CASINO_IS_BETTING
     time.sleep(CASINO_INTERVAL)
     thecasino = global_longhu_casinos[casino_id]
-    while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0 and CASINO_CONTINUE:
-        time.sleep(CASINO_INTERVAL)
+    while len(thecasino._bets["LONG"]) == 0 and len(thecasino._bets["HU"]) == 0 and len(thecasino._bets["HE"]) == 0:
+        if CASINO_CONTINUE:
+            time.sleep(CASINO_INTERVAL)
+            continue
+        elif not CASINO_CONTINUE and CASINO_IS_BETTING:
+            CASINO_IS_BETTING = False
+            time.sleep(CASINO_INTERVAL)
+            continue
+        elif not CASINO_CONTINUE and not CASINO_IS_BETTING:
+            updater.bot.deleteMessage(BNB48CASINO,casino_id)
+            return
+    
 
     #logger.warning("casino stop")
-    global CASINO_IS_BETTING
     CASINO_IS_BETTING=False
     thread = Thread(target = releaseandstartcasino, args=[casino_id])
     thread.start()
@@ -383,8 +370,8 @@ def pmcommandhandler(bot,update):
     if "/mybinding" in things[0]:
         bindstatus = koge48core.getAirDropStatus(update.message.from_user.id)
         response = "当前绑定的ETH钱包地址:\n    {}\n\n".format(bindstatus['eth'])
-        response +="当前绑定的币安API:\n    {}#{}\n\n".format(bindstatus['api'][0],bindstatus['api'][1])
-        response +="末次快照BNB余额:\n    链上(钱包里){}\n    链下(交易所){}\n\n".format(bindstatus['bnb'][0],bindstatus['bnb'][1])
+        response +="当前绑定的币安APIkey(secret 不显示):\n    {}\n\n".format(bindstatus['api'][0])
+        response +="末次快照BNB余额:\n    {}\n\n".format(bindstatus['bnb'][1])
         if len(bindstatus['airdrops']) >0 :
             response += "最近的空投记录:\n"
             for each in bindstatus['airdrops']:
@@ -469,8 +456,8 @@ def rollerHandler(bot,update):
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
 
-    top10 = koge48core.getTopProfiter()
-    text+="赌神排行榜(盈利榜):\n"
+    top10 = koge48core.getTopGainer()
+    text+="赌神排行榜(赢钱榜):\n"
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
 
@@ -600,10 +587,10 @@ def botcommandhandler(bot,update):
         update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/slot" in things[0]:
         try:
-            bot.sendMessage(update.message.from_user.id,text="随机转出三列图标，777赢250倍，其他三连30倍，77x赢20倍，7xx赢3倍",reply_markup=buildslotmarkup(),quote=False)
+            bot.sendMessage(update.message.from_user.id,text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
             update.message.delete()
         except:
-            update.message.reply_text(text="随机转出三列图标，777赢250倍，其他三连30倍，77x赢20倍，7xy赢3倍",reply_markup=buildslotmarkup(),quote=False)
+            update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/cheque" in things[0]:
         if update.message.chat.type != 'private':
             return
@@ -822,7 +809,6 @@ def cleanHandler(bot,update):
 
         for each in global_redpackets:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,each._fromuser.id,each.balance(),"redpacket return")       
-
         CASINO_CONTINUE = False
         CASINO_IS_BETTING = False
         SLOT_BETTING = False

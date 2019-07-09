@@ -139,7 +139,7 @@ class Koge48:
         return balance + number
         
     def signCheque(self,userid,number,memo="",source=0):
-        return changeChequeBalance(self,userid,number,memo,source)
+        return self._changeChequeBalance(userid,number,memo,source)
 
     def _changeChequeBalance(self,userid,number,memo="",source=0):
         balance = self._getChequeBalanceFromDb(userid)
@@ -255,9 +255,9 @@ class Koge48:
         self._close(cursor)
         return one[0][0]
         
-    def getTopProfiter(self):
+    def getTopGainer(self):
         cursor = self._mycursor()
-        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
+        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `number` > 0 AND `memo` LIKE '%casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
         cursor.execute(betsql,(Koge48.BNB48BOT,))
         top10 = cursor.fetchall()
         self._close(cursor)
