@@ -22,7 +22,6 @@ from koge48 import Koge48
 from casino import LonghuCasino
 from redpacket import RedPacket
 from auction import Auction
-from collect48 import collectFrom
 from ppt2img import genPNG
 from sendweibo import init_weibo, send_pic
 
@@ -142,7 +141,33 @@ def slotPlay():
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
-    if SLOT_BETTING and "SLOT#" in update.callback_query.data:
+    if "escrow" in update.callback_query.data:
+        thedatas = update.callback_query.data.split('#')
+        if thedatas[0] != "escrow":
+            return
+        if thedatas[1] == "confirm":
+            if activeuser.id != float(thedatas[2]):
+                update.callback_query.answer("只有发起者才能确认")
+                return
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
+            update.callback_query.message.edit_text(
+                text=update.callback_query.message.text+"\n已确认",
+                reply_markup=None
+            )
+            update.callback_query.answer("{}已确认".format(activeuser.full_name))
+
+        elif thedatas[1] == "cancel":
+            if activeuser.id != float(thedatas[3]):
+                update.callback_query.answer("只有接受者才能取消")
+                return
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
+            update.callback_query.message.edit_text(
+                text=update.callback_query.message.text+"\n已取消",
+                reply_markup=None
+            )
+            update.callback_query.answer("{}已取消".format(activeuser.full_name))
+            
+    elif SLOT_BETTING and "SLOT#" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
         betsize=int(thedatas[1])
         koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize,"bet SLOT on casino")
@@ -279,7 +304,14 @@ def buildcasinomarkup(result=["",""]):
         '''
     CASINO_MARKUP = InlineKeyboardMarkup(keys)
     return CASINO_MARKUP
-
+def buildescrowmarkup(fromid,toid,transamount):
+    keys = [
+            [
+                InlineKeyboardButton('✅',callback_data="escrow#confirm#{}#{}#{}".format(fromid,toid,transamount)),
+                InlineKeyboardButton('❌',callback_data="escrow#cancel#{}#{}#{}".format(fromid,toid,transamount))
+            ]
+           ]
+    return InlineKeyboardMarkup(keys)
 
 def startcasino(bot=None):
     #logger.warning("try to start starting")
@@ -582,9 +614,19 @@ def botcommandhandler(bot,update):
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
         transamount = float(things[1])
-
         koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
         update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+    elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
+        if float(things[1]) <= 0:
+            return
+        user = update.message.from_user
+        targetuser = update.message.reply_to_message.from_user
+
+        if targetuser.id == Koge48.BNB48BOT or targetuser.id == user.id:
+            return
+        transamount = float(things[1])
+        koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
+        update.message.reply_markdown("{}向{}发起担保转账{}永久{}，由小秘书保管资金居间担保。\n发起者点击✅按钮，小秘书完成转账至接受者。\n接受者点击❌按钮，小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁，如存在故意过错方，该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
     elif "/slot" in things[0]:
         try:
             bot.sendMessage(update.message.from_user.id,text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
@@ -592,17 +634,15 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/cheque" in things[0]:
-        if update.message.chat.type != 'private':
-            return
         if SirIanM != update.message.from_user.id:
             return
-        if len(things) != 3:
-            update.message.reply_text("命令格式: /cheque 金额 UID")
+        if len(things) != 2:
+            update.message.reply_text("回复他人消息: /cheque 金额")
             return
         user = update.message.from_user
         
         number = float(things[1])
-        targetuid = int(things[2])
+        targetuid = update.message.reply_to_message.from_user.id
         if number <= 0:
             update.message.reply_text("金额不合法")
             return
@@ -790,11 +830,6 @@ def botcommandhandler(bot,update):
         file.close()
         logger.warning("SILENTGROUPS updated")
     return
-def chequehandler(bot,update):
-    if update.message.chat.type != 'private':
-        return
-    result= koge48core.queryCheque(update.message.text)
-    update.message.reply_markdown(result)
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
         updater.job_queue.stop()
@@ -1139,6 +1174,7 @@ def main():
         [
             "trans",
             "kogetrans",
+            "escrow",
             "bal",
             "kogebal",
             #"promote",
