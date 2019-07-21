@@ -56,6 +56,7 @@ SirIanM=420909210
 BNB48=-1001136778297
 BNB48PUBLISH=-1001180859399
 BNB48CN= -1001345282090
+BNB48C2C = -1001491897749
 
 BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
@@ -150,10 +151,7 @@ def callbackhandler(bot,update):
                 update.callback_query.answer("只有发起者才能确认")
                 return
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
-            update.callback_query.message.edit_text(
-                text=update.callback_query.message.text+"\n已确认",
-                reply_markup=None
-            )
+            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'),timeout=60)
             update.callback_query.answer("{}已确认".format(activeuser.full_name))
 
         elif thedatas[1] == "cancel":
@@ -161,10 +159,7 @@ def callbackhandler(bot,update):
                 update.callback_query.answer("只有接受者才能取消")
                 return
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
-            update.callback_query.message.edit_text(
-                text=update.callback_query.message.text+"\n已取消",
-                reply_markup=None
-            )
+            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'),timeout=60)
             update.callback_query.answer("{}已取消".format(activeuser.full_name))
             
     elif SLOT_BETTING and "SLOT#" in update.callback_query.data:
@@ -304,6 +299,14 @@ def buildcasinomarkup(result=["",""]):
         '''
     CASINO_MARKUP = InlineKeyboardMarkup(keys)
     return CASINO_MARKUP
+def buildtextmarkup(text):
+    keys = [
+            [
+                InlineKeyboardButton(text,callback_data="TEXT")
+            ]
+           ]
+    return InlineKeyboardMarkup(keys)
+    
 def buildescrowmarkup(fromid,toid,transamount):
     keys = [
             [
@@ -618,6 +621,9 @@ def botcommandhandler(bot,update):
         update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
+            return
+        if update.message.chat_id != BNB48C2C:
+            update.message.reply_text("担保交易功能仅在场外交易群生效， /community 命令查看入群方式")
             return
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
@@ -949,7 +955,10 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        mined=koge48core.mine(user.id,update.message.chat_id)
+        if len(update.message.text) > 16:
+            mined=koge48core.mine(user.id,update.message.chat_id)
+        else:
+            mined = False
         if mined and not update.message.chat_id in SILENTGROUPS:
             update.message.reply_markdown("{}挖到{}个{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
 

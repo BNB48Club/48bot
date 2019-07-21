@@ -3,15 +3,13 @@
 import random
 
 class LonghuCasino:
-    TARGET_TEXTS={"LONG":u"龙","HU":u"虎","HE":u"和"}
+    TARGET_TEXTS={"LONG":u"🐲","HU":u"🐯","HE":u"🕊"}
+    PAYRATES={"LONG":1.05,"HU":1.05,"HE":10}
     @staticmethod
     def getRule(key=None):
         if key == "FULL" or key is None:
-            return "🐲🐯各发一张比大小 A最大\n押中🐲或🐯拿回本金再得1.01倍奖励\n押中🕊拿回本金再得8倍奖励"
-        elif key in ["LONG","HU"]:
-            return "押中拿回本金再得1.01倍奖励"
-        elif key == "HE":
-            return "押中拿回本金再得8倍奖励"
+            return "🐲🐯各发一张比大小 A最大\n押中🐲或🐯拿回本金再得{}倍奖励\n押中🕊拿回本金再得{}倍奖励".format(LonghuCasino.PAYRATES['HU'],LonghuCasino.PAYRATES['HE'])
+        return "押中拿回本金再得{}倍奖励".format(LonghuCasino.PAYRATES[key])
             
     def __init__(self):
         self._bets={"LONG":{},"HU":{},"HE":{}}
@@ -64,9 +62,7 @@ class LonghuCasino:
             result = "HU"
             win="虎"
 
-        times = 2.01
-        if result == "HE":
-            times = 9
+        times = LonghuCasino.PAYRATES[result]+1
 
         payroll={}
         for each in self._bets[result]:
