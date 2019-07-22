@@ -86,8 +86,7 @@ koge48core = Koge48(
 global_longhu_casinos = {}
 global_redpackets = {}
 global_auctions = {}
-#casino_betsize = 2
-CASINO_INTERVAL = 10
+CASINO_INTERVAL = 9
 
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
@@ -187,11 +186,11 @@ def callbackhandler(bot,update):
             text = display,
             reply_markup=buildslotmarkup()
         )
-        mined=koge48core.mine(activeuser.id,BNB48CASINO,0.01*betsize/100)
-        if mined:
-            update.callback_query.message.reply_markdown("{}本次下注挖到{}个{}".format(getusermd(activeuser),mined,getkoge48md()),disable_web_page_preview=True)
-            
-
+        '''
+        #mined=koge48core.mine(activeuser.id,BNB48CASINO,0.01*betsize/100)
+        #if mined:
+        #    update.callback_query.message.reply_markdown("{}本次下注挖到{}个{}".format(getusermd(activeuser),mined,getkoge48md()),disable_web_page_preview=True)
+        '''
     elif message_id in global_redpackets:
         redpacket_id = message_id
         redpacket = global_redpackets[redpacket_id]

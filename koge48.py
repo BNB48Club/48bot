@@ -41,8 +41,10 @@ class Koge48:
             uid = each[0]
             userlist.append(uid)
             bal = each[1]
-            if abs(bal) > 100:
+            if bal > 100:
                 self.changeBalance(uid,bal*(multi_factor - 1),'decreasing')
+            elif bal > 1:
+                self.changeBalance(uid,-bal,'decreasing')
         self._commit(cursor)
         logger.warning("decreased")
         self._close(cursor)
