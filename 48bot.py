@@ -86,7 +86,7 @@ koge48core = Koge48(
 global_longhu_casinos = {}
 global_redpackets = {}
 global_auctions = {}
-CASINO_INTERVAL = 9
+CASINO_INTERVAL = 7
 
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
@@ -172,11 +172,13 @@ def callbackhandler(bot,update):
         if slotresults[0] > 0:
             display += " 中{}倍".format(slotresults[0])
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*slotresults[0],"SLOT casino pay to {}".format(activeuser.full_name))
+            '''
             if slotresults[0] >= 20:
                 bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
             if slotresults[0] > 50:
                 bot.sendMessage(BNB48,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
                 bot.sendMessage(BNB48CN,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+            '''
 
         update.callback_query.answer(display)
 
@@ -325,7 +327,7 @@ def startcasino(bot=None):
         if not CASINO_CONTINUE:
             return
         thread = Thread(target = startcasino)
-        time.sleep(10)
+        time.sleep(CASINO_INTERVAL)
         thread.start()
         return
     #logger.warning("casino start")
@@ -359,7 +361,7 @@ def stopbetcasino(casino_id):
     thread.start()
     
 def releaseandstartcasino(casino_id):
-    time.sleep(2)
+    time.sleep(3)
     #logger.warning("casino release")
     thecasino = global_longhu_casinos[casino_id]
     #logger.warning("start releasing")
@@ -383,10 +385,12 @@ def releaseandstartcasino(casino_id):
             #disable_web_page_preview=False,
             reply_markup=buildcasinomarkup(result=results['result'])
         )
+        '''
         if bigwin:
             displaytext+="\n去[大赌场]("+BNB48CASINOLINK+")试试手气"
             updater.bot.sendMessage(BNB48CN,displaytext,parse_mode='Markdown',disable_web_page_preview=False)
             updater.bot.sendMessage(BNB48,displaytext,parse_mode='Markdown',disable_web_page_preview=False)
+        '''
     except Exception as e:
         print(e)
         logger.warning("releaseandstartcasino exception above")
@@ -954,7 +958,7 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if len(update.message.text) > 16:
+        if len(update.message.text) > 5:
             mined=koge48core.mine(user.id,update.message.chat_id)
         else:
             mined = False

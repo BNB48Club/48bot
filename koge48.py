@@ -19,7 +19,7 @@ class Koge48:
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 10
     MINE_DIFFER_SIZE = 90
-    LAMDA = 1/1000.0
+    LAMDA = 1/2000.0
     BNB48BOT = 571331274
     def KogeDecrease(self):
         userlist = []
@@ -303,6 +303,7 @@ class Koge48:
 
         if random.random() < prob:
             value = Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random()
+            value = int(value * 100)/100
             self._changeChequeBalance(minerid,value,"mining",groupid)
             self._changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
             logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
