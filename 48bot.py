@@ -274,8 +274,8 @@ def buildcasinomarkup(result=["",""]):
     global CASINO_MARKUP
     keys = [
             [
-                InlineKeyboardButton(u'🐲:'+result[0],callback_data="FULL"),
-                InlineKeyboardButton(u'🐯:'+result[1],callback_data="FULL")
+                InlineKeyboardButton(u'🐲:'+result[0],callback_data="FULLLONG"),
+                InlineKeyboardButton(u'🐯:'+result[1],callback_data="FULLHU")
             ]
            ]
     if result[0] == "" :
@@ -488,7 +488,7 @@ def rollerHandler(bot,update):
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
 
     top10 = koge48core.getTopGainer()
-    text+="赌神排行榜(赢钱榜):\n"
+    text+="赌神排行榜(净赢榜):\n"
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
 
@@ -1270,10 +1270,12 @@ def airdropportal(bot,job):
     if eachdividend > 0:
         for eachuid in bnb48list:
             if eachuid != Koge48.BNB48BOT:
-                koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,eachdividend,"dividend distribution")
                 try:
+                    koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,eachdividend,"dividend distribution")
                     updater.bot.sendMessage(eachuid,"本区间小秘书接收到下注总额{} Koge, 核心群人均分红{} KOGE, /kogechanges 查收".format(totaldiv*100,eachdividend))
                 except:
+                    logger.warning(eachuid)
+                    logger.warning(eachdividend)
                     pass
         logger.warning(" {} dividend distributed".format(eachdividend))
     koge48core.KogeDecrease()

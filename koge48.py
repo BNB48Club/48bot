@@ -283,7 +283,7 @@ class Koge48:
         
     def getTopGainer(self):
         cursor = self._mycursor()
-        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `number` > 0 AND `memo` LIKE '%casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
+        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
         cursor.execute(betsql,(Koge48.BNB48BOT,))
         top10 = cursor.fetchall()
         self._close(cursor)
