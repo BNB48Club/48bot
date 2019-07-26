@@ -202,7 +202,7 @@ def callbackhandler(bot,update):
             del global_redpackets[redpacket_id]
         else:
             update.callback_query.answer("每人只能领取一次")
-    elif CASINO_IS_BETTING and message_id in global_longhu_casinos:
+    elif message_id in global_longhu_casinos:
         casino_id = message_id
         thecasino = global_longhu_casinos[casino_id]
 
@@ -219,6 +219,10 @@ def callbackhandler(bot,update):
                 return;
         else:
             casino_betsize = float(thedatas[1])
+
+        if not CASINO_IS_BETTING :
+            update.callback_query.answer("押注失败，已停止下注")
+            return
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
             koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
