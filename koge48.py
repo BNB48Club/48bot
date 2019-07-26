@@ -19,8 +19,9 @@ class Koge48:
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 10
     MINE_DIFFER_SIZE = 90
-    LAMDA = 1/2000.0
+    LAMDA = 1/1800.0
     BNB48BOT = 571331274
+    BNB48LIST = []
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
@@ -49,6 +50,29 @@ class Koge48:
         logger.warning("decreased")
         self._close(cursor)
         return userlist
+    def BNBDividend(self):
+        logger.warning("calculating dividends")
+        cursor = self._mycursor()
+        cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%dividend distribution%' ORDER by id DESC LIMIT 1")
+        try:
+            lastts = cursor.fetchall()[0][0]
+        except:
+            lastts = long(time.time())
+
+        secondsduration = time.time() - lastts
+        if secondsduration < 1000:
+            return 0
+
+        betsql = "SELECT sum(`number`) as `total` FROM `cheque` WHERE `sid` = %s AND `memo` LIKE '%bet %on casino%' AND `number` > 0 AND unix_timestamp(ts) > %s"
+        cursor.execute(betsql,(Koge48.BNB48BOT,lastts))
+        res = cursor.fetchall()
+        self._close(cursor)
+        if res[0][0] is None:
+            return 0
+        else:
+            return int(res[0][0]/100)
+
+
     def BNBAirDrop(self):
         logger.warning("airdroping")
         cursor = self._mycursor()
@@ -292,18 +316,16 @@ class Koge48:
         return self._getChequeBalanceFromDb(userid)
     def getTotalBalance(self,userid):
         return self._getBalanceFromDb(userid) + self._getChequeBalanceFromDb(userid)
-    def mine(self,minerid,groupid,chance=None):
-        if chance is None:
-            currentts = time.time()
-            duration = currentts - self._minets
-            self._minets = currentts
-            prob = 1-(math.e**(-duration*Koge48.LAMDA))
-        else:
-            prob = float(chance)
+    def mine(self,minerid,groupid):
+        currentts = time.time()
+        duration = currentts - self._minets
+        if minerid in Koge48.BNB48LIST:
+            duration *= 2
+        self._minets = currentts
+        prob = 1-(math.e**(-duration*Koge48.LAMDA))
 
         if random.random() < prob:
-            value = Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random()
-            value = int(value * 100)/100
+            value = round(Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random(),2)
             self._changeChequeBalance(minerid,value,"mining",groupid)
             self._changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
             logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)

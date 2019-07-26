@@ -141,6 +141,7 @@ def slotPlay():
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
+    logger.warning("{} callback, content: {}".format(activeuser.full_name,update.callback_query.data))
     if "escrow" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
         if thedatas[0] != "escrow":
@@ -164,7 +165,7 @@ def callbackhandler(bot,update):
     elif SLOT_BETTING and "SLOT#" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
         betsize=int(thedatas[1])
-        koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize,"bet SLOT on casino")
+        koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize,"{} bet SLOT on casino".format(activeuser.full_name))
 
         slotresults = slotPlay()
         display = slotresults[1]
@@ -172,13 +173,10 @@ def callbackhandler(bot,update):
         if slotresults[0] > 0:
             display += " 中{}倍".format(slotresults[0])
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*slotresults[0],"SLOT casino pay to {}".format(activeuser.full_name))
-            '''
-            if slotresults[0] >= 20:
+            if slotresults[0] > 20:
                 bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
-            if slotresults[0] > 50:
-                bot.sendMessage(BNB48,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+            if slotresults[0] > 30:
                 bot.sendMessage(BNB48CN,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
-            '''
 
         update.callback_query.answer(display)
 
@@ -188,18 +186,13 @@ def callbackhandler(bot,update):
             text = display,
             reply_markup=buildslotmarkup()
         )
-        '''
-        #mined=koge48core.mine(activeuser.id,BNB48CASINO,0.01*betsize/100)
-        #if mined:
-        #    update.callback_query.message.reply_markdown("{}本次下注挖到{}个{}".format(getusermd(activeuser),mined,getkoge48md()),disable_web_page_preview=True)
-        '''
     elif message_id in global_redpackets:
         redpacket_id = message_id
         redpacket = global_redpackets[redpacket_id]
         thisdraw = redpacket.draw(activeuser)
         if thisdraw > 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
-            update.callback_query.answer(text=u"你抢到{} Koge48积分".format(thisdraw))
+            update.callback_query.answer("你抢到{} Koge48积分".format(thisdraw))
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
             if redpacket.left() < 1:
                 update.callback_query.message.edit_reply_markup(timeout=60)
@@ -214,7 +207,6 @@ def callbackhandler(bot,update):
         thecasino = global_longhu_casinos[casino_id]
 
         if not "#" in update.callback_query.data:
-            #answer=LonghuCasino.getRule(update.callback_query.data) + "\n你的可用余额:{} 永久Koge48积分".format(koge48core.getChequeBalance(activeuser.id))
             update.callback_query.answer()
             return
 
@@ -229,29 +221,32 @@ def callbackhandler(bot,update):
             casino_betsize = float(thedatas[1])
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
-            #if koge48core.getChequeBalance(activeuser.id) < casino_betsize:
-            #    update.callback_query.answer(text=u"余额不足",show_alert=True)
-            #    return
             koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
-            #CASINO_LOG+=u"\n{} 押注 {} {} Koge48积分".format(activeuser.full_name,LonghuCasino.TARGET_TEXTS[bet_target],casino_betsize)
             update.callback_query.edit_message_text(
                 text=LonghuCasino.getRule()+"\n------------\n"+global_longhu_casinos[casino_id].getLog(),
                 reply_markup=CASINO_MARKUP,
                 parse_mode='Markdown'
             )
-            update.callback_query.answer(text=u"押注成功")
-            '''
-            mined=koge48core.mine(activeuser.id,BNB48CASINO,0.01*casino_betsize/100)
-            if mined:
-                update.callback_query.message.reply_markdown("{}本次下注挖到{}个{}".format(getusermd(activeuser),mined,getkoge48md()),disable_web_page_preview=True)
-            '''
+            update.callback_query.answer("押注成功")
         else:
-            update.callback_query.answer(text=u"不存在的押注信息")
+            update.callback_query.answer("不存在的押注信息")
             bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
     else:
         update.callback_query.answer()
 
+
+'''
+def delayAnswer(query,content=None):
+    thread = Thread(target = actualAnswer, args=[query,content])
+    thread.start()
+def actualAnswer(query,content=None):
+    time.sleep(0.1)
+    if content is None:
+        query.answer()
+    else:
+        query.answer(text=content)
+'''
 def buildredpacketmarkup():
     return InlineKeyboardMarkup(
         [
@@ -287,7 +282,7 @@ def buildcasinomarkup(result=["",""]):
         keys.append(casinobuttons(1000))
         keys.append(casinobuttons(5000))
         keys.append(casinobuttons(10000))
-        keys.append(casinobuttons(50000))
+        keys.append(casinobuttons(20000))
         '''
         keys.append(
             [
@@ -368,7 +363,7 @@ def releaseandstartcasino(casino_id):
     results = thecasino.release()
     bigwin=False
     for each in results['payroll']:
-        if results['payroll'][each] >= 100000:
+        if results['payroll'][each] > 200000:
             bigwin=True
         koge48core.transferChequeBalance(Koge48.BNB48BOT,each,results['payroll'][each],"casino pay to {}".format(each))
 
@@ -385,12 +380,10 @@ def releaseandstartcasino(casino_id):
             #disable_web_page_preview=False,
             reply_markup=buildcasinomarkup(result=results['result'])
         )
-        '''
         if bigwin:
             displaytext+="\n去[大赌场]("+BNB48CASINOLINK+")试试手气"
             updater.bot.sendMessage(BNB48CN,displaytext,parse_mode='Markdown',disable_web_page_preview=False)
             updater.bot.sendMessage(BNB48,displaytext,parse_mode='Markdown',disable_web_page_preview=False)
-        '''
     except Exception as e:
         print(e)
         logger.warning("releaseandstartcasino exception above")
@@ -511,7 +504,7 @@ def getusermd(user):
     #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
     return "`{}`".format(user.full_name)
 def getkoge48md():
-    return "[Koge48积分](http://bnb48.club/koge48)"
+    return "[Koge48积分](http://bnb48.club/html/cn/governance.html)"
 def siriancommandhandler(bot,update):
     global CASINO_CONTINUE
     if update.message.from_user.id != SirIanM:
@@ -853,6 +846,7 @@ def cleanHandler(bot,update):
 
         for each in global_redpackets:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,each._fromuser.id,each.balance(),"redpacket return")       
+        global CASINO_CONTINUE,CASINO_IS_BETTING,SLOT_BETTING
         CASINO_CONTINUE = False
         CASINO_IS_BETTING = False
         SLOT_BETTING = False
@@ -1082,6 +1076,7 @@ def checkThresholds(chatid,userid):
                 #updater.bot.sendMessage(userid,"Koge持仓{}不足{}，被移除出群。".format(balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
                 updater.bot.sendMessage(chatid,"感觉{}Koge持仓{}不足{}，移除出群前看看对不对。".format(userid,balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
                 logger.warning("{}Koge持仓{}不足{}，被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
+                return True
             except:
                 pass
             return
@@ -1231,6 +1226,7 @@ def main():
 
 
 def airdropportal(bot,job):
+    '''
     try:
         file=open("_data/bnb48cn.list","r")
         bnb48cnlist = json.load(file)
@@ -1238,6 +1234,7 @@ def airdropportal(bot,job):
     except:
         logger.warning("loading bnb48cn.list exception")
         bnb48cnlist = []
+    '''
     try:
         file=open("_data/bnb48.list","r")
         bnb48list = json.load(file)
@@ -1245,6 +1242,10 @@ def airdropportal(bot,job):
     except:
         logger.warning("loading bnb48.list exception")
         bnb48list = []
+
+    Koge48.BNB48LIST = bnb48list
+
+    '''
     for eachuid in bnb48cnlist:
         try:
             checkThresholds(BNB48CN,eachuid)
@@ -1252,14 +1253,29 @@ def airdropportal(bot,job):
             print(e)
             print(eachuid)
             pass
+    '''
     for eachuid in bnb48list:
         try:
-            checkThresholds(BNB48,eachuid)
+            if checkThresholds(BNB48,eachuid):
+                bnb48list.remove(eachuid)
+        
         except Exception as e:
             print(e)
             print(eachuid)
             pass
 
+    totaldiv = koge48core.BNBDividend()
+    qualified = len(bnb48list)-1
+    eachdividend = round(totaldiv/qualified)
+    if eachdividend > 0:
+        for eachuid in bnb48list:
+            if eachuid != Koge48.BNB48BOT:
+                koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,eachdividend,"dividend distribution")
+                try:
+                    updater.bot.sendMessage(eachuid,"本区间小秘书接收到下注总额{} Koge, 核心群人均分红{} KOGE, /kogechanges 查收".format(totaldiv*100,eachdividend))
+                except:
+                    pass
+        logger.warning(" {} dividend distributed".format(eachdividend))
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
     return

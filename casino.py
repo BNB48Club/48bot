@@ -4,7 +4,7 @@ import random
 
 class LonghuCasino:
     TARGET_TEXTS={"LONG":u"🐲","HU":u"🐯","HE":u"🕊"}
-    PAYRATES={"LONG":1.05,"HU":1.05,"HE":10}
+    PAYRATES={"LONG":1.01,"HU":1.01,"HE":9}
     @staticmethod
     def getRule(key=None):
         if key == "FULL" or key is None:
