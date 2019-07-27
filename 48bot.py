@@ -31,9 +31,10 @@ sys.setdefaultencoding('utf8')
 
 
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.WARNING)
+logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
 
 BLACKLIST= set()
 PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
@@ -86,7 +87,7 @@ koge48core = Koge48(
 global_longhu_casinos = {}
 global_redpackets = {}
 global_auctions = {}
-CASINO_INTERVAL = 7
+CASINO_INTERVAL = 10
 
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
@@ -110,7 +111,8 @@ def is_number(s):
 SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🥭"]
 
 def slotDesc():
-    res=""
+    res="三列图标，每列随机出现10个图标中的一个，结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。"
+    res+="当下注100Koge并转出250倍奖金时，额外获得奖池奖金， /jackpot 查看奖池规则"
     res+=(SLOTICONS[7]*3 + " 250倍\n")
     res+=(SLOTICONS[1]*3 + " 30倍\n")
     res+=(SLOTICONS[2]*3 + " 30倍\n")
@@ -164,10 +166,13 @@ def callbackhandler(bot,update):
             
     elif SLOT_BETTING and "SLOT#" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
+
         betsize=int(thedatas[1])
-        koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize,"{} bet SLOT on casino".format(activeuser.full_name))
 
         slotresults = slotPlay()
+
+        koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize,"{} bet SLOT on casino".format(activeuser.id))
+
         display = slotresults[1]
 
         if slotresults[0] > 0:
@@ -175,17 +180,22 @@ def callbackhandler(bot,update):
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*slotresults[0],"SLOT casino pay to {}".format(activeuser.full_name))
             if slotresults[0] > 20:
                 bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
-            if slotresults[0] > 30:
+            if slotresults[0] == 250:
                 bot.sendMessage(BNB48CN,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+                if betsize >=100:
+                    jackpot = Koge48.getJackpot(activeuser.id)
+                    bot.sendMessage(BNB48CN,"{}拿走奖池的一半：{} Koge".format(activeuser.full_name,jackpot))
+                    display+="获得奖池金额{} Koge".format(jackpot)
+
+        updater.bot.edit_message_text(
+                chat_id=update.callback_query.message.chat_id,
+                message_id=message_id,
+                text = display,
+                reply_markup=buildslotmarkup()
+            )
 
         update.callback_query.answer(display)
 
-        updater.bot.edit_message_text(
-            chat_id=update.callback_query.message.chat_id,
-            message_id=message_id,
-            text = display,
-            reply_markup=buildslotmarkup()
-        )
     elif message_id in global_redpackets:
         redpacket_id = message_id
         redpacket = global_redpackets[redpacket_id]
@@ -240,7 +250,6 @@ def callbackhandler(bot,update):
         update.callback_query.answer()
 
 
-'''
 def delayAnswer(query,content=None):
     thread = Thread(target = actualAnswer, args=[query,content])
     thread.start()
@@ -250,7 +259,6 @@ def actualAnswer(query,content=None):
         query.answer()
     else:
         query.answer(text=content)
-'''
 def buildredpacketmarkup():
     return InlineKeyboardMarkup(
         [
@@ -260,8 +268,8 @@ def buildredpacketmarkup():
 def buildslotmarkup():
     keys = [
             [
-                InlineKeyboardButton("拾",callback_data="SLOT#10"),
-                InlineKeyboardButton("佰",callback_data="SLOT#100")
+                InlineKeyboardButton("50",callback_data="SLOT#50"),
+                InlineKeyboardButton("100",callback_data="SLOT#100"),
             ]
            ]
     return InlineKeyboardMarkup(keys)
@@ -286,7 +294,7 @@ def buildcasinomarkup(result=["",""]):
         keys.append(casinobuttons(1000))
         keys.append(casinobuttons(5000))
         keys.append(casinobuttons(10000))
-        keys.append(casinobuttons(50000))
+        keys.append(casinobuttons(20000))
         '''
         keys.append(
             [
@@ -316,7 +324,7 @@ def buildescrowmarkup(fromid,toid,transamount):
            ]
     return InlineKeyboardMarkup(keys)
 
-def startcasino(bot=None):
+def startcasino():
     #logger.warning("try to start starting")
     if not CASINO_CONTINUE:
         return
@@ -347,10 +355,13 @@ def stopbetcasino(casino_id):
             continue
         elif not CASINO_CONTINUE and CASINO_IS_BETTING:
             CASINO_IS_BETTING = False
-            time.sleep(CASINO_INTERVAL)
+            time.sleep(1)
             continue
         elif not CASINO_CONTINUE and not CASINO_IS_BETTING:
             updater.bot.deleteMessage(BNB48CASINO,casino_id)
+            updater.stop()
+            updater.is_idle = False
+            sys.exit()
             return
     
 
@@ -367,8 +378,8 @@ def releaseandstartcasino(casino_id):
     results = thecasino.release()
     bigwin=False
     for each in results['payroll']:
-        if results['payroll'][each] > 200000:
-            bigwin=True
+        #if results['payroll'][each] > 200000:
+        #    bigwin=True
         koge48core.transferChequeBalance(Koge48.BNB48BOT,each,results['payroll'][each],"casino pay to {}".format(each))
 
     displaytext = global_longhu_casinos[casino_id].getLog()
@@ -547,12 +558,7 @@ def siriancommandhandler(bot,update):
         bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
     elif "/casino" in things[0] and update.message.from_user.id == SirIanM:
         CASINO_CONTINUE = True
-        startcasino(bot)
-        '''
-        elif "/nocasino" in things[0] and update.message.from_user.id == SirIanM:
-            CASINO_CONTINUE = False
-            bot.sendMessage(update.message.chat_id, text="Casino stoped")
-        '''
+        startcasino()
     elif "/flush" in things[0] or "/deflush" in things[0]:
         if update.message.from_user.id != SirIanM:
             return
@@ -639,6 +645,10 @@ def botcommandhandler(bot,update):
             update.message.delete()
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+    elif "/jackpot" in things[0]:
+        update.message.reply_text(text="所有下注的1%定期汇总进入奖池，水果机下注100Koge中250倍时，可额外获得奖池余额的一半。\n当前奖池余额为{}Koge".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
+        update.message.delete()
+            
     elif "/cheque" in things[0]:
         if SirIanM != update.message.from_user.id:
             return
@@ -844,9 +854,6 @@ def cleanHandler(bot,update):
             if job.name in [ "dealAuction" ]:
                 job.run(bot)
             logger.warning("job {} cleared".format(job.name))
-        updater.stop()
-        updater.is_idle = False
-        os.exit()
 
         for each in global_redpackets:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,each._fromuser.id,each.balance(),"redpacket return")       
@@ -1202,6 +1209,7 @@ def main():
             "rapidnews",
             "posttg",
             "slot",
+            "jackpot",
             "postweibo"
         ],
         botcommandhandler))# '''处理其他命令'''
@@ -1219,6 +1227,8 @@ def main():
     newthread.start()
     '''
 
+    startcasino()
+
     # Start the Bot
     updater.start_polling()
 
@@ -1226,6 +1236,7 @@ def main():
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
+
 
 
 
@@ -1270,8 +1281,14 @@ def airdropportal(bot,job):
 
     totaldiv = koge48core.BNBDividend()
     qualified = len(bnb48list)-1
-    eachdividend = round(totaldiv/qualified)
+    if qualified > 0:
+        eachdividend = round(totaldiv/qualified)
+    else:
+        eachdividend = 0
+
     if eachdividend > 0:
+        koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,totaldiv,"jackpot")
+
         for eachuid in bnb48list:
             if eachuid != Koge48.BNB48BOT:
                 try:

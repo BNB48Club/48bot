@@ -22,6 +22,7 @@ class Koge48:
     LAMDA = 1/1800.0
     BNB48BOT = 571331274
     BNB48LIST = []
+    JACKPOT = 777000
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
@@ -32,7 +33,7 @@ class Koge48:
             secondsduration = time.time() - lastts
         except:
             secondsduration = 24*3600
-        if secondsduration < 1000:
+        if secondsduration < 7000:
             logger.warning("skip")
             return
         multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
@@ -60,7 +61,7 @@ class Koge48:
             lastts = long(time.time())
 
         secondsduration = time.time() - lastts
-        if secondsduration < 1000:
+        if secondsduration < 7000:
             return 0
 
         betsql = "SELECT sum(`number`) as `total` FROM `cheque` WHERE `sid` = %s AND `memo` LIKE '%bet %on casino%' AND `number` > 0 AND unix_timestamp(ts) > %s"
@@ -83,7 +84,7 @@ class Koge48:
         except:
             secondsduration = 24*3600
 
-        if secondsduration < 1000:
+        if secondsduration < 7000:
             logger.warning("skip")
             return
 
@@ -150,6 +151,13 @@ class Koge48:
         self._commit(cursor)
         self._close(cursor)
         return balance + number
+
+    def getJackpot(self,targetid):
+        balance = self._getChequeBalanceFromDb(Koge48.JACKPOT)
+        todivide = int(balance/2)
+        if todivide > 0:
+            self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide)
+        return todivide
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
         balance = self._getChequeBalanceFromDb(sourceid)
