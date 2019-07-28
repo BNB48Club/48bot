@@ -178,13 +178,15 @@ def callbackhandler(bot,update):
         if slotresults[0] > 0:
             display += " 中{}倍".format(slotresults[0])
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*slotresults[0],"SLOT casino pay to {}".format(activeuser.full_name))
-            if slotresults[0] > 20:
-                bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
             if slotresults[0] == 250:
-                bot.sendMessage(BNB48CN,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+                bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+                bot.sendMessage(activeuser.id,"{}倍奖金".format(slotresults[0]))
+
                 if betsize >=100:
-                    jackpot = Koge48.getJackpot(activeuser.id)
-                    bot.sendMessage(BNB48CN,"{}拿走奖池的一半：{} Koge".format(activeuser.full_name,jackpot))
+                    jackpot = koge48core.getJackpot(activeuser.id)
+                    bot.sendMessage(BNB48CASINO,"{}拿走奖池：{} Koge".format(activeuser.full_name,jackpot))
+                    bot.sendMessage(BNB48CN,"{}拿走奖池：{} Koge".format(activeuser.full_name,jackpot))
+                    bot.sendMessage(BNB48,"{}拿走奖池：{} Koge".format(activeuser.full_name,jackpot))
                     display+="获得奖池金额{} Koge".format(jackpot)
 
         updater.bot.edit_message_text(
@@ -646,7 +648,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/jackpot" in things[0]:
-        update.message.reply_text(text="所有下注的1%定期汇总进入奖池，水果机下注100Koge中250倍时，可额外获得奖池余额的一半。\n当前奖池余额为{}Koge".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
+        update.message.reply_text(text="当前奖池余额为{}Koge".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
         update.message.delete()
             
     elif "/cheque" in things[0]:
@@ -1043,7 +1045,7 @@ def photoHandler(bot,update):
             try:
                 bot.sendMessage(eachadmin.user.id, text=NOTIFYADMINS)
             except TelegramError:
-                print('TelegramError, could be while send private message to admins')
+                logger.warning('TelegramError, could be while send private message to admins')
                 continue
 
     
@@ -1220,7 +1222,7 @@ def main():
 
 
     #Start the schedule
-    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=5)
+    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=0)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
@@ -1241,15 +1243,6 @@ def main():
 
 
 def airdropportal(bot,job):
-    '''
-    try:
-        file=open("_data/bnb48cn.list","r")
-        bnb48cnlist = json.load(file)
-        file.close()
-    except:
-        logger.warning("loading bnb48cn.list exception")
-        bnb48cnlist = []
-    '''
     try:
         file=open("_data/bnb48.list","r")
         bnb48list = json.load(file)
@@ -1260,15 +1253,6 @@ def airdropportal(bot,job):
 
     Koge48.BNB48LIST = bnb48list
 
-    '''
-    for eachuid in bnb48cnlist:
-        try:
-            checkThresholds(BNB48CN,eachuid)
-        except Exception as e:
-            print(e)
-            print(eachuid)
-            pass
-    '''
     for eachuid in bnb48list:
         try:
             if checkThresholds(BNB48,eachuid):
@@ -1279,26 +1263,52 @@ def airdropportal(bot,job):
             print(eachuid)
             pass
 
-    totaldiv = koge48core.BNBDividend()
-    qualified = len(bnb48list)-1
-    if qualified > 0:
-        eachdividend = round(totaldiv/qualified)
-    else:
-        eachdividend = 0
+    betrecord = koge48core.getBetRecord()
+    totalbet = 0
 
-    if eachdividend > 0:
+    try:
+        for eachrecord in betrecord:
+            totalbet += eachrecord[1]
+    except:
+        pass
+
+    totaldiv = totalbet/100
+
+    if totaldiv > 0:
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,totaldiv,"jackpot")
 
-        for eachuid in bnb48list:
-            if eachuid != Koge48.BNB48BOT:
-                try:
-                    koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,eachdividend,"dividend distribution")
-                    updater.bot.sendMessage(eachuid,"本区间小秘书接收到下注总额{} Koge, 核心群人均分红{} KOGE, /kogechanges 查收".format(totaldiv*100,eachdividend))
-                except:
-                    logger.warning(eachuid)
-                    logger.warning(eachdividend)
-                    pass
-        logger.warning(" {} dividend distributed".format(eachdividend))
+        updater.bot.sendMessage(BNB48CASINO,"本区间小秘书接收到下注总额{} Koge, 已向下注者按下注比例返现{} Koge, 向核心群成员分红{} Koge, 向奖池注入{} KOGE, /jackpot 查看最新奖池金额".format(totalbet,totaldiv,totaldiv,totaldiv))
+
+        for eachrecord in betrecord:
+            eachuid = eachrecord[0]
+            try:
+                dividend = round(totaldiv * eachrecord[1]/totalbet,2)
+                koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
+                updater.bot.sendMessage(eachuid,"本区间您下注{} Koge,得到返利{} KOGE, /kogechanges 查看变动详情".format(eachrecord[1],dividend))
+                logger.warning("distribute {} to {}".format(dividend,eachuid))
+            except:
+                logger.warning("exception while distribute to {}".format(eachuid))
+                pass
+        logger.warning(" gambler dividend distributed")
+
+
+        if len(bnb48list) < 2:
+            centdiv = 0
+        else:
+            centdiv = round(totaldiv/(len(bnb48list)-1),2)
+
+        if centdiv > 0:
+            for eachuid in bnb48list:
+                if eachuid != str(Koge48.BNB48BOT):
+                    try:
+                        koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,centdiv,"48core dividend distribution")
+                        updater.bot.sendMessage(eachuid,"本区间您收到核心群人均分红{} KOGE, /kogechanges 查收".format(centdiv))
+                    except:
+                        logger.warning(eachuid)
+                        logger.warning(centdiv)
+                        pass
+            logger.warning(" 48 dividend distributed")
+
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
     return

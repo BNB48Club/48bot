@@ -33,7 +33,7 @@ class Koge48:
             secondsduration = time.time() - lastts
         except:
             secondsduration = 24*3600
-        if secondsduration < 7000:
+        if secondsduration < 1000:
             logger.warning("skip")
             return
         multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
@@ -51,7 +51,8 @@ class Koge48:
         logger.warning("decreased")
         self._close(cursor)
         return userlist
-    def BNBDividend(self):
+
+    def getBetRecord(self):
         logger.warning("calculating dividends")
         cursor = self._mycursor()
         cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%dividend distribution%' ORDER by id DESC LIMIT 1")
@@ -61,17 +62,20 @@ class Koge48:
             lastts = long(time.time())
 
         secondsduration = time.time() - lastts
-        if secondsduration < 7000:
+        if secondsduration < 1000:
             return 0
 
-        betsql = "SELECT sum(`number`) as `total` FROM `cheque` WHERE `sid` = %s AND `memo` LIKE '%bet %on casino%' AND `number` > 0 AND unix_timestamp(ts) > %s"
+        betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 AND unix_timestamp(ts) > %s GROUP BY `sid` ORDER BY `total` DESC"
         cursor.execute(betsql,(Koge48.BNB48BOT,lastts))
         res = cursor.fetchall()
         self._close(cursor)
+        return res
+        '''
         if res[0][0] is None:
             return 0
         else:
             return int(res[0][0]/100)
+        '''
 
 
     def BNBAirDrop(self):
@@ -84,7 +88,7 @@ class Koge48:
         except:
             secondsduration = 24*3600
 
-        if secondsduration < 7000:
+        if secondsduration < 1000:
             logger.warning("skip")
             return
 
@@ -154,7 +158,7 @@ class Koge48:
 
     def getJackpot(self,targetid):
         balance = self._getChequeBalanceFromDb(Koge48.JACKPOT)
-        todivide = int(balance/2)
+        todivide = int(balance/3)
         if todivide > 0:
             self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide)
         return todivide
