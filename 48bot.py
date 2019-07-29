@@ -189,6 +189,10 @@ def callbackhandler(bot,update):
                     bot.sendMessage(BNB48,"{}从奖池拉下：{} Koge".format(activeuser.full_name,jackpot))
                     display+="获得奖池金额{} Koge".format(jackpot)
 
+            update.callback_query.answer(display)
+        else:
+            update.callback_query.answer()
+
         updater.bot.edit_message_text(
                 chat_id=update.callback_query.message.chat_id,
                 message_id=message_id,
@@ -196,7 +200,6 @@ def callbackhandler(bot,update):
                 reply_markup=buildslotmarkup()
             )
 
-        update.callback_query.answer(display)
 
     elif message_id in global_redpackets:
         redpacket_id = message_id
@@ -450,15 +453,13 @@ def pmcommandhandler(bot,update):
             elif change == 0:
                 update.message.reply_markdown("不存在的奖励号码")
         '''
-    elif "/kogechanges" in things[0]:
-        changes=koge48core.getChequeRecentChanges(update.message.from_user.id)
-        response = "最近的永久Koge变动记录:\n"
-        for each in changes:
-            response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
-        update.message.reply_markdown(response)
     elif "/changes" in things[0]:
+        kogechanges=koge48core.getChequeRecentChanges(update.message.from_user.id)
+        response = "最近的永久Koge变动记录:\n"
+        for each in kogechanges:
+            response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
         changes=koge48core.getRecentChanges(update.message.from_user.id)
-        response = "最近的变动记录:\n"
+        response = "\n最近的活动变动记录:\n"
         for each in changes:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
         update.message.reply_markdown(response)
@@ -498,12 +499,13 @@ def donatorHandler(bot,update):
     for each in top10:
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
+
 def rollerHandler(bot,update):
     koge48core.transferChequeBalance(update.message.from_user.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
-    top10 = koge48core.getTopCasino()
+    top20 = koge48core.getBetRecords(limit=20)
     text="本次查询费用由`{}`支付\n[点击进入KOGE虚拟赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)\n\n".format(update.message.from_user.full_name)
-    text+="赌场豪客榜(下注榜):\n"
-    for each in top10:
+    text+="赌场历史下注榜(豪客榜):\n"
+    for each in top20:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
 
     top10 = koge48core.getTopGainer()
@@ -621,7 +623,7 @@ def siriancommandhandler(bot,update):
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
 
-    if "/kogetrans" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
+    if "/trans" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
         user = update.message.from_user
@@ -646,12 +648,11 @@ def botcommandhandler(bot,update):
     elif "/slot" in things[0]:
         try:
             bot.sendMessage(update.message.from_user.id,text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
-            update.message.delete()
+            #update.message.delete()
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/jackpot" in things[0]:
         update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押100中250倍可拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
-        update.message.delete()
             
     elif "/cheque" in things[0]:
         if SirIanM != update.message.from_user.id:
@@ -795,25 +796,10 @@ def botcommandhandler(bot,update):
             targetuser = update.message.reply_to_message.from_user
 
         try:
-            bot.sendMessage(user.id,"{}的{}活动余额为{}\n永久余额请使用 /kogebal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(user.id,"{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
-            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}活动余额为{}\n永久余额请使用 /kogebal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
-            pass
-        update.message.delete()
-    elif "/kogebal" in things[0]:
-        user = update.message.from_user
+            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
 
-        if update.message.reply_to_message is None:
-            targetuser = user
-        else:
-            targetuser = update.message.reply_to_message.from_user
-
-        try:
-            bot.sendMessage(user.id,"{}的{}永久余额为{}\n活动余额请使用 /bal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
-        except:
-            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}永久余额为{}\n活动余额请使用 /bal 命令查看".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
-            pass
-        update.message.delete()
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
         user = update.message.from_user
@@ -1182,7 +1168,7 @@ def main():
             "bind",
             "redeem",
             "changes",
-            "kogechanges",
+            #"kogechanges",
             "start",
             "send",
             #"slot",
@@ -1195,10 +1181,10 @@ def main():
     dp.add_handler(CommandHandler(
         [
             "trans",
-            "kogetrans",
+            #"kogetrans",
             "escrow",
             "bal",
-            "kogebal",
+            #"kogebal",
             #"promote",
             #"demote",
             #"restrict",
@@ -1265,28 +1251,24 @@ def airdropportal(bot,job):
             print(eachuid)
             pass
 
-    betrecord = koge48core.getBetRecord()
-    totalbet = 0
+    betrecords = koge48core.getBetRecords()
+    lasttotalbet = float(koge48core.getTotalBet(last=True))
+    lasttotaldiv = lasttotalbet/100
 
-    try:
-        for eachrecord in betrecord:
-            totalbet += eachrecord[1]
-    except:
-        pass
+    if lasttotaldiv > 0:
+        koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"jackpot")
 
-    totaldiv = totalbet/100
+        updater.bot.sendMessage(BNB48CASINO,"本区间小秘书接收到下注总额{} Koge, 向下注者返现{} Koge, 向核心群成员分红{} Koge, 向奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n使用 /jackpot 命令查看奖池规则".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
 
-    if totaldiv > 0:
-        koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,totaldiv,"jackpot")
-
-        updater.bot.sendMessage(BNB48CASINO,"本区间小秘书接收到下注总额{} Koge, 已向下注者按下注比例返现{} Koge, 向核心群成员分红{} Koge, 向奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n/jackpot 查看奖池规则".format(totalbet,totaldiv,totaldiv,totaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
-
-        for eachrecord in betrecord:
+        hisbet = float(koge48core.getTotalBet(last=False))
+        for eachrecord in betrecords:
             eachuid = eachrecord[0]
             try:
-                dividend = eachrecord[1]/100
+                dividend = round(float(lasttotaldiv*eachrecord[1]/hisbet),2)
+                if dividend < 0.01:
+                    continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
-                updater.bot.sendMessage(eachuid,"本区间您下注{} Koge,得到返利{} KOGE, /kogechanges 查看变动详情".format(eachrecord[1],dividend))
+                updater.bot.sendMessage(eachuid,"根据您历史下注{} Koge，占历史全部下注的{}%，本区间得到返利{} KOGE, /changes 查看变动详情, /roller 查看全局下注排行榜".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),dividend))
                 logger.warning("distribute {} to {}".format(dividend,eachuid))
             except:
                 logger.warning("exception while distribute to {}".format(eachuid))
@@ -1297,14 +1279,14 @@ def airdropportal(bot,job):
         if len(bnb48list) < 2:
             centdiv = 0
         else:
-            centdiv = round(totaldiv/(len(bnb48list)-1),2)
+            centdiv = round(lasttotaldiv/(len(bnb48list)-1),2)
 
         if centdiv > 0:
             for eachuid in bnb48list:
                 if eachuid != str(Koge48.BNB48BOT):
                     try:
                         koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,centdiv,"48core dividend distribution")
-                        updater.bot.sendMessage(eachuid,"本区间您收到核心群人均分红{} KOGE, /kogechanges 查收".format(centdiv))
+                        updater.bot.sendMessage(eachuid,"本区间您收到核心群人均分红{} KOGE, /changes 查收".format(centdiv))
                     except:
                         logger.warning(eachuid)
                         logger.warning(centdiv)

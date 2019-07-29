@@ -6,6 +6,7 @@ import time
 import mysql.connector
 import logging
 import math
+import ConfigParser
 
 from binance.client import Client
 
@@ -23,6 +24,7 @@ class Koge48:
     BNB48BOT = 571331274
     BNB48LIST = []
     JACKPOT = 777000
+    STATSTART = 430820
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
@@ -52,31 +54,42 @@ class Koge48:
         self._close(cursor)
         return userlist
 
-    def getBetRecord(self):
-        logger.warning("calculating dividends")
+    def getTotalBet(self,last=True):
         cursor = self._mycursor()
-        cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%dividend distribution%' ORDER by id DESC LIMIT 1")
+        if last:
+            cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%dividend distribution%' ORDER by id DESC LIMIT 1")
+            try:
+                lastts = cursor.fetchall()[0][0]
+            except:
+                lastts = long(time.time())
+
+            secondsduration = time.time() - lastts
+            if secondsduration < 1000:
+                return 0
+
+            betsql = "SELECT -sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 AND unix_timestamp(ts) > %s"
+            cursor.execute(betsql,(Koge48.STATSTART,Koge48.BNB48BOT,lastts))
+        else:
+            betsql = "SELECT -sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0"
+            cursor.execute(betsql,(Koge48.STATSTART,Koge48.BNB48BOT))
+
+        res = cursor.fetchall()
+        self._close(cursor)
         try:
-            lastts = cursor.fetchall()[0][0]
+            return float(res[0][0])
         except:
-            lastts = long(time.time())
-
-        secondsduration = time.time() - lastts
-        if secondsduration < 1000:
             return 0
+        
+    def getBetRecords(self,limit = 0):
+        cursor = self._mycursor()
 
-        betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 AND unix_timestamp(ts) > %s GROUP BY `sid` ORDER BY `total` DESC"
-        cursor.execute(betsql,(Koge48.BNB48BOT,lastts))
+        betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 GROUP BY `sid` ORDER BY `total` DESC"
+        if int(limit) > 0:
+            betsql += " LIMIT {}".format(int(limit))
+        cursor.execute(betsql,(Koge48.STATSTART,Koge48.BNB48BOT))
         res = cursor.fetchall()
         self._close(cursor)
         return res
-        '''
-        if res[0][0] is None:
-            return 0
-        else:
-            return int(res[0][0]/100)
-        '''
-
 
     def BNBAirDrop(self):
         logger.warning("airdroping")
@@ -295,19 +308,12 @@ class Koge48:
         
     def getTopGainer(self):
         cursor = self._mycursor()
-        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
-        cursor.execute(betsql,(Koge48.BNB48BOT,))
+        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > %s GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
+        cursor.execute(betsql,(Koge48.BNB48BOT,Koge48.STATSTART))
         top10 = cursor.fetchall()
         self._close(cursor)
         return top10
 
-    def getTopCasino(self):
-        cursor = self._mycursor()
-        betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%bet %on casino%' AND `id` > 859 GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
-        cursor.execute(betsql,(Koge48.BNB48BOT,))
-        top10 = cursor.fetchall()
-        self._close(cursor)
-        return top10
     def getTop(self,amount=10):
         cursor = self._mycursor()
         sql = "SELECT table1.uid, table1.active + COALESCE(table2.deactive,0) AS `total` from (SELECT SUM(`differ`) AS `active` , `uid` FROM `changelog` GROUP BY `uid`) AS `table1` LEFT JOIN (SELECT SUM(`number`) AS `deactive`, `sid` FROM `cheque` GROUP BY `sid`) AS `table2` ON table1.uid = table2.sid OR table2.sid = table1.uid ORDER BY `total` DESC LIMIT {}".format(amount)
@@ -344,3 +350,14 @@ class Koge48:
             return value
         else:
             return 0
+if __name__ == '__main__':
+    kogeconfig = ConfigParser.ConfigParser()
+    kogeconfig.read("conf/koge48.conf")
+    koge48core = Koge48(
+      kogeconfig.get("mysql","host"),
+      kogeconfig.get("mysql","user"),
+      kogeconfig.get("mysql","passwd"),
+      kogeconfig.get("mysql","database")
+    )
+    print(koge48core.getTotalBet(True))
+    print(koge48core.getTotalBet(False))
