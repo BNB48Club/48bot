@@ -459,7 +459,7 @@ def pmcommandhandler(bot,update):
         for each in kogechanges:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
         changes=koge48core.getRecentChanges(update.message.from_user.id)
-        response = "\n最近的活动变动记录:\n"
+        response = "+\n最近的活动变动记录:\n"
         for each in changes:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
         update.message.reply_markdown(response)
