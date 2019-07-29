@@ -87,7 +87,7 @@ koge48core = Koge48(
 global_longhu_casinos = {}
 global_redpackets = {}
 global_auctions = {}
-CASINO_INTERVAL = 10
+CASINO_INTERVAL = 7
 
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
@@ -184,9 +184,9 @@ def callbackhandler(bot,update):
 
                 if betsize >=100:
                     jackpot = koge48core.getJackpot(activeuser.id)
-                    bot.sendMessage(BNB48CASINO,"{}拿走奖池：{} Koge".format(activeuser.full_name,jackpot))
-                    bot.sendMessage(BNB48CN,"{}拿走奖池：{} Koge".format(activeuser.full_name,jackpot))
-                    bot.sendMessage(BNB48,"{}拿走奖池：{} Koge".format(activeuser.full_name,jackpot))
+                    bot.sendMessage(BNB48CASINO,"{}从奖池拉下：{} Koge".format(activeuser.full_name,jackpot))
+                    bot.sendMessage(BNB48CN,"{}从奖池拉下：{} Koge".format(activeuser.full_name,jackpot))
+                    bot.sendMessage(BNB48,"{}从奖池拉下：{} Koge".format(activeuser.full_name,jackpot))
                     display+="获得奖池金额{} Koge".format(jackpot)
 
         updater.bot.edit_message_text(
@@ -270,6 +270,8 @@ def buildredpacketmarkup():
 def buildslotmarkup():
     keys = [
             [
+                InlineKeyboardButton("10",callback_data="SLOT#10"),
+                InlineKeyboardButton("20",callback_data="SLOT#20"),
                 InlineKeyboardButton("50",callback_data="SLOT#50"),
                 InlineKeyboardButton("100",callback_data="SLOT#100"),
             ]
@@ -648,7 +650,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/jackpot" in things[0]:
-        update.message.reply_text(text="当前奖池余额为{}Koge".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
+        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押100中250倍可拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
         update.message.delete()
             
     elif "/cheque" in things[0]:
@@ -1277,12 +1279,12 @@ def airdropportal(bot,job):
     if totaldiv > 0:
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,totaldiv,"jackpot")
 
-        updater.bot.sendMessage(BNB48CASINO,"本区间小秘书接收到下注总额{} Koge, 已向下注者按下注比例返现{} Koge, 向核心群成员分红{} Koge, 向奖池注入{} KOGE, /jackpot 查看最新奖池金额".format(totalbet,totaldiv,totaldiv,totaldiv))
+        updater.bot.sendMessage(BNB48CASINO,"本区间小秘书接收到下注总额{} Koge, 已向下注者按下注比例返现{} Koge, 向核心群成员分红{} Koge, 向奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n/jackpot 查看奖池规则".format(totalbet,totaldiv,totaldiv,totaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
 
         for eachrecord in betrecord:
             eachuid = eachrecord[0]
             try:
-                dividend = round(totaldiv * eachrecord[1]/totalbet,2)
+                dividend = eachrecord[1]/100
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
                 updater.bot.sendMessage(eachuid,"本区间您下注{} Koge,得到返利{} KOGE, /kogechanges 查看变动详情".format(eachrecord[1],dividend))
                 logger.warning("distribute {} to {}".format(dividend,eachuid))

@@ -160,7 +160,7 @@ class Koge48:
         balance = self._getChequeBalanceFromDb(Koge48.JACKPOT)
         todivide = int(balance/3)
         if todivide > 0:
-            self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide)
+            self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide,"jackpot")
         return todivide
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
