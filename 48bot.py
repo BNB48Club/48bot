@@ -108,15 +108,16 @@ def is_number(s):
     return False
 
 
-SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🥭"]
+SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"]
 
 def slotDesc():
-    res="三列图标，每列随机出现10个图标中的一个，结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。"
-    res+="当下注100Koge并转出250倍奖金时，额外获得奖池奖金， /jackpot 查看奖池规则"
+    res="100Koge转一次"
+    res+="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
+    res+="转出🍒🍒🍒时,额外获得奖池奖金的1/3, /jackpot 查看奖池金额\n"
     res+=(SLOTICONS[7]*3 + " 250倍\n")
+    res+=(SLOTICONS[3]*3 + " 30倍 + JackPot 奖池\n")
     res+=(SLOTICONS[1]*3 + " 30倍\n")
     res+=(SLOTICONS[2]*3 + " 30倍\n")
-    res+=(SLOTICONS[3]*3 + " 30倍\n")
     res+=(SLOTICONS[4]*3 + " 30倍\n")
     res+=(SLOTICONS[5]*3 + " 30倍\n")
     res+=(SLOTICONS[6]*3 + " 30倍\n")
@@ -167,32 +168,35 @@ def callbackhandler(bot,update):
     elif SLOT_BETTING and "SLOT#" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
 
-        betsize=int(thedatas[1])
-
-        slotresults = slotPlay()
-
-        koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize,"{} bet SLOT on casino".format(activeuser.id))
-
-        display = slotresults[1]
-
-        if slotresults[0] > 0:
-            display += " 中{}倍".format(slotresults[0])
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*slotresults[0],"SLOT casino pay to {}".format(activeuser.full_name))
-            if slotresults[0] == 250:
-                bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
-                bot.sendMessage(activeuser.id,"{}倍奖金".format(slotresults[0]))
-
-                if betsize >=100:
-                    jackpot = koge48core.getJackpot(activeuser.id)
-                    bot.sendMessage(BNB48CASINO,"{}从奖池拉下：{} Koge".format(activeuser.full_name,jackpot))
-                    bot.sendMessage(BNB48CN,"{}从奖池拉下：{} Koge".format(activeuser.full_name,jackpot))
-                    bot.sendMessage(BNB48,"{}从奖池拉下：{} Koge".format(activeuser.full_name,jackpot))
-                    display+="获得奖池金额{} Koge".format(jackpot)
-
-            update.callback_query.answer(display)
-        else:
+        if int(thedatas[1])%100 != 0:
             update.callback_query.answer()
+            update.callback_query.message.delete()
+            return
+        betsize=100
+        bettimes = int(thedatas[1])/betsize
+        koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
 
+        display = ""
+
+        while bettimes > 0:
+            slotresults = slotPlay()
+            display += slotresults[1]
+            if slotresults[0] > 0:
+                display += " 中{}倍".format(slotresults[0])
+                koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*slotresults[0],"SLOT casino pay to {}".format(activeuser.full_name))
+                if slotresults[0] == 250:
+                    bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+                    bot.sendMessage(activeuser.id,"恭喜您转出{}倍奖金".format(slotresults[0]))
+
+                if slotresults[1] == "🍒🍒🍒":
+                    jackpot = koge48core.getJackpot(activeuser.id)
+                    bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
+                    bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
+                    display+="从奖池拉下:{} Koge".format(jackpot)
+            bettimes -= 1
+            display += "\n"
+
+        update.callback_query.answer()
         updater.bot.edit_message_text(
                 chat_id=update.callback_query.message.chat_id,
                 message_id=message_id,
@@ -236,7 +240,7 @@ def callbackhandler(bot,update):
             casino_betsize = float(thedatas[1])
 
         if not CASINO_IS_BETTING :
-            update.callback_query.answer("押注失败，已停止下注")
+            update.callback_query.answer("押注失败,已停止下注")
             return
 
         if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
@@ -273,10 +277,9 @@ def buildredpacketmarkup():
 def buildslotmarkup():
     keys = [
             [
-                InlineKeyboardButton("10",callback_data="SLOT#10"),
-                InlineKeyboardButton("20",callback_data="SLOT#20"),
-                InlineKeyboardButton("50",callback_data="SLOT#50"),
-                InlineKeyboardButton("100",callback_data="SLOT#100"),
+                InlineKeyboardButton("壹次",callback_data="SLOT#100"),
+                InlineKeyboardButton("拾次",callback_data="SLOT#1000"),
+                InlineKeyboardButton("佰次",callback_data="SLOT#10000"),
             ]
            ]
     return InlineKeyboardMarkup(keys)
@@ -470,7 +473,7 @@ def pmcommandhandler(bot,update):
             update.message.reply_markdown("欢迎加入[BNB48Club](https://t.me/bnb48club_cn)")
     elif "/bind" in things[0]:
         update.message.reply_text(
-            "持有1BNB，每天可以获得固定比例Koge48积分。\n\n所有绑定过程均需要私聊管家机器人完成，在群组内调用绑定命令是无效的。请注意，BNB48俱乐部是投资者自发组织的松散社群，BNB48俱乐部与币安交易所无任何经营往来，交易所账户的持仓快照是根据币安交易所公开的API实现的，管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug，没有能力确保服务器不遭受攻击，也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗，进而导致您的全部资产被盗。\n\n如果您决定提交币安账户API，您承诺是在充分了解上述风险之后做出的决定。\n\n"+
+            "持有1BNB,每天可以获得固定比例Koge48积分。\n\n所有绑定过程均需要私聊管家机器人完成,在群组内调用绑定命令是无效的。请注意,BNB48俱乐部是投资者自发组织的松散社群,BNB48俱乐部与币安交易所无任何经营往来,交易所账户的持仓快照是根据币安交易所公开的API实现的,管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug,没有能力确保服务器不遭受攻击,也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗,进而导致您的全部资产被盗。\n\n如果您决定提交币安账户API,您承诺是在充分了解上述风险之后做出的决定。\n\n"+
             "输入apikey#apisecret绑定API\n"
         )
 def groupadminhandler(bot,update):
@@ -635,7 +638,7 @@ def botcommandhandler(bot,update):
         if float(things[1]) <= 0:
             return
         if update.message.chat_id != BNB48C2C:
-            update.message.reply_text("担保交易功能仅在场外交易群生效， /community 命令查看入群方式")
+            update.message.reply_text("担保交易功能仅在场外交易群生效, /community 命令查看入群方式")
             return
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
@@ -644,7 +647,7 @@ def botcommandhandler(bot,update):
             return
         transamount = float(things[1])
         koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
-        update.message.reply_markdown("{}向{}发起担保转账{}永久{}，由小秘书保管资金居间担保。\n发起者点击✅按钮，小秘书完成转账至接受者。\n接受者点击❌按钮，小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁，如存在故意过错方，该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
+        update.message.reply_markdown("{}向{}发起担保转账{}永久{},由小秘书保管资金居间担保。\n发起者点击✅按钮,小秘书完成转账至接受者。\n接受者点击❌按钮,小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁,如存在故意过错方,该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
     elif "/slot" in things[0]:
         try:
             bot.sendMessage(update.message.from_user.id,text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
@@ -652,7 +655,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/jackpot" in things[0]:
-        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押100中250倍可拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
+        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押中🍒🍒🍒可拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
             
     elif "/cheque" in things[0]:
         if SirIanM != update.message.from_user.id:
@@ -669,7 +672,7 @@ def botcommandhandler(bot,update):
             return
 
         latest = koge48core.signCheque(targetuid,number,"signed by SirIanM")
-        update.message.reply_markdown("添加成功，目前最新余额{}".format(latest))
+        update.message.reply_markdown("添加成功,目前最新余额{}".format(latest))
     elif "/community" in things[0]:
         markdown = "[BNB48 训练营](https://t.me/bnb48club_cn)"
         markdown += "\n"
@@ -734,7 +737,7 @@ def botcommandhandler(bot,update):
         del things[0]
         del things[0]
         content = " ".join(things)
-        update.message.reply_text("正在生成快讯图片...该操作较耗时也较耗费资源，请务必耐心，不要重复发送。")
+        update.message.reply_text("正在生成快讯图片...该操作较耗时也较耗费资源,请务必耐心,不要重复发送。")
         bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
     elif "/criteria" in things[0]:
         update.message.reply_text("持仓Koge(永久+活动)大于等于{}可私聊机器人自助加入正式群\n持仓Koge不足{}会被移除出正式群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
@@ -798,7 +801,7 @@ def botcommandhandler(bot,update):
         try:
             bot.sendMessage(user.id,"{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
-            update.message.reply_text("为保护隐私，建议私聊机器人查询。{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            update.message.reply_text("为保护隐私,建议私聊机器人查询。{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -823,7 +826,7 @@ def botcommandhandler(bot,update):
             if thegroup in SILENTGROUPS:
                 return
             SILENTGROUPS.append(thegroup)
-            bot.sendMessage(update.message.chat_id, text=u"本群切换为静默模式，出矿无消息提示", reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text=u"本群切换为静默模式,出矿无消息提示", reply_to_message_id=update.message.message_id)
         else:
             if not thegroup in SILENTGROUPS:
                 return
@@ -859,7 +862,7 @@ def ethhandler(bot,update):
     eth = update.message.text
     ethrichlist=[]
     if eth in ethrichlist:
-        update.message.reply_text("请不要拿链上富豪榜地址冒充，如果这个地址确实属于你，请私聊@SirIanM")
+        update.message.reply_text("请不要拿链上富豪榜地址冒充,如果这个地址确实属于你,请私聊@SirIanM")
     else:
         koge48core.setEthAddress(update.message.from_user.id,eth)
         update.message.reply_text("eth绑定完成。请注意绑定过程不校验地址持仓BNB余额")
@@ -871,7 +874,7 @@ def apihandler(bot,update):
     message_text = update.message.text
     api = message_text.split("#")
     koge48core.setApiKey(update.message.from_user.id,api[0],api[1])
-    update.message.reply_text("apikey绑定完成，注意绑定过程不会验证api的有效性")
+    update.message.reply_text("apikey绑定完成,注意绑定过程不会验证api的有效性")
     return
 
 
@@ -1001,7 +1004,7 @@ def replyCommand(bot,update):
         newchatmember = bot.getChatMember(BNB48, newmemberid)
         if newchatmember.status == 'restricted':
             bot.restrictChatMember(update.message.chat_id,user_id=newmemberid,can_send_messages=True,can_send_media_messages=True,can_send_other_messages=True, can_add_web_page_previews=True)
-            bot.sendMessage(newmemberid, text=u"您已通过审核，成为BNB48 Club正式会员")
+            bot.sendMessage(newmemberid, text=u"您已通过审核,成为BNB48 Club正式会员")
             bot.sendMessage(update.message.chat_id, text=u"欢迎新成员"+newmember.full_name)#, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
         else:
             bot.sendMessage(update.message.chat_id, text=newchatmember.status+u"该成员之前已经通过审核或已经离开本群", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
@@ -1026,7 +1029,7 @@ def photoHandler(bot,update):
     sayingmember = bot.getChatMember(BNB48, userid)
     if sayingmember.status == 'restricted' or userid == SirIanM:
         forward = bot.forwardMessage(BNB48,update.effective_user.id,update.message.message_id)
-        bot.sendMessage(update.message.chat_id, text=u"已提交持仓证明，请关注群内审批情况，耐心等待。如无必要，无需频繁重复发送。", reply_to_message_id=update.message.message_id)
+        bot.sendMessage(update.message.chat_id, text=u"已提交持仓证明,请关注群内审批情况,耐心等待。如无必要,无需频繁重复发送。", reply_to_message_id=update.message.message_id)
         #给每名管理员私聊发送提醒
         admins = bot.getChatAdministrators(BNB48)
         for eachadmin in admins:
@@ -1052,7 +1055,7 @@ def welcome(bot, update):
         if  update.message.chat_id == BNB48CN and update.message.from_user.id != newUser.id and not newUser.is_bot and koge48core.getBalance(newUser.id) == 0 and koge48core.getChequeBalance(newUser.id) == 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,newUser.id,Koge48.MINE_MIN_SIZE,"invited")
             koge48core.transferChequeBalance(Koge48.BNB48BOT,update.message.from_user.id,Koge48.MINE_MIN_SIZE,"inviting")
-            update.message.reply_text("{}邀请{}，两人各挖到{}积分".format(update.message.from_user.full_name,newUser.full_name,Koge48.MINE_MIN_SIZE))
+            update.message.reply_text("{}邀请{},两人各挖到{}积分".format(update.message.from_user.full_name,newUser.full_name,Koge48.MINE_MIN_SIZE))
         for SPAMWORD in SPAMWORDS:
             if SPAMWORD in newUser.full_name:
                 isSpam = True
@@ -1074,16 +1077,16 @@ def checkThresholds(chatid,userid):
         if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
             try:
                 kick(chatid,userid)
-                #updater.bot.sendMessage(userid,"Koge持仓{}不足{}，被移除出群。".format(balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-                updater.bot.sendMessage(chatid,"感觉{}Koge持仓{}不足{}，移除出群前看看对不对。".format(userid,balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-                logger.warning("{}Koge持仓{}不足{}，被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
+                #updater.bot.sendMessage(userid,"Koge持仓{}不足{},被移除出群。".format(balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                updater.bot.sendMessage(chatid,"感觉{}Koge持仓{}不足{},移除出群前看看对不对。".format(userid,balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                logger.warning("{}Koge持仓{}不足{},被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
                 return True
             except:
                 pass
             return
         if SAYINSUFFICIENT[chatid] and balance < SAY_THRESHOLDS[chatid]:
             try:
-                updater.bot.sendMessage(userid,"Koge持仓不足{}，此消息将持续出现。不足{}将被移除出群。".format(SAY_THRESHOLDS[chatid],KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                updater.bot.sendMessage(userid,"Koge持仓不足{},此消息将持续出现。不足{}将被移除出群。".format(SAY_THRESHOLDS[chatid],KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
             except:
                 pass
         
@@ -1265,10 +1268,10 @@ def airdropportal(bot,job):
             eachuid = eachrecord[0]
             try:
                 dividend = round(float(lasttotaldiv*eachrecord[1]/hisbet),2)
-                if dividend < 0.01:
+                if dividend < 1:
                     continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
-                updater.bot.sendMessage(eachuid,"根据您历史下注{} Koge，占历史全部下注的{}%，本区间得到返利{} KOGE, /changes 查看变动详情, /roller 查看全局下注排行榜".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),dividend))
+                updater.bot.sendMessage(eachuid,"根据您历史下注{} Koge,占历史全部下注的{}%,本区间向所有历史下注者返利{}KOGE,您得到返利{} KOGE\n/changes 查看变动详情\n/roller 查看全局下注排行榜".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),lasttotaldiv,dividend))
                 logger.warning("distribute {} to {}".format(dividend,eachuid))
             except:
                 logger.warning("exception while distribute to {}".format(eachuid))
