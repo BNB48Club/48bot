@@ -11,9 +11,17 @@ import pymysql
 def getBNBAmountByAPI(key,secret):
     try:
         client = Client(key,secret)
-        bnb = client.get_asset_balance(asset='BNB')
+        spot_bnb = client.get_asset_balance(asset='BNB')
+        marginBNB = 0
+        margin_raw = client.get_margin_account()
+        margin_assets = margin_raw['userAssets']
+        for each in margin_assets:
+            if each['asset'] == "BNB":
+                marginBNB = float(each['free']) + float(each['locked'])
+                break
         time.sleep(1)
-        return float(bnb['locked']) + float(bnb['free'])
+        return float(spot_bnb['locked']) + float(spot_bnb['free']) + marginBNB
+
     except Exception as e:
         print(e)
         return 0

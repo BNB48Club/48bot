@@ -113,9 +113,9 @@ SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"
 def slotDesc():
     res="100Koge转一次"
     res+="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
-    res+="转出🍒🍒🍒时,额外获得奖池奖金的1/3, /jackpot 查看奖池金额\n"
-    res+=(SLOTICONS[7]*3 + " 250倍\n")
-    res+=(SLOTICONS[3]*3 + " 30倍 + JackPot 奖池\n")
+    res+="转出250倍时,额外获得奖池奖金的1/3, /jackpot 查看奖池金额\n"
+    res+=(SLOTICONS[7]*3 + " 250倍 + JackPot 奖池\n")
+    res+=(SLOTICONS[3]*3 + " 30倍\n")
     res+=(SLOTICONS[1]*3 + " 30倍\n")
     res+=(SLOTICONS[2]*3 + " 30倍\n")
     res+=(SLOTICONS[4]*3 + " 30倍\n")
@@ -187,12 +187,10 @@ def callbackhandler(bot,update):
                 if slotresults[0] == 250:
                     bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
                     bot.sendMessage(activeuser.id,"恭喜您转出{}倍奖金".format(slotresults[0]))
-
-                if slotresults[1] == "🍒🍒🍒":
                     jackpot = koge48core.getJackpot(activeuser.id)
                     bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
                     bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
-                    display+="从奖池拉下:{} Koge".format(jackpot)
+                    display+=" 从奖池拉下:{} Koge".format(jackpot)
             bettimes -= 1
             display += "\n"
 
@@ -302,9 +300,9 @@ def buildcasinomarkup(result=["",""]):
            ]
     if result[0] == "" :
         keys.append(casinobuttons(1000))
-        keys.append(casinobuttons(5000))
-        keys.append(casinobuttons(10000))
-        keys.append(casinobuttons(20000))
+        keys.append(casinobuttons(4000))
+        keys.append(casinobuttons(15000))
+        keys.append(casinobuttons(50000))
         '''
         keys.append(
             [
@@ -655,7 +653,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/jackpot" in things[0]:
-        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押中🍒🍒🍒可拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
+        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押中250倍可额外拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
             
     elif "/cheque" in things[0]:
         if SirIanM != update.message.from_user.id:
@@ -1268,7 +1266,7 @@ def airdropportal(bot,job):
             eachuid = eachrecord[0]
             try:
                 dividend = round(float(lasttotaldiv*eachrecord[1]/hisbet),2)
-                if dividend < 1:
+                if dividend <=0:
                     continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
                 updater.bot.sendMessage(eachuid,"根据您历史下注{} Koge,占历史全部下注的{}%,本区间向所有历史下注者返利{}KOGE,您得到返利{} KOGE\n/changes 查看变动详情\n/roller 查看全局下注排行榜".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),lasttotaldiv,dividend))
