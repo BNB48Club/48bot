@@ -64,7 +64,6 @@ BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
 CASINO_IS_BETTING=False
-SLOT_BETTING=True
 #BNB48CASINO=SirIanM
 #BNB48PUBLISH=SirIanM
 BINANCE_ANNI = 1531526400
@@ -165,7 +164,7 @@ def callbackhandler(bot,update):
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'),timeout=60)
             update.callback_query.answer("{}已取消".format(activeuser.full_name))
             
-    elif SLOT_BETTING and "SLOT#" in update.callback_query.data:
+    elif CASINO_CONTINUE and "SLOT#" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
 
         if int(thedatas[1])%100 != 0:
@@ -191,6 +190,7 @@ def callbackhandler(bot,update):
                     bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
                     bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
                     display+=" 从奖池拉下:{} Koge".format(jackpot)
+                    break #中了250倍就停止
             bettimes -= 1
             display += "\n"
 
@@ -881,10 +881,9 @@ def cleanHandler(bot,update):
 
         for each in global_redpackets:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,each._fromuser.id,each.balance(),"redpacket return")       
-        global CASINO_CONTINUE,CASINO_IS_BETTING,SLOT_BETTING
+        global CASINO_CONTINUE,CASINO_IS_BETTING
         CASINO_CONTINUE = False
         CASINO_IS_BETTING = False
-        SLOT_BETTING = False
 
         update.message.reply_text('cleaned')
 def ethhandler(bot,update):
@@ -1265,9 +1264,11 @@ def main():
 
 
 def rollerbroadcast(bot,job):
-    announceid = bot.sendMessage(BNB48CASINO,text+rollerMarkDownGenerator(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
+    announceid = bot.sendMessage(BNB48CASINO,rollerMarkDownGenerator(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
 
 def airdropportal(bot,job):
+    global CASINO_CONTINUE
+    CASINO_CONTINUE = False
     try:
         file=open("_data/bnb48.list","r")
         bnb48list = json.load(file)
@@ -1348,6 +1349,7 @@ def airdropportal(bot,job):
 
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
+    CASINO_CONTINUE = True
     return
 if __name__ == '__main__':
     
