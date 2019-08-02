@@ -190,7 +190,7 @@ def callbackhandler(bot,update):
                     bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
                     bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
                     display+=" 从奖池拉下:{} Koge".format(jackpot)
-                    break #中了250倍就停止
+                    #break #中了250倍就停止
             bettimes -= 1
             display += "\n"
 
