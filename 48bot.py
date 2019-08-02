@@ -113,7 +113,7 @@ SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"
 def slotDesc():
     res="100Koge转一次"
     res+="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
-    res+="转出250倍时,额外获得奖池奖金的1/3, /jackpot 查看奖池金额\n"
+    res+="转出250倍时,额外获得奖池奖金的1/3, /roller 查看排行榜与奖池金额\n"
     res+=(SLOTICONS[7]*3 + " 250倍 + JackPot 奖池\n")
     res+=(SLOTICONS[3]*3 + " 30倍\n")
     res+=(SLOTICONS[1]*3 + " 30倍\n")
@@ -455,11 +455,18 @@ def pmcommandhandler(bot,update):
                 update.message.reply_markdown("不存在的奖励号码")
         '''
     elif "/changes" in things[0]:
-        kogechanges=koge48core.getChequeRecentChanges(update.message.from_user.id)
-        response = "最近的永久Koge变动记录:\n"
+        user = update.message.from_user
+
+        if update.message.reply_to_message is None:
+            targetuser = user
+        else:
+            targetuser = update.message.reply_to_message.from_user
+
+        kogechanges=koge48core.getChequeRecentChanges(targetuser.id)
+        response = "{}最近的永久Koge变动记录:\n".format(targetuser.full_name)
         for each in kogechanges:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
-        changes=koge48core.getRecentChanges(update.message.from_user.id)
+        changes=koge48core.getRecentChanges(targetuser.id)
         response += "\n最近的活动变动记录:\n"
         for each in changes:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
@@ -501,26 +508,52 @@ def donatorHandler(bot,update):
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
 
+
 def rollerHandler(bot,update):
     koge48core.transferChequeBalance(update.message.from_user.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
-    top20 = koge48core.getBetRecords(limit=20)
     text="本次查询费用由`{}`支付\n[点击进入KOGE虚拟赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)\n\n".format(update.message.from_user.full_name)
-    text+="赌场历史下注榜(豪客榜):\n"
+
+    update.message.reply_markdown(text+rollerMarkDownGenerator(),quote=False,disable_web_page_preview=True)
+
+def rollerMarkDownGenerator():
+    text="当前JackPot奖池余额为{}Koge 水果机押中250倍可额外拉下奖池的1/3\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
+
+    top3 = koge48core.getTotalBet(last=True)
+    text+="当前下注排行榜(奖金依据):\n"
+    try:
+        index = 1
+        for each in top3:
+            text+="[{}](tg://user?id={})\t{}".format(each[0],each[0],each[1])
+            if index == 1:
+                text += " 预计奖金 10000 Koge\n"
+            elif index == 2:
+                text += " 预计奖金 5000 Koge\n"
+            elif index == 3:
+                text += " 预计奖金 2000 Koge\n"
+            else:
+                text += "\n"
+            index += 1
+    except:
+        pass
+
+    top20 = koge48core.getHisBetRecords(limit=20)
+    text+="\n历史下注榜(分红依据):\n"
     for each in top20:
-        text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
+        text+="[{}](tg://user?id={})\t下注 {} Koge\n".format(each[0],each[0],each[1])
+
 
     top10 = koge48core.getTopGainer()
-    text+="赌神排行榜(净赢榜):\n"
+    text+="\n净赢榜:\n"
     for each in top10:
-        text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
+        text+="[{}](tg://user?id={})\t净赢 {} Koge\n".format(each[0],each[0],each[1])
 
     changes=koge48core.getChequeRecentChanges(Koge48.BNB48BOT)
-    text+= "小秘书账户结余:{}\n".format(koge48core.getChequeBalance(Koge48.BNB48BOT))
-    text+= "小秘书最近的变动记录:\n"
+    text+= "\n小秘书账户余额:{}\n".format(koge48core.getChequeBalance(Koge48.BNB48BOT))
+    text+= "小秘书最近的永久Koge变动记录:\n"
     for each in changes:
         text += "{}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
-    #update.message.reply_text(text=u"费用{}Koge48积分由{}支付".format(PRICES['query'],update.message.from_user.full_name))
-    update.message.reply_markdown(text,quote=False,disable_web_page_preview=True)
+
+    return text
     
 def getusermd(user):
     #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
@@ -1200,7 +1233,6 @@ def main():
             "rapidnews",
             "posttg",
             "slot",
-            "jackpot",
             "postweibo"
         ],
         botcommandhandler))# '''处理其他命令'''
@@ -1211,7 +1243,8 @@ def main():
 
 
     #Start the schedule
-    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=0)
+    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=5)
+    job_airdrop = j.run_repeating(rollerbroadcast,interval=7200,first=3605)
     #drop each 10 minutes,first time 5 minutes later, to avoid too frequent airdrop when debuging
     '''
     newthread = Thread(target = schedule_thread)
@@ -1230,6 +1263,9 @@ def main():
 
 
 
+
+def rollerbroadcast(bot,job):
+    announceid = bot.sendMessage(BNB48CASINO,text+rollerMarkDownGenerator(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
 
 def airdropportal(bot,job):
     try:
@@ -1252,16 +1288,32 @@ def airdropportal(bot,job):
             print(eachuid)
             pass
 
-    betrecords = koge48core.getBetRecords()
-    lasttotalbet = float(koge48core.getTotalBet(last=True))
+    lastbetrecords = koge48core.getTotalBet(last=True)
+    lasttotalbet = 0
+
+    for eachbet in lastbetrecords:
+        lasttotalbet += eachbet[1]
+
     lasttotaldiv = lasttotalbet/100
 
+    topaward = 1000
     if lasttotaldiv > 0:
-        koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"jackpot")
+        koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
 
-        updater.bot.sendMessage(BNB48CASINO,"本区间小秘书接收到下注总额{} Koge, 向下注者返现{} Koge, 向核心群成员分红{} Koge, 向奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n使用 /jackpot 命令查看奖池规则".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
+        announcementid = updater.bot.sendMessage(BNB48CASINO,"小秘书接收到下注总额{} Koge\n向下注者返现{} Koge\n向核心群成员分红{} Koge\n向JackPot奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n使用 /roller 命令查看排行榜与奖池".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
+
+        try:
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,lastbetrecords[0][0],10000,"top1 award")
+            updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放10000 Koge奖金".format(lastbetrecords[0][0],lastbetrecords[0][0]),parse_mode=ParseMode.MARKDOWN)
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,lastbetrecords[1][0],5000,"topaward")
+            updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放5000 Koge奖金".format(lastbetrecords[1][0],lastbetrecords[1][0]),parse_mode=ParseMode.MARKDOWN)
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,lastbetrecords[2][0],2000,"topaward")
+            updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放2000 Koge奖金".format(lastbetrecords[2][0],lastbetrecords[2][0]),parse_mode=ParseMode.MARKDOWN)
+        except:
+            pass
 
         hisbet = float(koge48core.getTotalBet(last=False))
+        betrecords = koge48core.getHisBetRecords()
         for eachrecord in betrecords:
             eachuid = eachrecord[0]
             try:
@@ -1269,11 +1321,11 @@ def airdropportal(bot,job):
                 if dividend <=0:
                     continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
-                updater.bot.sendMessage(eachuid,"根据您历史下注{} Koge,占历史全部下注的{}%,本区间向所有历史下注者返利{}KOGE,您得到返利{} KOGE\n/changes 查看变动详情\n/roller 查看全局下注排行榜".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),lasttotaldiv,dividend))
+                updater.bot.sendMessage(eachuid,"您历史下注{} Koge占全部下注{}%\n本区间返利{}KOGE\n/changes 查看Koge变动记录\n/roller 查看排行榜".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),dividend))
                 logger.warning("distribute {} to {}".format(dividend,eachuid))
             except:
                 logger.warning("exception while distribute to {}".format(eachuid))
-                pass
+
         logger.warning(" gambler dividend distributed")
 
 

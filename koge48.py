@@ -63,24 +63,27 @@ class Koge48:
             except:
                 lastts = long(time.time())
 
-            secondsduration = time.time() - lastts
-            if secondsduration < 1000:
-                return 0
-
-            betsql = "SELECT -sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 AND unix_timestamp(ts) > %s"
+            betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 AND unix_timestamp(ts) > %s GROUP BY `sid` ORDER BY `total` DESC"
             cursor.execute(betsql,(Koge48.STATSTART,Koge48.BNB48BOT,lastts))
+            res = cursor.fetchall()
+            self._close(cursor)
+            try:
+                testfloat = res[0][1]
+                return res
+            except:
+                return []
         else:
             betsql = "SELECT -sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0"
             cursor.execute(betsql,(Koge48.STATSTART,Koge48.BNB48BOT))
 
-        res = cursor.fetchall()
-        self._close(cursor)
-        try:
-            return float(res[0][0])
-        except:
-            return 0
+            res = cursor.fetchall()
+            self._close(cursor)
+            try:
+                return float(res[0][0])
+            except:
+                return 0
         
-    def getBetRecords(self,limit = 0):
+    def getHisBetRecords(self,limit = 0):
         cursor = self._mycursor()
 
         betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 GROUP BY `sid` ORDER BY `total` DESC"
@@ -89,7 +92,11 @@ class Koge48:
         cursor.execute(betsql,(Koge48.STATSTART,Koge48.BNB48BOT))
         res = cursor.fetchall()
         self._close(cursor)
-        return res
+        try:
+            testfloat = res[0][0]
+            return res
+        except:
+            return []
 
     def BNBAirDrop(self):
         logger.warning("airdroping")
@@ -173,7 +180,7 @@ class Koge48:
         balance = self._getChequeBalanceFromDb(Koge48.JACKPOT)
         todivide = int(balance/3)
         if todivide > 0:
-            self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide,"jackpot")
+            self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide,"extract jackpot")
         return todivide
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
