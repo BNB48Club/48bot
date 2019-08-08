@@ -11,16 +11,25 @@ import pymysql
 def getBNBAmountByAPI(key,secret):
     try:
         client = Client(key,secret)
-        spot_bnb = client.get_asset_balance(asset='BNB')
+        spot_bnb = 0
+        try:
+            spot_raw = client.get_asset_balance(asset='BNB')
+            spot_bnb = float(spot_raw['locked']) + float(spot_raw['free'])
+        except:
+            pass
+
         marginBNB = 0
-        margin_raw = client.get_margin_account()
-        margin_assets = margin_raw['userAssets']
-        for each in margin_assets:
-            if each['asset'] == "BNB":
-                marginBNB = float(each['free']) + float(each['locked'])
-                break
+        try:
+            margin_raw = client.get_margin_account()
+            margin_assets = margin_raw['userAssets']
+            for each in margin_assets:
+                if each['asset'] == "BNB":
+                    marginBNB = float(each['free']) + float(each['locked'])
+                    break
+        except:
+            pass
         time.sleep(1)
-        return float(spot_bnb['locked']) + float(spot_bnb['free']) + marginBNB
+        return spot_bnb + marginBNB
 
     except Exception as e:
         print(e)

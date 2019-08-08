@@ -57,7 +57,7 @@ class Koge48:
     def getTotalBet(self,last=True):
         cursor = self._mycursor()
         if last:
-            cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%dividend distribution%' ORDER by id DESC LIMIT 1")
+            cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%deposit jackpot%' ORDER by id DESC LIMIT 1")
             try:
                 lastts = cursor.fetchall()[0][0]
             except:
@@ -197,8 +197,12 @@ class Koge48:
         return balance + number
         
     def signCheque(self,userid,number,memo="",source=0):
-        return self._changeChequeBalance(userid,number,memo,source)
-
+        assert number > 0
+        return self._changeChequeBalance(userid,number,"signCheque",source)
+    def burn(self,userid,number):
+        assert number > 0
+        return self._changeChequeBalance(userid,-number,"burn")
+        
     def _changeChequeBalance(self,userid,number,memo="",source=0):
         balance = self._getChequeBalanceFromDb(userid)
         assert userid == Koge48.BNB48BOT or balance + number >= 0
