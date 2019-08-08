@@ -154,6 +154,10 @@ def callbackhandler(bot,update):
                 update.callback_query.answer("只有发起者才能确认")
                 return
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
+            try:
+                bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+            except:
+                pass
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'),timeout=60)
             update.callback_query.answer("{}已确认".format(activeuser.full_name))
 
@@ -162,6 +166,11 @@ def callbackhandler(bot,update):
                 update.callback_query.answer("只有接受者才能取消")
                 return
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
+            try:
+                bot.sendMessage(int(thedatas[2]),"您向{}发起的担保付款{}Koge已被取消".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+            except Exception as e:
+                logger.warning(e)
+                pass
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'),timeout=60)
             update.callback_query.answer("{}已取消".format(activeuser.full_name))
             
@@ -665,13 +674,19 @@ def botcommandhandler(bot,update):
         targetuser = update.message.reply_to_message.from_user
         transamount = float(things[1])
         koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
+        try:
+            bot.sendMessage(targetuser.id,"收到{}向您转账{}Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
+        except:
+            pass
         update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
+        '''
         if update.message.chat_id != BNB48C2C:
             update.message.reply_text("担保交易功能仅在场外交易群生效, /community 命令查看入群方式")
             return
+        '''
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
@@ -840,7 +855,7 @@ def botcommandhandler(bot,update):
         try:
             bot.sendMessage(user.id,"{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
-            update.message.reply_text("为保护隐私,建议私聊机器人查询。{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            update.message.reply_markdown("为保护隐私,建议私聊机器人查询。{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True)
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
