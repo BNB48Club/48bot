@@ -113,7 +113,7 @@ SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"
 def slotDesc():
     res="100Koge转一次"
     res+="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
-    res+="转出250倍时,额外获得奖池奖金的1/3, /roller 查看排行榜与奖池金额\n"
+    res+="押100中250倍时,额外获得奖池奖金的1/3, /roller 查看排行榜与奖池金额\n"
     res+=(SLOTICONS[7]*3 + " 250倍 + JackPot 奖池\n")
     res+=(SLOTICONS[3]*3 + " 30倍\n")
     res+=(SLOTICONS[1]*3 + " 30倍\n")
@@ -193,11 +193,11 @@ def callbackhandler(bot,update):
                     bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
                     bot.sendMessage(activeuser.id,"恭喜您转出{}倍奖金".format(slotresults[0]))
 
-                if betsize == 100:
-                    jackpot = koge48core.getJackpot(activeuser.id)
-                    bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
-                    bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
-                    display+=" 从奖池拉下:{} Koge".format(jackpot)
+                    if betsize >= 100:
+                        jackpot = koge48core.getJackpot(activeuser.id)
+                        bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
+                        bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
+                        display+=" 从奖池拉下:{} Koge".format(jackpot)
 
             display += "\n"
 
