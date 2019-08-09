@@ -903,7 +903,7 @@ def cleanHandler(bot,update):
             logger.warning("job {} cleared".format(job.name))
 
         for each in global_redpackets:
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,each._fromuser.id,each.balance(),"redpacket return")       
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,each.balance(),"redpacket return")
         global CASINO_CONTINUE,CASINO_IS_BETTING
         CASINO_CONTINUE = False
         CASINO_IS_BETTING = False
@@ -1263,15 +1263,12 @@ def main():
 
 
     #Start the schedule
-    gap = 7200 - time.time()%7200
-    if gap > 3600:
-        rollergap = gap - 3600
-    else:
-        rollergap = gap + 3600
+    gap = 10800 - time.time()%10800
+    rollergap = gap%3600
     logger.warning("will start airdrop in %s seconds",gap)
     logger.warning("will start roller in %s seconds",rollergap)
-    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=gap)
-    job_airdrop = j.run_repeating(rollerbroadcast,interval=7200,first=rollergap)
+    job_airdrop = j.run_repeating(airdropportal,interval=10800,first=gap)
+    job_airdrop = j.run_repeating(rollerbroadcast,interval=3600,first=rollergap)
 
     #casino
     startcasino()
