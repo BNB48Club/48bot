@@ -309,6 +309,7 @@ def buildcasinomarkup(result=["",""]):
             ]
            ]
     if result[0] == "" :
+        keys.append(casinobuttons(300))
         keys.append(casinobuttons(1000))
         keys.append(casinobuttons(4000))
         keys.append(casinobuttons(15000))
