@@ -176,13 +176,8 @@ def callbackhandler(bot,update):
             
     elif CASINO_CONTINUE and "SLOT#" in update.callback_query.data and not CASINO_DIVIDING:
         thedatas = update.callback_query.data.split('#')
-
-        if int(thedatas[1])%100 != 0:
-            update.callback_query.answer()
-            update.callback_query.message.delete()
-            return
-        betsize=100
-        bettimes = int(thedatas[1])/betsize
+        betsize=int(thedatas[1])
+        bettimes = int(thedatas[2])
         koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
 
         display = ""
@@ -197,11 +192,13 @@ def callbackhandler(bot,update):
                 if slotresults[0] == 250:
                     bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
                     bot.sendMessage(activeuser.id,"恭喜您转出{}倍奖金".format(slotresults[0]))
+
+                if betsize == 100:
                     jackpot = koge48core.getJackpot(activeuser.id)
                     bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
                     bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
                     display+=" 从奖池拉下:{} Koge".format(jackpot)
-                    koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
+
             display += "\n"
 
         update.callback_query.answer()
@@ -285,9 +282,14 @@ def buildredpacketmarkup():
 def buildslotmarkup():
     keys = [
             [
-                InlineKeyboardButton("壹次",callback_data="SLOT#100"),
-                InlineKeyboardButton("拾次",callback_data="SLOT#1000"),
-                InlineKeyboardButton("佰次",callback_data="SLOT#10000"),
+                InlineKeyboardButton("10 壹次",callback_data="SLOT#10#1"),
+                InlineKeyboardButton("10 拾次",callback_data="SLOT#10#10"),
+                InlineKeyboardButton("10 佰次",callback_data="SLOT#10#100"),
+            ],
+            [
+                InlineKeyboardButton("100 壹次",callback_data="SLOT#100#1"),
+                InlineKeyboardButton("100 拾次",callback_data="SLOT#100#10"),
+                InlineKeyboardButton("100 佰次",callback_data="SLOT#100#100"),
             ]
            ]
     return InlineKeyboardMarkup(keys)
@@ -309,11 +311,11 @@ def buildcasinomarkup(result=["",""]):
             ]
            ]
     if result[0] == "" :
-        keys.append(casinobuttons(300))
+        keys.append(casinobuttons(50))
+        keys.append(casinobuttons(250))
         keys.append(casinobuttons(1000))
-        keys.append(casinobuttons(4000))
-        keys.append(casinobuttons(15000))
-        keys.append(casinobuttons(50000))
+        keys.append(casinobuttons(5000))
+        keys.append(casinobuttons(20000))
         '''
         keys.append(
             [
@@ -527,7 +529,7 @@ def rollerHandler(bot,update):
     update.message.reply_markdown(text+rollerMarkDownGenerator(),quote=False,disable_web_page_preview=True)
 
 def rollerMarkDownGenerator():
-    text="当前JackPot奖池余额为{}Koge 水果机押中250倍可额外拉下奖池的1/3\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
+    text="当前JackPot奖池余额为{}Koge 水果机押100中250倍可额外拉下奖池的1/3\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
 
     top3 = koge48core.getTotalBet(last=True)
     text+="当前下注排行榜(奖金依据):\n"
@@ -703,7 +705,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/jackpot" in things[0]:
-        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押中250倍可额外拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
+        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押100中250倍可额外拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
             
     elif "/burn" in things[0]:
         user = update.message.from_user
