@@ -905,7 +905,7 @@ def cleanHandler(bot,update):
             logger.warning("job {} cleared".format(job.name))
 
         for each in global_redpackets:
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,each.balance(),"redpacket return")
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,global_redpackets[each].balance(),"redpacket return")
         global CASINO_CONTINUE,CASINO_IS_BETTING
         CASINO_CONTINUE = False
         CASINO_IS_BETTING = False
