@@ -63,6 +63,7 @@ BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48CASINO=-1001319319354
 BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
+BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 CASINO_IS_BETTING=False
 #BNB48CASINO=SirIanM
 #BNB48PUBLISH=SirIanM
@@ -86,7 +87,7 @@ koge48core = Koge48(
 global_longhu_casinos = {}
 global_redpackets = {}
 global_auctions = {}
-CASINO_INTERVAL = 7
+CASINO_INTERVAL = 10
 
 CASINO_MARKUP = None
 CASINO_CONTINUE = True
@@ -685,11 +686,9 @@ def botcommandhandler(bot,update):
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
-        '''
         if update.message.chat_id != BNB48C2C:
-            update.message.reply_text("担保交易功能仅在场外交易群生效, /community 命令查看入群方式")
+            update.message.reply_markdown("担保交易功能仅在[场外交易群]({})可用".format(BNB48C2CLINK))
             return
-        '''
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
@@ -739,7 +738,7 @@ def botcommandhandler(bot,update):
         markdown += "\n"
         markdown+= "[BNB48 大赌场]("+BNB48CASINOLINK+")"
         markdown += "\n"
-        markdown+= "[BNB48 场外交易](https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ)"
+        markdown+= "[BNB48 场外交易]("+BNB48C2CLINK+")"
         if update.message.chat_id == BNB48:
             markdown += "\n"
             markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
