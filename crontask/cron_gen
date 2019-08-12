@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "0 */4 * * * cd $(pwd); $(which python3) updatebnb.py >> cronlog.updatebnb"
+echo "55 * * * * cd $(pwd); $(which python3) updatebnb.py >> cronlog.updatebnb"

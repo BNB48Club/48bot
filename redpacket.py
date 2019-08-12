@@ -2,6 +2,7 @@
 #!/bin/usr/python
 import random
 class RedPacket:
+    SINGLE_MIN = 1
     def __init__(self,fromuser,balance,amount,title):
         self._fromuser = fromuser
         self._origbalance = balance
@@ -31,7 +32,7 @@ class RedPacket:
             return res
         else:
             average = self._balance/float(self._amount)
-            res = max(round(random.uniform(0,2*average),2),0.01)
+            res = max(round(random.uniform(0,2*average),2),RedPacket.SINGLE_MIN)
             self._balance -= res
             self._amount -= 1
             self._drawed[user.id]=[user.full_name,res]

@@ -539,11 +539,11 @@ def rollerMarkDownGenerator():
         for each in top3:
             text+="[{}](tg://user?id={})\t{}".format(each[0],each[0],each[1])
             if index == 1:
-                text += " 预计奖金 {} Koge\n".format(min(10000,each[1]))
-            elif index == 2:
                 text += " 预计奖金 {} Koge\n".format(min(5000,each[1]))
-            elif index == 3:
+            elif index == 2:
                 text += " 预计奖金 {} Koge\n".format(min(2000,each[1]))
+            elif index == 3:
+                text += " 预计奖金 {} Koge\n".format(min(1000,each[1]))
             else:
                 text += "\n"
             index += 1
@@ -806,11 +806,12 @@ def botcommandhandler(bot,update):
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
-            balance = 10
-
+            balance = 1000
+        '''
         if koge48core.getChequeBalance(user.id) < balance:
             update.message.reply_text("余额不足")
             return
+        '''
         if balance <= 0:
             return
 
@@ -822,12 +823,12 @@ def botcommandhandler(bot,update):
         else:
             amount = 10
 
-        if amount > 10:
-            update.message.reply_text("单个红包最多分成10份")
+        if amount > 20:
+            update.message.reply_text("单个红包最多分成20份")
             return
 
-        if balance/amount < 0.01:
-            update.message.reply_text("单个红包平均应至少为0.01")
+        if balance/amount < RedPacket.SINGLE_MIN:
+            update.message.reply_text("单个红包平均应至少为{}".format(RedPacket.SINGLE_MIN))
             return
 
         koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
@@ -1319,21 +1320,20 @@ def airdropportal(bot,job):
     for eachbet in lastbetrecords:
         lasttotalbet += eachbet[1]
 
-    lasttotaldiv = lasttotalbet/100
+    lasttotaldiv = lasttotalbet*0.9/100
 
-    topaward = 1000
     if lasttotaldiv > 0:
 
         try:
-            top1award = min(10000,lastbetrecords[0][1])
+            top1award = min(5000,lastbetrecords[0][1])
             koge48core.transferChequeBalance(Koge48.BNB48BOT,lastbetrecords[0][0],top1award,"top1 award")
             updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放{} Koge奖金".format(lastbetrecords[0][0],lastbetrecords[0][0],top1award),parse_mode=ParseMode.MARKDOWN)
 
-            top2award = min(5000,lastbetrecords[1][1])
+            top2award = min(2000,lastbetrecords[1][1])
             koge48core.transferChequeBalance(Koge48.BNB48BOT,lastbetrecords[1][0],top2award,"top2 award")
             updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放{} Koge奖金".format(lastbetrecords[1][0],lastbetrecords[1][0],top2award),parse_mode=ParseMode.MARKDOWN)
 
-            top3award = min(2000,lastbetrecords[2][1])
+            top3award = min(1000,lastbetrecords[2][1])
             koge48core.transferChequeBalance(Koge48.BNB48BOT,lastbetrecords[2][0],top3award,"top3 award")
             updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放{} Koge奖金".format(lastbetrecords[2][0],lastbetrecords[2][0],top3award),parse_mode=ParseMode.MARKDOWN)
         except:
