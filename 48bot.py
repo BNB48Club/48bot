@@ -827,8 +827,8 @@ def botcommandhandler(bot,update):
             update.message.reply_text("单个红包最多分成20份")
             return
 
-        if balance/amount < RedPacket.SINGLE_MIN:
-            update.message.reply_text("单个红包平均应至少为{}".format(RedPacket.SINGLE_MIN))
+        if balance/amount < RedPacket.SINGLE_AVG:
+            update.message.reply_text("单个红包平均应至少为{}".format(RedPacket.SINGLE_AVG))
             return
 
         koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
