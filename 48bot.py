@@ -249,18 +249,30 @@ def callbackhandler(bot,update):
             update.callback_query.answer("押注失败,已停止下注")
             return
 
-        if bet_target in ["LONG","HE","HU"] and casino_id in global_longhu_casinos:
+        bet_flag = False
+        if bet_target in ["LONG","HE","HU"]:
             koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
-            update.callback_query.edit_message_text(
-                text=LonghuCasino.getRule()+"\n------------\n"+global_longhu_casinos[casino_id].getLog(),
-                reply_markup=CASINO_MARKUP,
-                parse_mode='Markdown'
-            )
-            update.callback_query.answer("押注成功")
-        else:
+        elif bet_target == "LONGHU":
+            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,2*casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
+            global_longhu_casinos[casino_id].bet(activeuser,"LONG",casino_betsize)
+            global_longhu_casinos[casino_id].bet(activeuser,"HU",casino_betsize)
+        elif bet_target == "LONGHUHE":
+            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,2.125*casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
+            global_longhu_casinos[casino_id].bet(activeuser,"LONG",casino_betsize)
+            global_longhu_casinos[casino_id].bet(activeuser,"HU",casino_betsize)
+            global_longhu_casinos[casino_id].bet(activeuser,"HE",casino_betsize/8)
+        else :
             update.callback_query.answer("不存在的押注信息")
             bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
+            return
+
+        update.callback_query.edit_message_text(
+            text=LonghuCasino.getRule()+"\n---------------\n"+global_longhu_casinos[casino_id].getLog(),
+            reply_markup=CASINO_MARKUP,
+            parse_mode='Markdown'
+        )
+        update.callback_query.answer("押注成功")
     else:
         update.callback_query.answer()
 
@@ -302,8 +314,13 @@ def casinobuttons(number):
                 InlineKeyboardButton('🐯', callback_data='HU#{}'.format(number)),
                 InlineKeyboardButton('🕊', callback_data='HE#{}'.format(number))
             ]
+def casinominings(number):
+    return [
+                InlineKeyboardButton('🐲🐯各押{}'.format(number), callback_data='LONGHU#{}'.format(number)),
+                InlineKeyboardButton('🐲🐯{}🕊{}'.format(number,number/8), callback_data='LONGHUHE#{}'.format(number))
+            ]
 
-def buildcasinomarkup(result=["",""]):
+def buildcasinomarkup(result=["等待开牌","等待开牌"]):
     global CASINO_MARKUP
     keys = [
             [
@@ -311,12 +328,13 @@ def buildcasinomarkup(result=["",""]):
                 InlineKeyboardButton(u'🐯:'+result[1],callback_data="FULLHU")
             ]
            ]
-    if result[0] == "" :
+    if result[0] == "等待开牌" :
         keys.append(casinobuttons(50))
         keys.append(casinobuttons(250))
         keys.append(casinobuttons(1000))
         keys.append(casinobuttons(5000))
         keys.append(casinobuttons(20000))
+        keys.append(casinominings(20000))
         '''
         keys.append(
             [
