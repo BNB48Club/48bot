@@ -332,6 +332,7 @@ def buildcasinomarkup(result=["等待开牌","等待开牌"]):
         keys.append(casinobuttons(50))
         keys.append(casinobuttons(250))
         keys.append(casinobuttons(1000))
+        keys.append(casinominings(1000))
         keys.append(casinobuttons(5000))
         keys.append(casinobuttons(20000))
         keys.append(casinominings(20000))
