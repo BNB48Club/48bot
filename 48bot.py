@@ -308,35 +308,46 @@ def buildslotmarkup():
     return InlineKeyboardMarkup(keys)
 
 def casinobuttons(number):
-    return [
-                InlineKeyboardButton('{}:'.format(number), callback_data='FULL'),
-                InlineKeyboardButton('🐲', callback_data='LONG#{}'.format(number)),
-                InlineKeyboardButton('🐯', callback_data='HU#{}'.format(number)),
-                InlineKeyboardButton('🕊', callback_data='HE#{}'.format(number))
-            ]
+    #InlineKeyboardButton('{}'.format(number), callback_data='FULL'),
+    res = []
+    res.append(InlineKeyboardButton('🐲押{}'.format(number), callback_data='LONG#{}'.format(number)))
+    if number<=1000:
+        res.append(InlineKeyboardButton('🕊押{}'.format(number), callback_data='HE#{}'.format(number)))
+    res.append(InlineKeyboardButton('🐯押{}'.format(number), callback_data='HU#{}'.format(number)))
+    return res
+
 def casinominings(number):
     return [
-                InlineKeyboardButton('🐲🐯各押{}'.format(number), callback_data='LONGHU#{}'.format(number)),
-                InlineKeyboardButton('🐲🐯{}🕊{}'.format(number,number/8), callback_data='LONGHUHE#{}'.format(number))
+                [
+                    InlineKeyboardButton('刷下注:🐲🐯各押{}'.format(number), callback_data='LONGHU#{}'.format(number)),
+                ],
+                [
+                    InlineKeyboardButton('对冲:🐲🐯各押{}🕊押{}'.format(number,number/8), callback_data='LONGHUHE#{}'.format(number))
+                ]
             ]
 
-def buildcasinomarkup(result=["等待开牌","等待开牌"]):
+def buildcasinomarkup(result=["",""]):
     global CASINO_MARKUP
-    keys = [
+    keys = []
+    if result[0] != "":
+        keys.append(
             [
                 InlineKeyboardButton(u'🐲:'+result[0],callback_data="FULLLONG"),
                 InlineKeyboardButton(u'🐯:'+result[1],callback_data="FULLHU")
             ]
-           ]
-    if result[0] == "等待开牌" :
-        keys.append(casinobuttons(50))
+        )
+    else:
         keys.append(casinobuttons(250))
         keys.append(casinobuttons(1000))
-        keys.append(casinominings(1000))
         keys.append(casinobuttons(5000))
         keys.append(casinobuttons(20000))
-        keys.append(casinominings(20000))
+        keys+=casinominings(1000)
+        keys+=casinominings(20000)
         '''
+        for buttons in casinominings(1000):
+            keys.append(buttons)
+        for buttons in casinominings(20000):
+            keys.append(buttons)
         keys.append(
             [
                 InlineKeyboardButton(u'ALLIN:', callback_data='FULL'),
@@ -371,7 +382,8 @@ def startcasino():
         return
     try:
         message = updater.bot.sendMessage(BNB48CASINO, LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup(),parse_mode="Markdown")
-    except:
+    except Exception as e:
+        logger.warning(e)
         if not CASINO_CONTINUE:
             return
         thread = Thread(target = startcasino)
@@ -504,7 +516,9 @@ def pmcommandhandler(bot,update):
         for each in changes:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
         update.message.reply_markdown(response)
-    elif "/start" in things[0] or "/join" in things[0]:
+    elif "/start" in things[0]:
+        update.message.reply_text("http://bnb48.club")
+    elif "/join" in things[0]:
         if koge48core.getTotalBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
             update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
@@ -755,19 +769,23 @@ def botcommandhandler(bot,update):
         markdown += "\n"
         markdown += "[BNB48 公示](https://t.me/bnb48club_publish)"
         markdown += "\n"
-        markdown+= "[BNB48 大赌场]("+BNB48CASINOLINK+")"
+        markdown+= "[BNB48 娱乐场]("+BNB48CASINOLINK+")"
         markdown += "\n"
-        markdown+= "[BNB48 场外交易]("+BNB48C2CLINK+")"
+        markdown+= "[BNB48 C2C场外交易群]("+BNB48C2CLINK+")"
+        markdown += "\n-----------------\n"
+        markdown+= "[Celer Network - 中文](https://t.me/celernetworkcn)"
+        markdown += "\n"
+        markdown+= "[麦子钱包中文群](https://t.me/mathwalletCN)"
         if update.message.chat_id == BNB48:
-            markdown += "\n"
+            markdown += "\n-----------------\n"
             markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
-            markdown += "\n"
-            markdown+= "[BNB48 媒体宣传](https://t.me/joinchat/GRaQmkZcD-7Y4q83Nmyj4Q)"
-            markdown += "\n"
+            #markdown += "\n"
+            #markdown+= "[BNB48 媒体宣传](https://t.me/joinchat/GRaQmkZcD-7Y4q83Nmyj4Q)"
+            #markdown += "\n"
             #markdown+= "[BNB48 技术开发](https://t.me/joinchat/GRaQmlISUPSpHFwVblxvxQ)"
             #markdown += "\n"
             #markdown+= "[BNB48 内部测试](https://t.me/joinchat/GRaQmlMuX_XdVSQgpxFT_g)"
-            #markdown += "\n"
+            markdown += "\n"
             markdown+= "[BNB48 孵化器](https://t.me/joinchat/GRaQmlWXCEJIJN3niyUUhg)"
             markdown += "\n"
             markdown+= "[BNB48 移民咨询](https://t.me/joinchat/GRaQmlAedWPaQFjyfoTDYg)"
@@ -777,7 +795,8 @@ def botcommandhandler(bot,update):
             markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
         else:
             markdown += "\n"
-            markdown += "更多群组仅对BNB48正式成员开放"
+            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge(永久+活动)大于等于{}可私聊机器人发送 /join 自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
+
         update.message.reply_markdown(markdown,disable_web_page_preview=True)
     elif "/posttg" in things[0]:
         if update.message.chat_id != BNB48MEDIA:
@@ -814,8 +833,6 @@ def botcommandhandler(bot,update):
         content = " ".join(things)
         update.message.reply_text("正在生成快讯图片...该操作较耗时也较耗费资源,请务必耐心,不要重复发送。")
         bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
-    elif "/criteria" in things[0]:
-        update.message.reply_text("持仓Koge(永久+活动)大于等于{}可私聊机器人自助加入正式群\n持仓Koge不足{}会被移除出正式群".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48],ENTRANCE_THRESHOLDS[BNB48]-KICK_THRESHOLDS[BNB48]));
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
             update.message.reply_text("需要在群内发送")
@@ -1243,10 +1260,8 @@ def main():
             "bind",
             "redeem",
             "changes",
-            #"kogechanges",
             "start",
             "send",
-            #"slot",
             "join",
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
@@ -1268,7 +1283,6 @@ def main():
             "desilent",
             "hongbao",
             "redpacket",
-            "criteria",
             "cheque",
             "burn",
             "community",
