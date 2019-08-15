@@ -337,6 +337,7 @@ def buildcasinomarkup(result=["",""]):
             ]
         )
     else:
+        keys.append(casinobuttons(50))
         keys.append(casinobuttons(250))
         keys.append(casinobuttons(1000))
         keys.append(casinobuttons(5000))
@@ -794,7 +795,7 @@ def botcommandhandler(bot,update):
             markdown += "\n"
             markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
         else:
-            markdown += "\n"
+            markdown += "\n-----------------\n"
             markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge(永久+活动)大于等于{}可私聊机器人发送 /join 自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
 
         update.message.reply_markdown(markdown,disable_web_page_preview=True)
