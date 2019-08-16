@@ -881,7 +881,7 @@ def botcommandhandler(bot,update):
 
         response = "{}的{}余额为{}\n活动Koge余额为{}\n".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id))
         kogechanges=koge48core.getChequeRecentChanges(targetuser.id)
-        response += "{}最近的Koge变动记录:\n".format(targetuser.full_name)
+        response += "最近的Koge变动记录:\n"
         for each in kogechanges:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
         changes=koge48core.getRecentChanges(targetuser.id)
