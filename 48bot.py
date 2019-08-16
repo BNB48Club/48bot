@@ -489,7 +489,7 @@ def pmcommandhandler(bot,update):
         if not koge48core.getChequeBalance(user.id) > transamount:
             return
         koge48core.transferChequeBalance(user.id,targetuserid,transamount,"from {} send to {}".format(user.full_name,targetuserid))
-        update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),targetuserid,transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),targetuserid,transamount,getkoge48md()),disable_web_page_preview=True)
         '''
         elif "/redeem" in things[0]:
             change = koge48core.redeemCheque(update.message.from_user.id,things[1])
@@ -500,23 +500,6 @@ def pmcommandhandler(bot,update):
             elif change == 0:
                 update.message.reply_markdown("不存在的奖励号码")
         '''
-    elif "/changes" in things[0]:
-        user = update.message.from_user
-
-        if update.message.reply_to_message is None:
-            targetuser = user
-        else:
-            targetuser = update.message.reply_to_message.from_user
-
-        kogechanges=koge48core.getChequeRecentChanges(targetuser.id)
-        response = "{}最近的永久Koge变动记录:\n".format(targetuser.full_name)
-        for each in kogechanges:
-            response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
-        changes=koge48core.getRecentChanges(targetuser.id)
-        response += "\n最近的活动变动记录:\n"
-        for each in changes:
-            response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
-        update.message.reply_markdown(response)
     elif "/start" in things[0]:
         update.message.reply_text("http://bnb48.club")
     elif "/join" in things[0]:
@@ -544,14 +527,14 @@ def groupadminhandler(bot,update):
         update.message.reply_markdown(text)
 def richHandler(bot,update):
     top10 = koge48core.getTop(20)
-    text="所有绑定API领KOGE空投的账户共计持有BNB {}\nKoge活动部分(会衰减){}\nKoge永久部分(捐赠所得){}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
+    text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge(会衰减){}\nKoge{}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
     for each in top10:
         text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
     update.message.reply_markdown(text,quote=False)
     
 def donatorHandler(bot,update):
     top10 = koge48core.getTopDonator(20)
-    text="捐赠发放的永久Koge总量:{}\n排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
+    text="捐赠发放的Koge总量:{}\n排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
     for each in top10:
         text+="[{}](tg://user?id={})\n".format(each[0],each[0])
     update.message.reply_markdown(text,quote=False)
@@ -597,7 +580,7 @@ def rollerMarkDownGenerator():
 
     changes=koge48core.getChequeRecentChanges(Koge48.BNB48BOT)
     text+= "\n小秘书账户余额:{}\n".format(koge48core.getChequeBalance(Koge48.BNB48BOT))
-    text+= "小秘书最近的永久Koge变动记录:\n"
+    text+= "小秘书最近的Koge变动记录:\n"
     for each in changes:
         text += "{}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
 
@@ -607,7 +590,7 @@ def getusermd(user):
     #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
     return "`{}`".format(user.full_name)
 def getkoge48md():
-    return "[Koge48积分](http://bnb48.club/html/cn/governance.html)"
+    return "[Koge](http://bnb48.club/html/cn/governance.html)"
 def siriancommandhandler(bot,update):
     global CASINO_CONTINUE
     if update.message.from_user.id != SirIanM:
@@ -633,11 +616,11 @@ def siriancommandhandler(bot,update):
         transamount = float(things[1])
 
         #if not koge48core.getChequeBalance(Koge48.BNB48BOT) >= transamount:
-        #    update.message.reply_text('小秘书永久Koge余额不足')
+        #    update.message.reply_text('小秘书Koge余额不足')
         #    return
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,targetuser.id,transamount,"Koge Bonus")
-        update.message.reply_markdown("向{}发放{} 永久{}".format(getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("向{}发放{} {}".format(getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/unban" in things[0] and not targetuser is None:
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
@@ -716,7 +699,7 @@ def botcommandhandler(bot,update):
             bot.sendMessage(targetuser.id,"收到{}向您转账{}Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
-        update.message.reply_markdown("{}向{}转账{} 永久{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
@@ -730,7 +713,7 @@ def botcommandhandler(bot,update):
             return
         transamount = float(things[1])
         koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
-        update.message.reply_markdown("{}向{}发起担保转账{}永久{},由小秘书保管资金居间担保。\n发起者点击✅按钮,小秘书完成转账至接受者。\n接受者点击❌按钮,小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁,如存在故意过错方,该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
+        update.message.reply_markdown("{}向{}发起担保转账{}{},由小秘书保管资金居间担保。\n发起者点击✅按钮,小秘书完成转账至接受者。\n接受者点击❌按钮,小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁,如存在故意过错方,该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
     elif "/slot" in things[0]:
         try:
             bot.sendMessage(update.message.from_user.id,text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
@@ -774,9 +757,13 @@ def botcommandhandler(bot,update):
         markdown += "\n"
         markdown+= "[BNB48 C2C场外交易群]("+BNB48C2CLINK+")"
         markdown += "\n-----------------\n"
+        markdown+= "[Perlin 中文社区](https://t.me/perlinnetworkchat_cn)"
+        markdown += "\n"
         markdown+= "[Celer Network - 中文](https://t.me/celernetworkcn)"
         markdown += "\n"
         markdown+= "[麦子钱包中文群](https://t.me/mathwalletCN)"
+        markdown += "\n"
+        markdown+= "[MEET.ONE(中文)](https://t.me/MeetOne)"
         if update.message.chat_id == BNB48:
             markdown += "\n-----------------\n"
             markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
@@ -796,7 +783,7 @@ def botcommandhandler(bot,update):
             markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
         else:
             markdown += "\n-----------------\n"
-            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge(永久+活动)大于等于{}可私聊机器人发送 /join 自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
+            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge(含活动)大于等于{}可私聊机器人发送 /join 自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
 
         update.message.reply_markdown(markdown,disable_web_page_preview=True)
     elif "/posttg" in things[0]:
@@ -892,10 +879,21 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
+        response = "{}的{}余额为{}\n活动Koge余额为{}\n".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id))
+        kogechanges=koge48core.getChequeRecentChanges(targetuser.id)
+        response += "{}最近的Koge变动记录:\n".format(targetuser.full_name)
+        for each in kogechanges:
+            response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
+        changes=koge48core.getRecentChanges(targetuser.id)
+
+        response += "\n最近的活动Koge变动记录:\n"
+        for each in changes:
+            response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
+        
         try:
-            bot.sendMessage(user.id,"{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
-            update.message.reply_markdown("为保护隐私,建议私聊机器人查询。{}的{}永久余额为{}\n活动余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id)),disable_web_page_preview=True)
+            update.message.reply_markdown("为保护隐私,建议私聊机器人查询。\n"+response,disable_web_page_preview=True)
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         
@@ -1260,7 +1258,6 @@ def main():
             "mybinding",
             "bind",
             "redeem",
-            "changes",
             "start",
             "send",
             "join",

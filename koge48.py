@@ -24,7 +24,8 @@ class Koge48:
     BNB48BOT = 571331274
     BNB48LIST = []
     JACKPOT = 777000
-    STATSTART = 430820
+    #STATSTART = 430820
+    STATSTART = 1
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
