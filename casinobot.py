@@ -117,14 +117,14 @@ def callbackhandler(bot,update):
         koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
 
         display = ""
-
+        payout = 0
         while bettimes > 0:
             bettimes -= 1
             slotresults = slotPlay()
             display += slotresults[1]
             if slotresults[0] > 0:
                 display += " 中{}倍".format(slotresults[0])
-                koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,betsize*slotresults[0],"SLOT casino pay to {}".format(activeuser.full_name))
+                payout += betsize*slotresults[0]
                 if slotresults[0] == 250:
                     bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
                     try:
@@ -143,6 +143,9 @@ def callbackhandler(bot,update):
                     display+=" 从奖池拉下:{} Koge".format(jackpot)
 
             display += "\n"
+
+        if payout > 0:
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,payout,"SLOT casino pay to {}".format(activeuser.full_name))
 
         update.callback_query.answer()
         updater.bot.edit_message_text(
@@ -440,8 +443,6 @@ def botcommandhandler(bot,update):
             #update.message.delete()
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
-    elif "/jackpot" in things[0]:
-        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押中250倍可分享奖池".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
     return
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
