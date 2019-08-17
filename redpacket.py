@@ -11,10 +11,11 @@ class RedPacket:
         self._amount = amount
         self._title = title
         self._drawed = {}
+        self._sequence = []
     def getLog(self):
         text = "`{}`发了{}个红包\n`{}`\n总计{}[Koge48积分](http://bnb48.club/koge48)\n".format(self._fromuser.full_name,self._origamount,self._title,self._origbalance)
         text += "剩余{}个红包{} [Koge48积分](http://bnb48.club/koge48)\n-------------\n".format(self._amount,self._balance)
-        for each in self._drawed:
+        for each in self._sequence:
             text += "`{}`抽到{}\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
     def left(self):
@@ -29,6 +30,7 @@ class RedPacket:
             res = self._balance
             self._balance = 0
             self._drawed[user.id]=[user.full_name,res]
+            self._sequence.append(user.id)
             return res
         else:
             average = self._balance/float(self._amount)
@@ -36,6 +38,7 @@ class RedPacket:
             self._balance -= res
             self._amount -= 1
             self._drawed[user.id]=[user.full_name,res]
+            self._sequence.append(user.id)
             return res
     def balance(self):
         return self._balance
