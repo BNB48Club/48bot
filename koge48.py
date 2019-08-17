@@ -177,9 +177,9 @@ class Koge48:
         self._close(cursor)
         return balance + number
 
-    def getJackpot(self,targetid):
+    def getJackpot(self,targetid,divideby=3):
         balance = self._getChequeBalanceFromDb(Koge48.JACKPOT)
-        todivide = int(balance/3)
+        todivide = int(balance/divideby)
         if todivide > 0:
             self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide,"extract jackpot")
         return todivide

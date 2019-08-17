@@ -78,7 +78,7 @@ SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"
 def slotDesc():
     res="100Koge转一次"
     res+="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
-    res+="押100中250倍时,额外获得奖池奖金的1/3, /roller 查看排行榜与奖池金额\n"
+    res+="押中250倍时,分享奖池奖金, /roller 查看排行榜与奖池金额\n"
     res+=(SLOTICONS[7]*3 + " 250倍 + JackPot 奖池\n")
     res+=(SLOTICONS[3]*3 + " 30倍\n")
     res+=(SLOTICONS[1]*3 + " 30倍\n")
@@ -132,14 +132,15 @@ def callbackhandler(bot,update):
                     except:
                         pass
 
-                    if betsize >= 100:
-                        jackpot = koge48core.getJackpot(activeuser.id)
-                        bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
-                        try:
-                            bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
-                        except:
-                            pass
-                        display+=" 从奖池拉下:{} Koge".format(jackpot)
+                    
+                    jackpot = koge48core.getJackpot(activeuser.id,divideby=300/betsize)
+
+                    bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
+                    try:
+                        bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
+                    except:
+                        pass
+                    display+=" 从奖池拉下:{} Koge".format(jackpot)
 
             display += "\n"
 
@@ -387,7 +388,7 @@ def rollerHandler(bot,update):
     update.message.reply_markdown(text+rollerMarkDownGenerator(),quote=False,disable_web_page_preview=True)
 
 def rollerMarkDownGenerator():
-    text="当前JackPot奖池余额为{}Koge 水果机押100中250倍可额外拉下奖池的1/3\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
+    text="当前JackPot奖池余额为{}Koge 水果机押中250倍可分享奖池\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
 
     top3 = koge48core.getTotalBet(last=True)
     text+="当前下注排行榜(奖金依据):\n"
@@ -440,7 +441,7 @@ def botcommandhandler(bot,update):
         except:
             update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/jackpot" in things[0]:
-        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押100中250倍可额外拉下奖池的1/3".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
+        update.message.reply_text(text="当前奖池余额为{}Koge 水果机 /slot 押中250倍可分享奖池".format(koge48core.getChequeBalance(Koge48.JACKPOT)))
     return
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
