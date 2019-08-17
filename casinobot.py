@@ -114,7 +114,7 @@ def callbackhandler(bot,update):
         thedatas = update.callback_query.data.split('#')
         betsize=int(thedatas[1])
         bettimes = int(thedatas[2])
-        koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
+        (playerbalance,botbalance) = koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
 
         display = ""
         payout = 0
@@ -145,8 +145,9 @@ def callbackhandler(bot,update):
             display += "\n"
 
         if payout > 0:
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,payout,"SLOT casino pay to {}".format(activeuser.full_name))
+            (botbalance,playerbalance) = koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,payout,"SLOT casino pay to {}".format(activeuser.full_name))
 
+        display+="结算后您的最新余额{}Koge".format(playerbalance)
         update.callback_query.answer()
         updater.bot.edit_message_text(
                 chat_id=update.callback_query.message.chat_id,

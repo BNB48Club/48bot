@@ -28,6 +28,21 @@ from sendweibo import init_weibo, send_pic
 reload(sys)  
 sys.setdefaultencoding('utf8')
 
+def loadJson(filename,default=[]):
+    try:
+        file=open(filename,"r")
+        lastData = json.load(file)
+        file.close()
+        return lastData
+    except:
+        return default
+
+def saveJson(filename,content):
+    file = codecs.open(filename,"w","utf-8")
+    file.write(json.dumps(content))
+    file.flush()
+    file.close()
+
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.WARNING)
@@ -38,18 +53,11 @@ logger = logging.getLogger(__name__)
 BLACKLIST= set()
 PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 
-file=open("_data/flushwords.json","r")
-FLUSHWORDS = json.load(file)["words"]
-file.close()
+FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
+SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
+SILENTGROUPS =  loadJson("_data/silents.json",{})['groups']
 
-file=open("_data/blacklist_names.json","r")
-SPAMWORDS=json.load(file)["words"]
-file.close()
-
-file=open("_data/silents.json","r")
-SILENTGROUPS = json.load(file)['groups']
-file.close()
-
+UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
 
 SirIanM=420909210
 
@@ -88,7 +96,6 @@ weiboclient = init_weibo('BNB48Club')
 def help(bot, update):
     """Send a message when the command /help is issued."""
     update.message.reply_text('Help!')
-
 
 def is_number(s):
     try:
@@ -253,17 +260,13 @@ def richHandler(bot,update):
     top10 = koge48core.getTop(20)
     text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge(会衰减){}\nKoge{}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
     for each in top10:
-        text+="[{}](tg://user?id={})\t{}\n".format(each[0],each[0],each[1])
+        if str(each[0]) in UIDFULLNAMEMAP:
+            fullname = UIDFULLNAMEMAP[str(each[0])]
+        else:
+            fullname = str(each[0])
+        text+="[{}](tg://user?id={})\t{}\n".format(fullname,each[0],each[1])
     update.message.reply_markdown(text,quote=False)
     
-def donatorHandler(bot,update):
-    top10 = koge48core.getTopDonator(20)
-    text="捐赠发放的Koge总量:{}\n排行榜(隐去了具体金额):\n".format(koge48core.getTotalDonation())
-    for each in top10:
-        text+="[{}](tg://user?id={})\n".format(each[0],each[0])
-    update.message.reply_markdown(text,quote=False)
-
-
 def getusermd(user):
     #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
     return "`{}`".format(user.full_name)
@@ -451,7 +454,7 @@ def botcommandhandler(bot,update):
             markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
         else:
             markdown += "\n-----------------\n"
-            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge(含活动)大于等于{}可私聊机器人发送 /join 自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
+            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge(含活动)大于等于{}可私聊机器人自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
 
         update.message.reply_markdown(markdown,disable_web_page_preview=True)
     elif "/posttg" in things[0]:
@@ -620,6 +623,7 @@ def cleanHandler(bot,update):
         for each in global_redpackets:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,global_redpackets[each].balance(),"redpacket return")
 
+        saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
         update.message.reply_text('cleaned')
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
@@ -693,6 +697,8 @@ def kogefaucetHandler(bot,update):
 
 def botmessagehandler(bot, update):
     checkThresholds(update.message.chat_id,update.message.from_user.id)
+
+    UIDFULLNAMEMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
 
     message_text = update.message.text
     #logger.warning(message_text)
@@ -906,7 +912,6 @@ def main():
         groupadminhandler)#只对管理员账号的命令做出响应
     )
     dp.add_handler(CommandHandler(["rich"],richHandler))
-    dp.add_handler(CommandHandler(["donator"],donatorHandler))
     #dp.add_handler(CommandHandler(["kogefaucettestnet"],kogefaucetHandler))
     #dp.add_handler(CommandHandler(["bnbfaucettestnet"],bnbfaucetHandler))
     dp.add_handler(CommandHandler(
@@ -1005,6 +1010,7 @@ def airdropportal(bot,job):
 
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
+    saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
     return
 if __name__ == '__main__':
     

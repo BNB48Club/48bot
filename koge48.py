@@ -185,17 +185,18 @@ class Koge48:
         return todivide
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
-        balance = self._getChequeBalanceFromDb(sourceid)
-        assert sourceid == Koge48.BNB48BOT or balance - number >= 0
-        balance = self._getChequeBalanceFromDb(targetid)
-        assert targetid == Koge48.BNB48BOT or balance + number >= 0
+        assert number > 0
+        sbalance = self._getChequeBalanceFromDb(sourceid)
+        assert sourceid == Koge48.BNB48BOT or sbalance - number >= 0
+        dbalance = self._getChequeBalanceFromDb(targetid)
+        assert targetid == Koge48.BNB48BOT or dbalance + number >= 0
         newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
         cursor = self._mycursor()
         cursor.execute(newblocksql,(sourceid,-number,memo,targetid))
         cursor.execute(newblocksql,(targetid,number,memo,sourceid))
         self._commit(cursor)
         self._close(cursor)
-        return balance + number
+        return (sbalance - number,dbalance + number)
         
     def signCheque(self,userid,number,memo="",source=0):
         assert number > 0
