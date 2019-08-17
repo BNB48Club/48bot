@@ -65,10 +65,9 @@ BNB48=-1001136778297
 BNB48PUBLISH=-1001180859399
 BNB48CN= -1001345282090
 BNB48C2C = -1001491897749
-
+BNB48CASINO=-1001319319354
 BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
-BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
 BINANCE_ANNI = 1531526400
@@ -423,7 +422,7 @@ def botcommandhandler(bot,update):
         markdown += "\n"
         markdown += "[BNB48 公示](https://t.me/bnb48club_publish)"
         markdown += "\n"
-        markdown+= "[BNB48 娱乐场]("+BNB48CASINOLINK+")"
+        markdown += "[BNB48 娱乐场]("+bot.exportChatInviteLink(BNB48CASINO)+")"
         markdown += "\n"
         markdown+= "[BNB48 C2C场外交易群]("+BNB48C2CLINK+")"
         markdown += "\n-----------------\n"
@@ -817,8 +816,8 @@ def onleft(bot,update):
 
 def welcome(bot, update):
     UIDFULLNAMEMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
-    if update.message.chat_id == BNB48:
-        bot.exportChatInviteLink(BNB48)
+    if update.message.chat_id == BNB48 or update.message.chat_id == BNB48CASINO:
+        bot.exportChatInviteLink(update.message.chat_id)
     #筛选垃圾消息
     isSpam = False
     for newUser in update.message.new_chat_members:

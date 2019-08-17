@@ -382,7 +382,7 @@ def pmcommandhandler(bot,update):
 
     things = update.message.text.split(' ')
     if "/start" in things[0]:
-        update.message.reply_text(BNB48CASINOLINK)
+        update.message.reply_markdown("")
 
 def rollerHandler(bot,update):
     koge48core.transferChequeBalance(update.message.from_user.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
@@ -492,12 +492,14 @@ def main():
 
 
     dp.add_handler(CommandHandler(["roller"],rollerHandler))
+    '''
     dp.add_handler(CommandHandler(
         [
             "start",
         ],
         pmcommandhandler)#处理私聊机器人发送的命令
     )
+    '''
 
     #dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
     dp.add_handler(CommandHandler(
