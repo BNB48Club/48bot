@@ -264,52 +264,6 @@ def donatorHandler(bot,update):
     update.message.reply_markdown(text,quote=False)
 
 
-def rollerHandler(bot,update):
-    koge48core.transferChequeBalance(update.message.from_user.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
-    text="本次查询费用由`{}`支付\n[点击进入KOGE虚拟赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)\n\n".format(update.message.from_user.full_name)
-
-    update.message.reply_markdown(text+rollerMarkDownGenerator(),quote=False,disable_web_page_preview=True)
-
-def rollerMarkDownGenerator():
-    text="当前JackPot奖池余额为{}Koge 水果机押100中250倍可额外拉下奖池的1/3\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
-
-    top3 = koge48core.getTotalBet(last=True)
-    text+="当前下注排行榜(奖金依据):\n"
-    try:
-        index = 1
-        for each in top3:
-            text+="[{}](tg://user?id={})\t{}".format(each[0],each[0],each[1])
-            if index == 1:
-                text += " 预计奖金 {} Koge\n".format(min(5000,each[1]))
-            elif index == 2:
-                text += " 预计奖金 {} Koge\n".format(min(2000,each[1]))
-            elif index == 3:
-                text += " 预计奖金 {} Koge\n".format(min(1000,each[1]))
-            else:
-                text += "\n"
-            index += 1
-    except:
-        pass
-
-    top20 = koge48core.getHisBetRecords(limit=20)
-    text+="\n历史下注榜(分红依据):\n"
-    for each in top20:
-        text+="[{}](tg://user?id={})\t下注 {} Koge\n".format(each[0],each[0],each[1])
-
-
-    top10 = koge48core.getTopGainer()
-    text+="\n净赢榜:\n"
-    for each in top10:
-        text+="[{}](tg://user?id={})\t净赢 {} Koge\n".format(each[0],each[0],each[1])
-
-    changes=koge48core.getChequeRecentChanges(Koge48.BNB48BOT)
-    text+= "\n小秘书账户余额:{}\n".format(koge48core.getChequeBalance(Koge48.BNB48BOT))
-    text+= "小秘书最近的Koge变动记录:\n"
-    for each in changes:
-        text += "{}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
-
-    return text
-    
 def getusermd(user):
     #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
     return "`{}`".format(user.full_name)
@@ -544,13 +498,11 @@ def botcommandhandler(bot,update):
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
-            balance = 1000
-        '''
-        if koge48core.getChequeBalance(user.id) < balance:
-            update.message.reply_text("余额不足")
+            update.message.reply_text("红包里得塞钱")
             return
-        '''
+
         if balance <= 0:
+            update.message.reply_text("红包里得塞钱")
             return
 
 
@@ -562,11 +514,11 @@ def botcommandhandler(bot,update):
             amount = 10
 
         if amount > 100:
-            update.message.reply_text("单个红包最多分成100份")
+            update.message.reply_text("红包最多分成100份")
             return
 
         if balance/amount < RedPacket.SINGLE_AVG:
-            update.message.reply_text("单个红包平均应至少为{}".format(RedPacket.SINGLE_AVG))
+            update.message.reply_text("每个红包平均应至少为{}".format(RedPacket.SINGLE_AVG))
             return
 
         koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
@@ -954,7 +906,6 @@ def main():
         groupadminhandler)#只对管理员账号的命令做出响应
     )
     dp.add_handler(CommandHandler(["rich"],richHandler))
-    dp.add_handler(CommandHandler(["roller"],rollerHandler))
     dp.add_handler(CommandHandler(["donator"],donatorHandler))
     #dp.add_handler(CommandHandler(["kogefaucettestnet"],kogefaucetHandler))
     #dp.add_handler(CommandHandler(["bnbfaucettestnet"],bnbfaucetHandler))
