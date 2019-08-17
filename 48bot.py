@@ -109,6 +109,7 @@ def is_number(s):
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
+    UIDFULLNAMEMAP[str(activeuser.id)]=activeuser.full_name
     logger.warning("{} callback, content: {}".format(activeuser.full_name,update.callback_query.data))
     if "escrow" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
@@ -145,16 +146,16 @@ def callbackhandler(bot,update):
         thisdraw = redpacket.draw(activeuser)
         if thisdraw > 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
-            update.callback_query.answer("你抢到{} Koge48积分".format(thisdraw))
+            update.callback_query.answer("{} Koge".format(thisdraw))
             update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
             if redpacket.left() < 1:
-                update.callback_query.message.edit_reply_markup(timeout=60)
+                update.callback_query.message.edit_reply_markup()
                 del global_redpackets[redpacket_id]
         elif thisdraw < 0:
-            update.callback_query.message.edit_reply_markup(timeout=60)
+            update.callback_query.message.edit_reply_markup()
             del global_redpackets[redpacket_id]
         else:
-            update.callback_query.answer("每人只能领取一次")
+            update.callback_query.answer()
     else:
         update.callback_query.answer()
 
@@ -815,6 +816,7 @@ def onleft(bot,update):
     update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
 
 def welcome(bot, update):
+    UIDFULLNAMEMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
     if update.message.chat_id == BNB48:
         bot.exportChatInviteLink(BNB48)
     #筛选垃圾消息

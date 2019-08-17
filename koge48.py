@@ -186,17 +186,18 @@ class Koge48:
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
         assert number > 0
-        sbalance = self._getChequeBalanceFromDb(sourceid)
-        assert sourceid == Koge48.BNB48BOT or sbalance - number >= 0
-        dbalance = self._getChequeBalanceFromDb(targetid)
-        assert targetid == Koge48.BNB48BOT or dbalance + number >= 0
+        if sourceid != Koge48.BNB48BOT:
+            sbalance = self._getChequeBalanceFromDb(sourceid)
+            assert sourceid == Koge48.BNB48BOT or sbalance - number >= 0
+        else:
+            sbalance = number
         newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
         cursor = self._mycursor()
         cursor.execute(newblocksql,(sourceid,-number,memo,targetid))
         cursor.execute(newblocksql,(targetid,number,memo,sourceid))
         self._commit(cursor)
         self._close(cursor)
-        return (sbalance - number,dbalance + number)
+        return sbalance - number
         
     def signCheque(self,userid,number,memo="",source=0):
         assert number > 0

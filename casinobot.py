@@ -76,21 +76,19 @@ def is_number(s):
 SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"]
 
 def slotDesc():
-    res="100Koge转一次"
-    res+="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
-    res+="押中250倍时,分享奖池奖金, /roller 查看排行榜与奖池金额\n"
-    res+=(SLOTICONS[7]*3 + " 250倍 + JackPot 奖池\n")
-    res+=(SLOTICONS[3]*3 + " 30倍\n")
-    res+=(SLOTICONS[1]*3 + " 30倍\n")
-    res+=(SLOTICONS[2]*3 + " 30倍\n")
-    res+=(SLOTICONS[4]*3 + " 30倍\n")
-    res+=(SLOTICONS[5]*3 + " 30倍\n")
-    res+=(SLOTICONS[6]*3 + " 30倍\n")
-    res+=(SLOTICONS[8]*3 + " 30倍\n")
-    res+=(SLOTICONS[9]*3 + " 30倍\n")
-    res+=(SLOTICONS[0]*3 + " 30倍\n")
-    res+=(SLOTICONS[7]*2 + "  20倍\n")
-    res+=(SLOTICONS[7] + "   3倍")
+    res="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
+    res+=(SLOTICONS[7]*3 + " 250× + JackPot\n")
+    res+=(SLOTICONS[3]*3 + " 30×\n")
+    res+=(SLOTICONS[1]*3 + " 30×\n")
+    res+=(SLOTICONS[2]*3 + " 30×\n")
+    res+=(SLOTICONS[4]*3 + " 30×\n")
+    res+=(SLOTICONS[5]*3 + " 30×\n")
+    res+=(SLOTICONS[6]*3 + " 30×\n")
+    res+=(SLOTICONS[8]*3 + " 30×\n")
+    res+=(SLOTICONS[9]*3 + " 30×\n")
+    res+=(SLOTICONS[0]*3 + " 30×\n")
+    res+=(SLOTICONS[7]*2 + "  20×\n")
+    res+=(SLOTICONS[7] + "   3×")
     return res
 
 def slotPlay():
@@ -114,7 +112,7 @@ def callbackhandler(bot,update):
         thedatas = update.callback_query.data.split('#')
         betsize=int(thedatas[1])
         bettimes = int(thedatas[2])
-        (playerbalance,botbalance) = koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
+        playerbalance = koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,betsize*bettimes,"{} bet SLOT on casino".format(activeuser.id))
 
         display = ""
         payout = 0
@@ -134,7 +132,7 @@ def callbackhandler(bot,update):
 
                     
                     jackpot = koge48core.getJackpot(activeuser.id,divideby=300/betsize)
-
+                    playerbalance += jackpot
                     bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
                     try:
                         bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
@@ -145,9 +143,10 @@ def callbackhandler(bot,update):
             display += "\n"
 
         if payout > 0:
-            (botbalance,playerbalance) = koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,payout,"SLOT casino pay to {}".format(activeuser.full_name))
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,payout,"SLOT casino pay to {}".format(activeuser.full_name))
+            playerbalance += payout
 
-        display+="结算后您的最新余额{}Koge".format(playerbalance)
+        display+="{}Koge".format(playerbalance)
         update.callback_query.answer()
         updater.bot.edit_message_text(
                 chat_id=update.callback_query.message.chat_id,
@@ -174,7 +173,7 @@ def callbackhandler(bot,update):
             casino_betsize = float(thedatas[1])
 
         if not CASINO_IS_BETTING :
-            update.callback_query.answer("押注失败,已停止下注")
+            update.callback_query.answer()
             return
 
         bet_flag = False
@@ -193,7 +192,7 @@ def callbackhandler(bot,update):
                 global_longhu_casinos[casino_id].bet(activeuser,"HE",casino_betsize/25)
             '''
         else:
-            update.callback_query.answer("不存在的押注信息")
+            update.callback_query.answer()
             bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
             return
 
@@ -202,7 +201,7 @@ def callbackhandler(bot,update):
             reply_markup=CASINO_MARKUP,
             parse_mode='Markdown'
         )
-        update.callback_query.answer("押注成功")
+        update.callback_query.answer()
     else:
         update.callback_query.answer()
 
@@ -219,14 +218,14 @@ def actualAnswer(query,content=None):
 def buildslotmarkup():
     keys = [
             [
-                InlineKeyboardButton("10 壹次",callback_data="SLOT#10#1"),
-                InlineKeyboardButton("10 拾次",callback_data="SLOT#10#10"),
-                InlineKeyboardButton("10 佰次",callback_data="SLOT#10#100"),
+                InlineKeyboardButton("10×1",callback_data="SLOT#10#1"),
+                InlineKeyboardButton("10×10",callback_data="SLOT#10#10"),
+                InlineKeyboardButton("10×100",callback_data="SLOT#10#100"),
             ],
             [
-                InlineKeyboardButton("100 壹次",callback_data="SLOT#100#1"),
-                InlineKeyboardButton("100 拾次",callback_data="SLOT#100#10"),
-                InlineKeyboardButton("100 佰次",callback_data="SLOT#100#100"),
+                InlineKeyboardButton("100×1",callback_data="SLOT#100#1"),
+                InlineKeyboardButton("100×10",callback_data="SLOT#100#10"),
+                InlineKeyboardButton("100×100",callback_data="SLOT#100#100"),
             ]
            ]
     return InlineKeyboardMarkup(keys)
