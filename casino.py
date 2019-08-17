@@ -8,8 +8,8 @@ class LonghuCasino:
     @staticmethod
     def getRule(key=None):
         if key == "FULL" or key is None:
-            return "🐲/🐯 {}×\n🕊 {}×".format(LonghuCasino.PAYRATES['HU']+1,LonghuCasino.PAYRATES['HE']+1)
-        return "{}×".format(LonghuCasino.PAYRATES[key])
+            return "🐲/🐯 {}✖️\n🕊 {}✖️".format(LonghuCasino.PAYRATES['HU']+1,LonghuCasino.PAYRATES['HE']+1)
+        return "{}✖️".format(LonghuCasino.PAYRATES[key])
             
     def __init__(self):
         self._bets={"LONG":{},"HU":{},"HE":{}}
@@ -21,7 +21,7 @@ class LonghuCasino:
             for eachuserid in self._bets[eachbet]:
                 text += "`{}` {}{}".format(self._bets[eachbet][eachuserid][0],self._bets[eachbet][eachuserid][1],LonghuCasino.TARGET_TEXTS[eachbet])
                 if self._released and eachbet == self._result['betresult'] and eachuserid in self._result['payroll']:
-                    text += " + {}".format(self._result['payroll'][eachuserid])
+                    text += " 🏆 {}".format(self._result['payroll'][eachuserid])
                 text += "\n"
         return text
     def bet(self,user,item,amount):

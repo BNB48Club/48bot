@@ -77,18 +77,18 @@ SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"
 
 def slotDesc():
     res="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
-    res+=(SLOTICONS[7]*3 + " 250× + JackPot\n")
-    res+=(SLOTICONS[3]*3 + " 30×\n")
-    res+=(SLOTICONS[1]*3 + " 30×\n")
-    res+=(SLOTICONS[2]*3 + " 30×\n")
-    res+=(SLOTICONS[4]*3 + " 30×\n")
-    res+=(SLOTICONS[5]*3 + " 30×\n")
-    res+=(SLOTICONS[6]*3 + " 30×\n")
-    res+=(SLOTICONS[8]*3 + " 30×\n")
-    res+=(SLOTICONS[9]*3 + " 30×\n")
-    res+=(SLOTICONS[0]*3 + " 30×\n")
-    res+=(SLOTICONS[7]*2 + "  20×\n")
-    res+=(SLOTICONS[7] + "   3×")
+    res+=(SLOTICONS[7]*3 + " 250✖️ + JackPot\n")
+    res+=(SLOTICONS[3]*3 + " 30✖️\n")
+    res+=(SLOTICONS[1]*3 + " 30✖️\n")
+    res+=(SLOTICONS[2]*3 + " 30✖️\n")
+    res+=(SLOTICONS[4]*3 + " 30✖️\n")
+    res+=(SLOTICONS[5]*3 + " 30✖️\n")
+    res+=(SLOTICONS[6]*3 + " 30✖️\n")
+    res+=(SLOTICONS[8]*3 + " 30✖️\n")
+    res+=(SLOTICONS[9]*3 + " 30✖️\n")
+    res+=(SLOTICONS[0]*3 + " 30✖️\n")
+    res+=(SLOTICONS[7]*2 + "  20✖️\n")
+    res+=(SLOTICONS[7] + "   3✖️")
     return res
 
 def slotPlay():
@@ -218,14 +218,14 @@ def actualAnswer(query,content=None):
 def buildslotmarkup():
     keys = [
             [
-                InlineKeyboardButton("10×1",callback_data="SLOT#10#1"),
-                InlineKeyboardButton("10×10",callback_data="SLOT#10#10"),
-                InlineKeyboardButton("10×100",callback_data="SLOT#10#100"),
+                InlineKeyboardButton("10✖️1",callback_data="SLOT#10#1"),
+                InlineKeyboardButton("10✖️10",callback_data="SLOT#10#10"),
+                InlineKeyboardButton("10✖️100",callback_data="SLOT#10#100"),
             ],
             [
-                InlineKeyboardButton("100×1",callback_data="SLOT#100#1"),
-                InlineKeyboardButton("100×10",callback_data="SLOT#100#10"),
-                InlineKeyboardButton("100×100",callback_data="SLOT#100#100"),
+                InlineKeyboardButton("100✖️1",callback_data="SLOT#100#1"),
+                InlineKeyboardButton("100✖️10",callback_data="SLOT#100#10"),
+                InlineKeyboardButton("100✖️100",callback_data="SLOT#100#100"),
             ]
            ]
     return InlineKeyboardMarkup(keys)
@@ -393,7 +393,7 @@ def rollerHandler(bot,update):
 def rollerMarkDownGenerator():
     text="当前JackPot奖池余额为{}Koge 水果机押中250倍可分享奖池\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
 
-    top3 = koge48core.getTotalBet(last=True)
+    top3 = koge48core.getTotalWager(last=True)
     text+="当前下注排行榜(奖金依据):\n"
     try:
         index = 1
@@ -552,7 +552,7 @@ def airdropportal(bot,job):
 
     Koge48.BNB48LIST = bnb48list
 
-    lastbetrecords = koge48core.getTotalBet(last=True)
+    lastbetrecords = koge48core.getTotalWager(last=True)
     lasttotalbet = 0
 
     for eachbet in lastbetrecords:
@@ -577,7 +577,7 @@ def airdropportal(bot,job):
         except:
             pass
 
-        hisbet = float(koge48core.getTotalBet(last=False))
+        hisbet = float(koge48core.getTotalWager(last=False))
         betrecords = koge48core.getHisBetRecords()
         for eachrecord in betrecords:
             eachuid = eachrecord[0]

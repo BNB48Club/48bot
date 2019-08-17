@@ -146,18 +146,27 @@ def callbackhandler(bot,update):
         if thisdraw > 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
             update.callback_query.answer("{} Koge".format(thisdraw))
-            update.callback_query.edit_message_text(text=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
-            if redpacket.left() < 1:
-                update.callback_query.message.edit_reply_markup()
-                del global_redpackets[redpacket_id]
-        elif thisdraw < 0:
-            update.callback_query.message.edit_reply_markup()
-            del global_redpackets[redpacket_id]
+            if not redpacket.needUpdate():
+                redpacket.needUpdate(True)
+                delayUpdateRedpacket(update.callback_query.message.chat_id,redpacket_id)
         else:
             update.callback_query.answer()
     else:
         update.callback_query.answer()
 
+def delayUpdateRedpacket(chat_id,redpacket_id):
+    thread = Thread(target = actualUpdateRedpacket, args=[chat_id,redpacket_id])
+    thread.start()
+def actualUpdateRedpacket(chat_id,redpacket_id):
+    time.sleep(1)
+    redpacket = global_redpackets[redpacket_id]
+    if redpacket.left() < 1:
+        thismarkup = None
+        del global_redpackets[redpacket_id]
+    else:
+        thismarkup = buildredpacketmarkup()
+    updater.bot.edit_message_caption(chat_id,redpacket_id,caption=redpacket.getLog(),reply_markup=thismarkup)
+    redpacket.needUpdate(False)
 
 def delayAnswer(query,content=None):
     thread = Thread(target = actualAnswer, args=[query,content])
@@ -171,7 +180,7 @@ def actualAnswer(query,content=None):
 def buildredpacketmarkup():
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton('打开红包',callback_data="VOID")]
+            [InlineKeyboardButton('💰',callback_data="HONGBAO")]
         ]
     )
 
@@ -532,7 +541,7 @@ def botcommandhandler(bot,update):
             title = "恭喜发财"
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title)
-        message = update.message.reply_markdown(redpacket.getLog(),reply_markup=buildredpacketmarkup(),quote=False,disable_web_page_preview=True)
+        message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         redpacket_id = message.message_id
         global_redpackets[redpacket_id]=redpacket
         try:
@@ -625,6 +634,7 @@ def cleanHandler(bot,update):
 
         saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
         update.message.reply_text('cleaned')
+        sys.exit()
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
@@ -701,7 +711,6 @@ def botmessagehandler(bot, update):
     UIDFULLNAMEMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
 
     message_text = update.message.text
-    #logger.warning(message_text)
     if "#SellBNBAt48BTC" in message_text:
         file=open("/var/www/html/sell48","r")
         content = json.load(file)

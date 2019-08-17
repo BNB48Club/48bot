@@ -55,7 +55,7 @@ class Koge48:
         self._close(cursor)
         return userlist
 
-    def getTotalBet(self,last=True):
+    def getTotalWager(self,last=True):
         cursor = self._mycursor()
         if last:
             cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%deposit jackpot%' ORDER by id DESC LIMIT 1")
@@ -373,5 +373,5 @@ if __name__ == '__main__':
       kogeconfig.get("mysql","passwd"),
       kogeconfig.get("mysql","database")
     )
-    print(koge48core.getTotalBet(True))
-    print(koge48core.getTotalBet(False))
+    print(koge48core.getTotalWager(True))
+    print(koge48core.getTotalWager(False))
