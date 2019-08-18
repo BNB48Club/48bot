@@ -177,11 +177,12 @@ def callbackhandler(bot,update):
             return
 
         bet_flag = False
+        player_balance = 0
         if bet_target in ["LONG","HE","HU"]:
-            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
+            player_balance = koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
             global_longhu_casinos[casino_id].bet(activeuser,bet_target,casino_betsize)
         elif bet_target == "LONGHU":
-            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,2*casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
+            player_balance = koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,2*casino_betsize,"{} bet {} on casino".format(activeuser.id,bet_target))
             global_longhu_casinos[casino_id].bet(activeuser,"LONG",casino_betsize)
             global_longhu_casinos[casino_id].bet(activeuser,"HU",casino_betsize)
             '''
@@ -196,11 +197,9 @@ def callbackhandler(bot,update):
             bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
             return
 
-        if not global_longhu_casinos[casino_id].needUpdate():
-            global_longhu_casinos[casino_id].needUpdate(True)
-            delayUpdateCasino(casino_id)
+        actualUpdateCasino(casino_id)
 
-        update.callback_query.answer()
+        update.callback_query.answer("下注成功。余额{}Koge".format(player_balance))
     else:
         update.callback_query.answer()
 
@@ -210,8 +209,6 @@ def delayUpdateCasino(casino_id):
     thread.start()
 
 def actualUpdateCasino(casino_id):
-    time.sleep(0.1)
-    global_longhu_casinos[casino_id].needUpdate(False)
     updater.bot.edit_message_text(
         text=LonghuCasino.getRule()+"\n---------------\n"+global_longhu_casinos[casino_id].getLog(),
         chat_id=BNB48CASINO,
@@ -366,7 +363,8 @@ def releaseandstartcasino(casino_id):
             message_id=casino_id,
             text = displaytext,
             #disable_web_page_preview=False,
-            reply_markup=buildcasinomarkup(result=results['result'])
+            reply_markup=buildcasinomarkup(result=results['result']),
+            timeout=60
         )
         if bigwin:
             displaytext+="\n去[大赌场]("+BNB48CASINOLINK+")试试手气"

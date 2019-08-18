@@ -66,6 +66,7 @@ BNB48PUBLISH=-1001180859399
 BNB48CN= -1001345282090
 BNB48C2C = -1001491897749
 BNB48CASINO=-1001319319354
+BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
 BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
@@ -431,7 +432,7 @@ def botcommandhandler(bot,update):
         markdown += "\n"
         markdown += "[BNB48 公示](https://t.me/bnb48club_publish)"
         markdown += "\n"
-        markdown += "[BNB48 娱乐场]("+bot.exportChatInviteLink(BNB48CASINO)+")"
+        markdown += "[BNB48 娱乐场]("+BNB48CASINOLINK+")"
         markdown += "\n"
         markdown+= "[BNB48 C2C场外交易群]("+BNB48C2CLINK+")"
         markdown += "\n-----------------\n"
