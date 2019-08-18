@@ -14,12 +14,18 @@ class LonghuCasino:
     def __init__(self):
         self._bets={"LONG":{},"HU":{},"HE":{}}
         self._released = False
+        self._needupdate = False
+    def needUpdate(self,value=None):
+        if value is None:
+            return self._needupdate
+        else:
+            self._needupdate = value
     
     def getLog(self):
         text="" 
         for eachbet in self._bets:
             for eachuserid in self._bets[eachbet]:
-                text += "`{}` {}{}".format(self._bets[eachbet][eachuserid][0],self._bets[eachbet][eachuserid][1],LonghuCasino.TARGET_TEXTS[eachbet])
+                text += "{} {}{}".format(self._bets[eachbet][eachuserid][0],self._bets[eachbet][eachuserid][1],LonghuCasino.TARGET_TEXTS[eachbet])
                 if self._released and eachbet == self._result['betresult'] and eachuserid in self._result['payroll']:
                     text += " 🏆 {}".format(self._result['payroll'][eachuserid])
                 text += "\n"

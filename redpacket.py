@@ -19,10 +19,10 @@ class RedPacket:
         else:
             self._needupdate = value
     def getLog(self):
-        text = "{}发了{}个红包\n{}\n总计{}Koge\n".format(self._fromuser.full_name,self._origamount,self._title,self._origbalance)
-        text += "剩余{}个红包{}Koge\n-------------\n".format(self._amount,self._balance)
+        text = "[现金红包]\n{}发了{}个红包\n{}\n总计{} Koge\n".format(self._fromuser.full_name,self._origamount,self._title,self._origbalance)
+        text += "剩余{}个红包{} Koge\n-------------\n".format(self._amount,self._balance)
         for each in self._sequence:
-            text += "{}抽到{}Koge\n".format(self._drawed[each][0],self._drawed[each][1])
+            text += "{}抽到{} Koge\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
     def left(self):
         return self._amount

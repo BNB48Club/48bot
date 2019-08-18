@@ -146,12 +146,12 @@ def callbackhandler(bot,update):
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,payout,"SLOT casino pay to {}".format(activeuser.full_name))
             playerbalance += payout
 
-        display+="{}Koge".format(playerbalance)
+        display+="{}:{}Koge".format(activeuser.full_name,playerbalance)
         update.callback_query.answer()
-        updater.bot.edit_message_text(
+        updater.bot.edit_message_caption(
                 chat_id=update.callback_query.message.chat_id,
                 message_id=message_id,
-                text = display,
+                caption = display,
                 reply_markup=buildslotmarkup()
             )
     elif message_id in global_longhu_casinos and not CASINO_DIVIDING:
@@ -196,25 +196,28 @@ def callbackhandler(bot,update):
             bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
             return
 
-        update.callback_query.edit_message_text(
-            text=LonghuCasino.getRule()+"\n---------------\n"+global_longhu_casinos[casino_id].getLog(),
-            reply_markup=CASINO_MARKUP,
-            parse_mode='Markdown'
-        )
+        if not global_longhu_casinos[casino_id].needUpdate():
+            global_longhu_casinos[casino_id].needUpdate(True)
+            delayUpdateCasino(casino_id)
+
         update.callback_query.answer()
     else:
         update.callback_query.answer()
 
 
-def delayAnswer(query,content=None):
-    thread = Thread(target = actualAnswer, args=[query,content])
+def delayUpdateCasino(casino_id):
+    thread = Thread(target = actualUpdateCasino, args=[casino_id,])
     thread.start()
-def actualAnswer(query,content=None):
+
+def actualUpdateCasino(casino_id):
     time.sleep(0.1)
-    if content is None:
-        query.answer()
-    else:
-        query.answer(text=content)
+    global_longhu_casinos[casino_id].needUpdate(False)
+    updater.bot.edit_message_text(
+        text=LonghuCasino.getRule()+"\n---------------\n"+global_longhu_casinos[casino_id].getLog(),
+        chat_id=BNB48CASINO,
+        message_id=casino_id,
+        reply_markup=CASINO_MARKUP,
+    )
 def buildslotmarkup():
     keys = [
             [
@@ -296,7 +299,10 @@ def startcasino():
     if not CASINO_CONTINUE:
         return
     try:
-        message = updater.bot.sendMessage(BNB48CASINO, LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup(),parse_mode="Markdown")
+        #message = updater.bot.sendPhoto(chat_id=BNB48CASINO, photo=open("longhu.jpg","rb"),caption=LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
+        #message = updater.bot.sendPhoto(chat_id=BNB48CASINO, photo="AgADBQADeqgxG14PyFYOh7ikQAIM-o-MAjMABAEAAwIAA3gAA8a7AAIWBA",caption=LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
+        #message = updater.bot.sendMessage(chat_id=BNB48CASINO, photo="AgADBQADfagxG14PyFarLTzZEpFimJOOAjMABAEAAwIAA3gAA1W4AAIWBA",text=LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
+        message = updater.bot.sendMessage(chat_id=BNB48CASINO, text=LonghuCasino.getRule()+"\n------------", reply_markup=buildcasinomarkup())
     except Exception as e:
         logger.warning(e)
         if not CASINO_CONTINUE:
@@ -359,7 +365,6 @@ def releaseandstartcasino(casino_id):
             chat_id=BNB48CASINO,
             message_id=casino_id,
             text = displaytext,
-            parse_mode='Markdown',
             #disable_web_page_preview=False,
             reply_markup=buildcasinomarkup(result=results['result'])
         )
@@ -439,10 +444,12 @@ def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
     if "/slot" in things[0]:
         try:
-            bot.sendMessage(update.message.from_user.id,text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+            #bot.sendPhoto(update.message.from_user.id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+            bot.sendPhoto(update.message.from_user.id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
             #update.message.delete()
         except:
-            update.message.reply_text(text=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+            #bot.sendPhoto(update.message.chat_id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+            bot.sendPhoto(update.message.chat_id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     return
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:

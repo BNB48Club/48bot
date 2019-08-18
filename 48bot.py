@@ -468,11 +468,12 @@ def botcommandhandler(bot,update):
         update.message.reply_markdown(markdown,disable_web_page_preview=True)
     elif "/posttg" in things[0]:
         if update.message.chat_id != BNB48MEDIA:
-            update.message.reply_text("该功能仅在BNB48 Media群内生效")
+            photoid = update.message.reply_to_message.photo[-1].file_id
+            update.message.reply_text(photoid)
             return
         for group in [BNB48,BNB48PUBLISH]:
             #bot.forwardMessage(group,update.message.chat_id,update.message.reply_to_message.message_id)
-            photoid = photo = update.message.reply_to_message.photo[-1].file_id
+            photoid = update.message.reply_to_message.photo[-1].file_id
             bot.sendPhoto(group,photoid)
         update.message.reply_text("已转发")
     elif "/postweibo" in things[0]:
@@ -541,6 +542,7 @@ def botcommandhandler(bot,update):
             title = "恭喜发财"
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title)
+        #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         redpacket_id = message.message_id
         global_redpackets[redpacket_id]=redpacket
@@ -634,6 +636,8 @@ def cleanHandler(bot,update):
 
         saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
         update.message.reply_text('cleaned')
+        updater.stop()
+        updater.is_idle = False
         sys.exit()
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
