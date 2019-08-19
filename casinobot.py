@@ -25,6 +25,14 @@ from casino import LonghuCasino
 reload(sys)  
 sys.setdefaultencoding('utf8')
 
+def loadJson(filename,default=[]):
+    try:
+        file=open(filename,"r")
+        lastData = json.load(file)
+        file.close()
+        return lastData
+    except:
+        return default
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.WARNING)
@@ -58,6 +66,7 @@ CASINO_MARKUP = None
 CASINO_CONTINUE = True
 CASINO_DIVIDING = False
 
+UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
 
 def help(bot, update):
     """Send a message when the command /help is issued."""
@@ -77,18 +86,18 @@ SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"
 
 def slotDesc():
     res="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
-    res+=(SLOTICONS[7]*3 + " 250✖️ + JackPot\n")
-    res+=(SLOTICONS[3]*3 + " 30✖️\n")
-    res+=(SLOTICONS[1]*3 + " 30✖️\n")
-    res+=(SLOTICONS[2]*3 + " 30✖️\n")
-    res+=(SLOTICONS[4]*3 + " 30✖️\n")
-    res+=(SLOTICONS[5]*3 + " 30✖️\n")
-    res+=(SLOTICONS[6]*3 + " 30✖️\n")
-    res+=(SLOTICONS[8]*3 + " 30✖️\n")
-    res+=(SLOTICONS[9]*3 + " 30✖️\n")
-    res+=(SLOTICONS[0]*3 + " 30✖️\n")
-    res+=(SLOTICONS[7]*2 + "  20✖️\n")
-    res+=(SLOTICONS[7] + "   3✖️")
+    res+=(SLOTICONS[7]*3 + " ✖️250 + JackPot\n")
+    res+=(SLOTICONS[3]*3 + " ✖️30\n")
+    res+=(SLOTICONS[1]*3 + " ✖️30\n")
+    res+=(SLOTICONS[2]*3 + " ✖️30\n")
+    res+=(SLOTICONS[4]*3 + " ✖️30\n")
+    res+=(SLOTICONS[5]*3 + " ✖️30\n")
+    res+=(SLOTICONS[6]*3 + " ✖️30\n")
+    res+=(SLOTICONS[8]*3 + " ✖️30\n")
+    res+=(SLOTICONS[9]*3 + " ✖️30\n")
+    res+=(SLOTICONS[0]*3 + " ✖️30\n")
+    res+=(SLOTICONS[7]*2 + "  ✖️20\n")
+    res+=(SLOTICONS[7] + "   ✖️3")
     return res
 
 def slotPlay():
@@ -397,11 +406,16 @@ def rollerMarkDownGenerator():
     text="当前JackPot奖池余额为{}Koge 水果机押中250倍可分享奖池\n\n".format(koge48core.getChequeBalance(Koge48.JACKPOT))
 
     top3 = koge48core.getTotalWager(last=True)
-    text+="当前下注排行榜(奖金依据):\n"
+    text+="本区间下注排行榜(奖金依据):\n"
     try:
         index = 1
         for each in top3:
-            text+="[{}](tg://user?id={})\t{}".format(each[0],each[0],each[1])
+            if str(each[0]) in UIDFULLNAMEMAP:
+                fullname = UIDFULLNAMEMAP[str(each[0])]
+            else:
+                fullname = str(each[0])
+
+            text+="[{}](tg://user?id={})\t{}".format(fullname,each[0],each[1])
             if index == 1:
                 text += " 预计奖金 {} Koge\n".format(min(5000,each[1]))
             elif index == 2:
@@ -417,19 +431,29 @@ def rollerMarkDownGenerator():
     top20 = koge48core.getHisBetRecords(limit=20)
     text+="\n历史下注榜(分红依据):\n"
     for each in top20:
-        text+="[{}](tg://user?id={})\t下注 {} Koge\n".format(each[0],each[0],each[1])
+        if str(each[0]) in UIDFULLNAMEMAP:
+            fullname = UIDFULLNAMEMAP[str(each[0])]
+        else:
+            fullname = str(each[0])
+        text+="[{}](tg://user?id={}) {} Koge\n".format(fullname,each[0],each[1])
 
 
     top10 = koge48core.getTopGainer()
-    text+="\n净赢榜:\n"
+    text+="\n历史净赢榜:\n"
     for each in top10:
-        text+="[{}](tg://user?id={})\t净赢 {} Koge\n".format(each[0],each[0],each[1])
+        if str(each[0]) in UIDFULLNAMEMAP:
+            fullname = UIDFULLNAMEMAP[str(each[0])]
+        else:
+            fullname = str(each[0])
+        text+="[{}](tg://user?id={}) {} Koge\n".format(fullname,each[0],each[1])
 
-    changes=koge48core.getChequeRecentChanges(Koge48.BNB48BOT)
     text+= "\n小秘书账户余额:{}\n".format(koge48core.getChequeBalance(Koge48.BNB48BOT))
+    '''
+    changes=koge48core.getChequeRecentChanges(Koge48.BNB48BOT)
     text+= "小秘书最近的Koge变动记录:\n"
     for each in changes:
         text += "{}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
+    '''
 
     return text
     
@@ -542,6 +566,8 @@ def main():
 
 
 def rollerbroadcast(bot,job):
+    global UIDFULLNAMEMAP
+    UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
     announceid = bot.sendMessage(BNB48CASINO,rollerMarkDownGenerator(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
 
 def airdropportal(bot,job):
@@ -592,7 +618,7 @@ def airdropportal(bot,job):
                     continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
                 logger.warning("distribute {} to {}".format(dividend,eachuid))
-                updater.bot.sendMessage(eachuid,"您历史下注{} Koge占全部下注{}%\n本区间返利{}KOGE行榜".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),dividend))
+                updater.bot.sendMessage(eachuid,"您历史下注{} Koge占全部下注{}%\n本区间返利{}KOGE".format(eachrecord[1],round(100.0*eachrecord[1]/hisbet,2),dividend))
             except:
                 logger.warning("exception while distribute to {}".format(eachuid))
 

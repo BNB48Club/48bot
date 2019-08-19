@@ -9,6 +9,7 @@ import time
 import codecs
 import random
 import ConfigParser
+import operator
 from threading import Thread
 import threading
 from telegram import *
@@ -120,6 +121,7 @@ def callbackhandler(bot,update):
                 update.callback_query.answer("只有发起者才能确认")
                 return
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
+            topescrow(thedatas[2],thedatas[3])
             try:
                 bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
             except:
@@ -210,8 +212,7 @@ def pmcommandhandler(bot,update):
     things = update.message.text.split(' ')
     if "/mybinding" in things[0]:
         bindstatus = koge48core.getAirDropStatus(update.message.from_user.id)
-        response = "当前绑定的ETH钱包地址:\n    {}\n\n".format(bindstatus['eth'])
-        response +="当前绑定的币安APIkey(secret 不显示):\n    {}\n\n".format(bindstatus['api'][0])
+        response ="当前绑定的币安APIkey(secret 不显示):\n    {}\n\n".format(bindstatus['api'][0])
         response +="末次快照BNB余额:\n    {}\n\n".format(bindstatus['bnb'][1])
         if len(bindstatus['airdrops']) >0 :
             response += "最近的空投记录:\n"
@@ -264,11 +265,15 @@ def groupadminhandler(bot,update):
         top10 = koge48core.getGroupMiningStatus(chatid)
         text="过去一周(7\*24小时){}挖矿排行榜:\n".format(update.message.chat.title)
         for each in top10:
-            text+="[{}](tg://user?id={})挖出{}个块\n".format(each[0],each[0],each[1])
+            if str(each[0]) in UIDFULLNAMEMAP:
+                fullname = UIDFULLNAMEMAP[str(each[0])]
+            else:
+                fullname = str(each[0])
+            text+="[{}](tg://user?id={})挖出{}个块\n".format(fullname,each[0],each[1])
         update.message.reply_markdown(text)
 def richHandler(bot,update):
     top10 = koge48core.getTop(20)
-    text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge(会衰减){}\nKoge{}\nKoge富豪榜:\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
+    text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge总量{}\n永久Koge总量{}\nKoge富豪榜(含活动Koge):\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
     for each in top10:
         if str(each[0]) in UIDFULLNAMEMAP:
             fullname = UIDFULLNAMEMAP[str(each[0])]
@@ -623,6 +628,57 @@ def botcommandhandler(bot,update):
         file.close()
         logger.warning("SILENTGROUPS updated")
     return
+def topescrow(seller=None,buyer=None):
+    escrowrecord = loadJson("_data/escrow.json",{})
+    if not seller is None:
+        if seller in escrowrecord['seller']:
+            escrowrecord['seller'][seller]+=1
+        else:
+            escrowrecord['seller'][seller]=1
+    if not buyer is None:
+        if buyer in escrowrecord['buyer']:
+            escrowrecord['buyer'][buyer]+=1
+        else:
+            escrowrecord['buyer'][buyer]=1
+
+    sorted_seller = sorted(escrowrecord['seller'].items(),key=operator.itemgetter(1))
+    sorted_seller.reverse()
+    text = "Koge担保交易功能使用方法:\n发送方使用 `/escrow 金额` 的格式回复接受方的消息，资金转入小秘书账户保管。\n发送方确认交易成功后资金转入接收方账户；或接受方对交易发起取消则资金原路返回。\n"
+    text += "--------------------\n"
+    text += "Koge卖家Top3(仅统计单笔100Koge以上，下同)\n"
+    i=0
+    for each in sorted_seller:
+        i+=1
+        if i>3:
+            break
+        if str(each[0]) in UIDFULLNAMEMAP:
+            fullname = UIDFULLNAMEMAP[str(each[0])]
+        else:
+            fullname = str(each[0])
+        text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
+
+    text += "--------------------\n"
+
+    sorted_buyer = sorted(escrowrecord['buyer'].items(),key=operator.itemgetter(1))
+    sorted_buyer.reverse()
+    text += "Koge买家Top3\n"
+    i=0
+    for each in sorted_buyer:
+        i+=1
+        if i>3:
+            break
+        if str(each[0]) in UIDFULLNAMEMAP:
+            fullname = UIDFULLNAMEMAP[str(each[0])]
+        else:
+            fullname = str(each[0])
+        text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
+    if "pinid" in escrowrecord:
+        updater.bot.editMessageText(text,BNB48C2C,escrowrecord['pinid'],parse_mode="Markdown")
+    else:
+        message = updater.bot.sendMessage(BNB48C2C,text,parse_mode="Markdown")
+        escrowrecord['pinid']=message.message_id
+    saveJson("_data/escrow.json",escrowrecord)
+
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
         updater.job_queue.stop()
@@ -979,6 +1035,7 @@ def main():
             "postweibo"
         ],
         botcommandhandler))# '''处理其他命令'''
+
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
 
     # log all errors
