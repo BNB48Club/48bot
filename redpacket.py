@@ -3,7 +3,7 @@
 import random
 class RedPacket:
     SINGLE_AVG = 1
-    def __init__(self,fromuser,balance,amount,title):
+    def __init__(self,fromuser,balance,amount,title,groupid):
         self._fromuser = fromuser
         self._origbalance = balance
         self._balance = balance
@@ -13,6 +13,7 @@ class RedPacket:
         self._drawed = {}
         self._sequence = []
         self._needupdate = False
+        self._groupid = groupid
     def needUpdate(self,value=None):
         if value is None:
             return self._needupdate
@@ -22,10 +23,18 @@ class RedPacket:
         text = "[现金红包]{}\n{}发了{}个红包\n总计{} Koge\n".format(self._title,self._fromuser.full_name,self._origamount,self._origbalance)
         text += "剩余{}个红包{} Koge\n-------------\n".format(self._amount,self._balance)
         for each in self._sequence:
-            text += "{}抽到{} Koge\n".format(self._drawed[each][0],self._drawed[each][1])
+            text += "{} {} Koge\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
     def left(self):
         return self._amount
+    def clear(self):
+        if self._amount < 1:
+            return -1
+        self._amount = 0
+        self._drawed[0]=["退回",self._balance]
+        self._balance = 0
+        self._sequence.append(0)
+        return
     def draw(self,user):
         if self._amount < 1:
             return -1

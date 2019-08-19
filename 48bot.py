@@ -121,7 +121,8 @@ def callbackhandler(bot,update):
                 update.callback_query.answer("只有发起者才能确认")
                 return
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
-            topescrow(thedatas[2],thedatas[3])
+            if float(thedatas[4]) > 100:
+                topescrow(thedatas[2],thedatas[3])
             try:
                 bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
             except:
@@ -151,24 +152,25 @@ def callbackhandler(bot,update):
             update.callback_query.answer("{} Koge".format(thisdraw))
             if not redpacket.needUpdate():
                 redpacket.needUpdate(True)
-                delayUpdateRedpacket(update.callback_query.message.chat_id,redpacket_id)
+                delayUpdateRedpacket(redpacket_id)
         else:
             update.callback_query.answer()
     else:
         update.callback_query.answer()
 
-def delayUpdateRedpacket(chat_id,redpacket_id):
-    thread = Thread(target = actualUpdateRedpacket, args=[chat_id,redpacket_id])
+def delayUpdateRedpacket(redpacket_id,delete=True):
+    thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id,delete])
     thread.start()
-def actualUpdateRedpacket(chat_id,redpacket_id):
+def actualUpdateRedpacket(redpacket_id,delete):
     time.sleep(1)
     redpacket = global_redpackets[redpacket_id]
     if redpacket.left() < 1:
         thismarkup = None
-        del global_redpackets[redpacket_id]
+        if delete:
+            del global_redpackets[redpacket_id]
     else:
         thismarkup = buildredpacketmarkup()
-    updater.bot.edit_message_caption(chat_id,redpacket_id,caption=redpacket.getLog(),reply_markup=thismarkup)
+    updater.bot.edit_message_caption(redpacket._groupid,redpacket_id,caption=redpacket.getLog(),reply_markup=thismarkup)
     redpacket.needUpdate(False)
 
 def delayAnswer(query,content=None):
@@ -204,6 +206,8 @@ def buildescrowmarkup(fromid,toid,transamount):
            ]
     return InlineKeyboardMarkup(keys)
 
+def testHandler(bot,update):
+    update.message.reply_text(bot.exportChatInviteLink(update.message.chat_id))
 def pmcommandhandler(bot,update):
     if update.message.chat.type != 'private':
         update.message.reply_text('该命令需私聊机器人')
@@ -547,7 +551,7 @@ def botcommandhandler(bot,update):
         else:
             title = "恭喜发财"
 
-        redpacket = RedPacket(update.message.from_user,balance,amount,title)
+        redpacket = RedPacket(update.message.from_user,balance,amount,title,update.message.chat_id)
         #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         redpacket_id = message.message_id
@@ -689,7 +693,10 @@ def cleanHandler(bot,update):
             logger.warning("job {} cleared".format(job.name))
 
         for each in global_redpackets:
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,global_redpackets[each].balance(),"redpacket return")
+            balance = global_redpackets[each].balance()
+            global_redpackets[each].clear()
+            koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,balance,"redpacket return")
+            delayUpdateRedpacket(each,False)
 
         saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
         update.message.reply_text('cleaned')
@@ -1015,7 +1022,6 @@ def main():
     dp.add_handler(CommandHandler(
         [
             "trans",
-            #"kogetrans",
             "escrow",
             "bal",
             "changes",
@@ -1037,6 +1043,7 @@ def main():
         botcommandhandler))# '''处理其他命令'''
 
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
+    dp.add_handler(CommandHandler( [ "test" ], testHandler))
 
     # log all errors
     dp.add_error_handler(error)
