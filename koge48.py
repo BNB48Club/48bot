@@ -19,8 +19,8 @@ class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 1
-    MINE_DIFFER_SIZE = 30
-    LAMDA = 1/500.0
+    MINE_DIFFER_SIZE = 11
+    LAMDA = 1/200.0
     BNB48BOT = 571331274
     BNB48LIST = []
     JACKPOT = 777000
@@ -360,7 +360,7 @@ class Koge48:
             value = round(Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random(),2)
             self._changeChequeBalance(minerid,value,"mining",groupid)
             self._changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
-            logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
+            #logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
             return value
         else:
             return 0

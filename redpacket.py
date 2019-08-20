@@ -14,16 +14,21 @@ class RedPacket:
         self._sequence = []
         self._needupdate = False
         self._groupid = groupid
+        self._maxvalue=0
+        self._maxid=-1
     def needUpdate(self,value=None):
         if value is None:
             return self._needupdate
         else:
             self._needupdate = value
     def getLog(self):
-        text = "[现金红包]{}\n{}发了{}个红包\n总计{} Koge\n".format(self._title,self._fromuser.full_name,self._origamount,self._origbalance)
+        text = "🧧*[{}]*\n{}发了{}个红包\n总计{} Koge\n".format(self._title,self._fromuser.full_name,self._origamount,self._origbalance)
         text += "剩余{}个红包{} Koge\n-------------\n".format(self._amount,self._balance)
         for each in self._sequence:
-            text += "{} {} Koge\n".format(self._drawed[each][0],self._drawed[each][1])
+            if 0 == self._amount and each == self._maxid:
+                text += "[{}](tg://user?id={}) {} Koge *[手气最佳]*\n".format(self._drawed[each][0],each,self._drawed[each][1])
+            else:
+                text += "{} {} Koge\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
     def left(self):
         return self._amount
@@ -46,7 +51,6 @@ class RedPacket:
             self._balance = 0
             self._drawed[user.id]=[user.full_name,res]
             self._sequence.append(user.id)
-            return res
         else:
             average = self._balance/float(self._amount)
             res = max(round(random.uniform(0,2*average),2),0.01)
@@ -54,6 +58,10 @@ class RedPacket:
             self._amount -= 1
             self._drawed[user.id]=[user.full_name,res]
             self._sequence.append(user.id)
-            return res
+
+        if res > self._maxvalue:
+            self._maxvalue = res
+            self._maxid = user.id
+        return res
     def balance(self):
         return self._balance

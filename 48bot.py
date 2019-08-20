@@ -143,35 +143,35 @@ def callbackhandler(bot,update):
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'),timeout=60)
             update.callback_query.answer("{}已取消".format(activeuser.full_name))
             
-    elif message_id in global_redpackets:
+    elif "HONGBAO" == update.callback_query.data:
+        #message_id in global_redpackets:
         redpacket_id = message_id
         redpacket = global_redpackets[redpacket_id]
         thisdraw = redpacket.draw(activeuser)
         if thisdraw > 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
             update.callback_query.answer("{} Koge".format(thisdraw))
-            if not redpacket.needUpdate():
-                redpacket.needUpdate(True)
-                delayUpdateRedpacket(redpacket_id)
         else:
-            update.callback_query.answer()
+            update.callback_query.answer("红包发完了")
+
+        if not redpacket.needUpdate():
+            redpacket.needUpdate(True)
+            delayUpdateRedpacket(redpacket_id)
     else:
         update.callback_query.answer()
 
-def delayUpdateRedpacket(redpacket_id,delete=True):
-    thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id,delete])
+def delayUpdateRedpacket(redpacket_id):
+    thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id])
     thread.start()
-def actualUpdateRedpacket(redpacket_id,delete):
+def actualUpdateRedpacket(redpacket_id):
     time.sleep(1)
     redpacket = global_redpackets[redpacket_id]
+    redpacket.needUpdate(False)
     if redpacket.left() < 1:
         thismarkup = None
-        if delete:
-            del global_redpackets[redpacket_id]
     else:
         thismarkup = buildredpacketmarkup()
-    updater.bot.edit_message_caption(redpacket._groupid,redpacket_id,caption=redpacket.getLog(),reply_markup=thismarkup)
-    redpacket.needUpdate(False)
+    updater.bot.edit_message_caption(redpacket._groupid,redpacket_id,caption=redpacket.getLog(),reply_markup=thismarkup,parse_mode="Markdown")
 
 def delayAnswer(query,content=None):
     thread = Thread(target = actualAnswer, args=[query,content])
@@ -221,7 +221,7 @@ def pmcommandhandler(bot,update):
         if len(bindstatus['airdrops']) >0 :
             response += "最近的空投记录:\n"
             for each in bindstatus['airdrops']:
-                response += "    {}前 {} Koge48积分\n".format(each['before'],each['diff'])
+                response += "    {}前 {} Koge48\n".format(each['before'],each['diff'])
         update.message.reply_text(response)
     elif "/send" in things[0] and len(things) >=3:
         if float(things[1]) <= 0:
@@ -255,7 +255,7 @@ def pmcommandhandler(bot,update):
             update.message.reply_markdown("欢迎加入[BNB48Club](https://t.me/bnb48club_cn)")
     elif "/bind" in things[0]:
         update.message.reply_text(
-            "持有1BNB,每天可以获得固定比例Koge48积分。\n\n所有绑定过程均需要私聊管家机器人完成,在群组内调用绑定命令是无效的。请注意,BNB48俱乐部是投资者自发组织的松散社群,BNB48俱乐部与币安交易所无任何经营往来,交易所账户的持仓快照是根据币安交易所公开的API实现的,管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug,没有能力确保服务器不遭受攻击,也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗,进而导致您的全部资产被盗。\n\n如果您决定提交币安账户API,您承诺是在充分了解上述风险之后做出的决定。\n\n"+
+            "持有1BNB,每天可以获得固定比例Koge48。\n\n所有绑定过程均需要私聊管家机器人完成,在群组内调用绑定命令是无效的。请注意,BNB48俱乐部是投资者自发组织的松散社群,BNB48俱乐部与币安交易所无任何经营往来,交易所账户的持仓快照是根据币安交易所公开的API实现的,管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug,没有能力确保服务器不遭受攻击,也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗,进而导致您的全部资产被盗。\n\n如果您决定提交币安账户API,您承诺是在充分了解上述风险之后做出的决定。\n\n"+
             "输入apikey#apisecret绑定API\n"
         )
 def groupadminhandler(bot,update):
@@ -435,7 +435,20 @@ def botcommandhandler(bot,update):
         latest = koge48core.signCheque(targetuid,number,"signed by SirIanM")
         update.message.reply_markdown("添加成功,目前最新余额{}".format(latest))
     elif "/community" in things[0]:
-        markdown = "[BNB48 训练营](https://t.me/bnb48club_cn)"
+        markdown=""
+        markdown+= "[Perlin 中文社区](https://t.me/perlinnetworkchat_cn)"
+        markdown += "\n"
+        markdown+= "[Matic 官方中文社群](https://t.me/maticnetwork_china)"
+        markdown += "\n"
+        markdown+= "[Harmony - 中文](https://t.me/harmonycn)"
+        markdown += "\n"
+        markdown+= "[Celer Network - 中文](https://t.me/celernetworkcn)"
+        markdown += "\n"
+        markdown+= "[麦子钱包中文群](https://t.me/mathwalletCN)"
+        markdown += "\n"
+        markdown+= "[MEET.ONE(中文)](https://t.me/MeetOne)"
+        markdown += "\n-----------------\n"
+        markdown += "[BNB48 训练营](https://t.me/bnb48club_cn)"
         markdown += "\n"
         markdown += "[BNB48 Camp](https://t.me/bnb48club_en)"
         markdown += "\n"
@@ -444,16 +457,6 @@ def botcommandhandler(bot,update):
         markdown += "[BNB48 娱乐场]("+BNB48CASINOLINK+")"
         markdown += "\n"
         markdown+= "[BNB48 C2C场外交易群]("+BNB48C2CLINK+")"
-        markdown += "\n-----------------\n"
-        markdown+= "[Perlin 中文社区](https://t.me/perlinnetworkchat_cn)"
-        markdown += "\n"
-        markdown+= "[Matic 官方中文社群](https://t.me/maticnetwork_china)"
-        markdown += "\n"
-        markdown+= "[Celer Network - 中文](https://t.me/celernetworkcn)"
-        markdown += "\n"
-        markdown+= "[麦子钱包中文群](https://t.me/mathwalletCN)"
-        markdown += "\n"
-        markdown+= "[MEET.ONE(中文)](https://t.me/MeetOne)"
         if update.message.chat_id == BNB48:
             markdown += "\n-----------------\n"
             markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
@@ -473,7 +476,7 @@ def botcommandhandler(bot,update):
             markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
         else:
             markdown += "\n-----------------\n"
-            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge(含活动)大于等于{}可私聊机器人自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
+            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge大于等于{}可自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
 
         update.message.reply_markdown(markdown,disable_web_page_preview=True)
     elif "/posttg" in things[0]:
@@ -521,11 +524,11 @@ def botcommandhandler(bot,update):
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
-            update.message.reply_text("红包里得塞钱")
+            update.message.reply_text("发红包格式: `/hongbao 金额 拆成多少份`")
             return
 
         if balance <= 0:
-            update.message.reply_text("红包里得塞钱")
+            update.message.reply_markdown("发红包格式: `/hongbao 金额 拆成多少份`")
             return
 
 
@@ -553,7 +556,7 @@ def botcommandhandler(bot,update):
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title,update.message.chat_id)
         #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
-        message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
+        message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode="Markdown")
         redpacket_id = message.message_id
         global_redpackets[redpacket_id]=redpacket
         try:
@@ -694,9 +697,11 @@ def cleanHandler(bot,update):
 
         for each in global_redpackets:
             balance = global_redpackets[each].balance()
+            if balance <=0:
+                return
             global_redpackets[each].clear()
             koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,balance,"redpacket return")
-            delayUpdateRedpacket(each,False)
+            delayUpdateRedpacket(each)
 
         saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
         update.message.reply_text('cleaned')
@@ -801,11 +806,12 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if len(update.message.text) > 5:
+        if len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
             mined=koge48core.mine(user.id,update.message.chat_id)
         else:
             mined = False
         if mined and not update.message.chat_id in SILENTGROUPS:
+            logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
             update.message.reply_markdown("{}挖到{}个{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
 
 
@@ -901,7 +907,7 @@ def welcome(bot, update):
         if  update.message.chat_id == BNB48CN and update.message.from_user.id != newUser.id and not newUser.is_bot and koge48core.getBalance(newUser.id) == 0 and koge48core.getChequeBalance(newUser.id) == 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,newUser.id,Koge48.MINE_MIN_SIZE,"invited")
             koge48core.transferChequeBalance(Koge48.BNB48BOT,update.message.from_user.id,Koge48.MINE_MIN_SIZE,"inviting")
-            update.message.reply_text("{}邀请{},两人各挖到{}积分".format(update.message.from_user.full_name,newUser.full_name,Koge48.MINE_MIN_SIZE))
+            update.message.reply_text("{}邀请{},两人各挖到{}Koge".format(update.message.from_user.full_name,newUser.full_name,Koge48.MINE_MIN_SIZE))
         for SPAMWORD in SPAMWORDS:
             if SPAMWORD in newUser.full_name:
                 isSpam = True
