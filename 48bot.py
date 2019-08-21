@@ -56,11 +56,8 @@ PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 
 FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
-SILENTGROUPS =  loadJson("_data/silents.json",{})['groups']
-
 UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
-MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
-print(MININGBLACKLIST)
+MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
 
 SirIanM=420909210
 
@@ -156,10 +153,12 @@ def callbackhandler(bot,update):
         if thisdraw > 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
             update.callback_query.answer("{} Koge".format(thisdraw))
+        elif 0 == thisdraw:
+            update.callback_query.answer("每人只能领取一次")
         else:
             update.callback_query.answer("红包发完了")
 
-        if not redpacket.needUpdate():
+        if 0 != thisdraw and not redpacket.needUpdate():
             redpacket.needUpdate(True)
             delayUpdateRedpacket(redpacket_id)
     else:
@@ -396,6 +395,8 @@ def botcommandhandler(bot,update):
             return
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
+        if user.id == targetuser.id:
+            return
         transamount = float(things[1])
         koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
         try:
@@ -622,27 +623,20 @@ def botcommandhandler(bot,update):
 
         elif "/unrestrict" in things[0]:
             unrestrict(bot,update,update.message.chat_id,user,targetuser,update.message)
-    elif "/silent" in things[0] or "/desilent" in things[0]:
+    elif "/list" in things[0] or "/delist" in things[0]:
         if update.message.from_user.id != SirIanM:
             return
             #SirIanM only
         thegroup = update.message.chat_id
-        if "/silent" in things[0]:
-            if thegroup in SILENTGROUPS:
-                return
-            SILENTGROUPS.append(thegroup)
-            bot.sendMessage(update.message.chat_id, text=u"本群切换为静默模式,出矿无消息提示", reply_to_message_id=update.message.message_id)
-        else:
-            if not thegroup in SILENTGROUPS:
-                return
-            SILENTGROUPS.remove(thegroup)
-            bot.sendMessage(update.message.chat_id, text=u"本群解除静默模式", reply_to_message_id=update.message.message_id)
-
-        file = codecs.open("_data/silents.json","w","utf-8")
-        file.write(json.dumps({"groups":SILENTGROUPS}))
-        file.flush()
-        file.close()
-        logger.warning("SILENTGROUPS updated")
+        if "/list" in things[0]:
+            if not thegroup in MININGWHITELIST:
+                MININGWHITELIST[thegroup]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
+            bot.sendMessage(update.message.chat_id, text="Mining Enabled")
+        elif "/delist" in things[0]:
+            if thegroup in MININGWHITELIST:
+                del MININGWHITELIST[thegroup]
+            bot.sendMessage(update.message.chat_id, text="Mining Disabled")
+        saveJson("_data/miningwhitelist.json",MININGWHITELIST)
     return
 def topescrow(seller=None,buyer=None):
     escrowrecord = loadJson("_data/escrow.json",{})
@@ -788,7 +782,7 @@ def kogefaucetHandler(bot,update):
             update.message.reply_text(originout)
 
 def botmessagehandler(bot, update):
-    checkThresholds(update.message.chat_id,update.message.from_user.id)
+    #checkThresholds(update.message.chat_id,update.message.from_user.id)
 
     UIDFULLNAMEMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
 
@@ -815,12 +809,12 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if not update.message.chat_id in MININGBLACKLIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
+        if update.message.chat_id in MININGWHITELIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
             mined=koge48core.mine(user.id,update.message.chat_id)
         else:
             mined = False
 
-        if mined and not update.message.chat_id in SILENTGROUPS:
+        if mined:
             logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
             update.message.reply_markdown("{}挖到{}个{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
 
@@ -1046,8 +1040,8 @@ def main():
             #"demote",
             #"restrict",
             #"unrestrict",
-            "silent",
-            "desilent",
+            "list",
+            "delist",
             "hongbao",
             "redpacket",
             "cheque",
@@ -1107,8 +1101,8 @@ def airdropportal(bot,job):
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
     saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
-    global MININGBLACKLIST
-    MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
+    global MININGWHITELIST
+    MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
     return
 if __name__ == '__main__':
     

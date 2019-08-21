@@ -624,7 +624,7 @@ def airdropportal(bot,job):
 
         logger.warning(" gambler dividend distributed")
 
-
+        '''
         if len(bnb48list) < 2:
             centdiv = 0
         else:
@@ -641,9 +641,11 @@ def airdropportal(bot,job):
                         logger.warning(centdiv)
                         pass
             logger.warning("48 dividend distributed")
+        '''
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
-        announcementid = updater.bot.sendMessage(BNB48CASINO,"小秘书接收到下注总额{} Koge\n向下注者返现{} Koge\n向核心群成员分红{} Koge\n向JackPot奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n使用 /roller 命令查看排行榜与奖池".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
+        announcementid = updater.bot.sendMessage(BNB48CASINO,"小秘书接收到下注总额{} Koge\n向下注者返现{} Koge\n向JackPot奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n使用 /roller 命令查看排行榜与奖池".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
+
     CASINO_DIVIDING = False
     return
 if __name__ == '__main__':

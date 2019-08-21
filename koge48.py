@@ -360,7 +360,7 @@ class Koge48:
             value = round(Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random(),2)
             self._changeChequeBalance(minerid,value,"mining",groupid)
             self._changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
-            #logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
+            logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
             return value
         else:
             return 0
