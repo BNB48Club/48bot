@@ -59,6 +59,8 @@ SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 SILENTGROUPS =  loadJson("_data/silents.json",{})['groups']
 
 UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
+MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
+print(MININGBLACKLIST)
 
 SirIanM=420909210
 
@@ -146,6 +148,9 @@ def callbackhandler(bot,update):
     elif "HONGBAO" == update.callback_query.data:
         #message_id in global_redpackets:
         redpacket_id = message_id
+        if not redpacket_id in global_redpackets:
+            update.callback_query.message.delete()
+            return
         redpacket = global_redpackets[redpacket_id]
         thisdraw = redpacket.draw(activeuser)
         if thisdraw > 0:
@@ -304,6 +309,8 @@ def siriancommandhandler(bot,update):
         kick(update.message.chat_id,targetuser.id)
     elif "/kick" in things[0]:
         kick(long(things[1],long(things[2])))
+    elif "/findgroup" in things[0]:
+        update.message.reply_markdown("[{}]({})".format(things[1],bot.exportChatInviteLink(int(things[1]))))
     elif "/ban" in things[0] and not targetuser is None:
         ban(update.message.chat_id,targetuser.id)
     elif "/ban" in things[0]:
@@ -447,6 +454,8 @@ def botcommandhandler(bot,update):
         markdown+= "[麦子钱包中文群](https://t.me/mathwalletCN)"
         markdown += "\n"
         markdown+= "[MEET.ONE(中文)](https://t.me/MeetOne)"
+        markdown += "\n"
+        markdown+= "[Revain官方中文社区](https://t.me/RevainChinese)"
         markdown += "\n-----------------\n"
         markdown += "[BNB48 训练营](https://t.me/bnb48club_cn)"
         markdown += "\n"
@@ -806,10 +815,11 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
+        if not update.message.chat_id in MININGBLACKLIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
             mined=koge48core.mine(user.id,update.message.chat_id)
         else:
             mined = False
+
         if mined and not update.message.chat_id in SILENTGROUPS:
             logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
             update.message.reply_markdown("{}挖到{}个{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
@@ -1005,6 +1015,7 @@ def main():
             "flush",
             "deflush",
             "kick",
+            "findgroup",
             "ban",
             "unban",
             "groupid",
@@ -1096,6 +1107,8 @@ def airdropportal(bot,job):
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
     saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
+    global MININGBLACKLIST
+    MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
     return
 if __name__ == '__main__':
     
