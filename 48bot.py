@@ -58,6 +58,7 @@ FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
 MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
+ESCROWLIST = loadJson("_data/escrowlist.json",{})
 
 SirIanM=420909210
 
@@ -115,10 +116,12 @@ def callbackhandler(bot,update):
         thedatas = update.callback_query.data.split('#')
         if thedatas[0] != "escrow":
             return
-        if thedatas[1] == "confirm":
+        if thedatas[1] == "confirm" and ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
             if activeuser.id != float(thedatas[2]):
                 update.callback_query.answer("只有发起者才能确认")
                 return
+            ESCROWLIST[str(update.callback_query.message.message_id)]="confirm"
+            saveJson("_data/escrowlist.json",ESCROWLIST)
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
             if float(thedatas[4]) > 100:
                 topescrow(thedatas[2],thedatas[3])
@@ -129,10 +132,12 @@ def callbackhandler(bot,update):
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'),timeout=60)
             update.callback_query.answer("{}已确认".format(activeuser.full_name))
 
-        elif thedatas[1] == "cancel":
+        elif thedatas[1] == "cancel" and ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
             if activeuser.id != float(thedatas[3]):
                 update.callback_query.answer("只有接受者才能取消")
                 return
+            ESCROWLIST[str(update.callback_query.message.message_id)]="cancel"
+            saveJson("_data/escrowlist.json",ESCROWLIST)
             koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
             try:
                 bot.sendMessage(int(thedatas[2]),"您向{}发起的担保付款{}Koge已被取消".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
@@ -142,9 +147,9 @@ def callbackhandler(bot,update):
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'),timeout=60)
             update.callback_query.answer("{}已取消".format(activeuser.full_name))
             
-    elif "HONGBAO" == update.callback_query.data:
-        #message_id in global_redpackets:
-        redpacket_id = message_id
+    elif "HONGBAO" in update.callback_query.data:
+        thedatas = update.callback_query.data.split('#')
+        redpacket_id = thedatas[1]
         if not redpacket_id in global_redpackets:
             update.callback_query.message.delete()
             return
@@ -160,22 +165,22 @@ def callbackhandler(bot,update):
 
         if 0 != thisdraw and not redpacket.needUpdate():
             redpacket.needUpdate(True)
-            delayUpdateRedpacket(redpacket_id)
+            delayUpdateRedpacket(redpacket_id,update.callback_query.message.message_id)
     else:
         update.callback_query.answer()
 
-def delayUpdateRedpacket(redpacket_id):
-    thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id])
+def delayUpdateRedpacket(redpacket_id,message_id):
+    thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id,message_id])
     thread.start()
-def actualUpdateRedpacket(redpacket_id):
+def actualUpdateRedpacket(redpacket_id,message_id):
     time.sleep(1)
     redpacket = global_redpackets[redpacket_id]
-    redpacket.needUpdate(False)
     if redpacket.left() < 1:
         thismarkup = None
     else:
-        thismarkup = buildredpacketmarkup()
-    updater.bot.edit_message_caption(redpacket._groupid,redpacket_id,caption=redpacket.getLog(),reply_markup=thismarkup,parse_mode="Markdown")
+        thismarkup = buildredpacketmarkup(redpacket_id)
+    updater.bot.edit_message_caption(redpacket._groupid,message_id,caption=redpacket.getLog(),reply_markup=thismarkup,parse_mode="Markdown")
+    redpacket.needUpdate(False)
 
 def delayAnswer(query,content=None):
     thread = Thread(target = actualAnswer, args=[query,content])
@@ -186,10 +191,10 @@ def actualAnswer(query,content=None):
         query.answer()
     else:
         query.answer(text=content)
-def buildredpacketmarkup():
+def buildredpacketmarkup(redpacket_id):
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton('💰',callback_data="HONGBAO")]
+            [InlineKeyboardButton('💰抢红包！',callback_data="HONGBAO#{}".format(redpacket_id))]
         ]
     )
 
@@ -387,6 +392,10 @@ def siriancommandhandler(bot,update):
         file.close()
         logger.warning("blacklist_name updated")
 
+def inlinequeryHandler(bot,update):
+    return
+def choseninlineresultHandler(bot,update):
+    return
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
 
@@ -403,13 +412,15 @@ def botcommandhandler(bot,update):
             bot.sendMessage(targetuser.id,"收到{}向您转账{}Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
-        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{}💸{} {}{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
+        '''
         if update.message.chat_id != BNB48C2C:
             update.message.reply_markdown("担保交易功能仅在[场外交易群]({})可用".format(BNB48C2CLINK))
             return
+        '''
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
@@ -417,7 +428,9 @@ def botcommandhandler(bot,update):
             return
         transamount = float(things[1])
         koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
-        update.message.reply_markdown("{}向{}发起担保转账{}{},由小秘书保管资金居间担保。\n发起者点击✅按钮,小秘书完成转账至接受者。\n接受者点击❌按钮,小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁,如存在故意过错方,该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
+        message = update.message.reply_markdown("{}向{}发起担保转账{}{},由小秘书保管资金居间担保。\n发起者点击✅按钮,小秘书完成转账至接受者。\n接受者点击❌按钮,小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁,如存在故意过错方,该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
+        ESCROWLIST[str(message.message_id)]="start"
+        saveJson("_data/escrowlist.json",ESCROWLIST)
             
     elif "/burn" in things[0]:
         user = update.message.from_user
@@ -566,8 +579,8 @@ def botcommandhandler(bot,update):
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title,update.message.chat_id)
         #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
-        message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup(),parse_mode="Markdown")
-        redpacket_id = message.message_id
+        redpacket_id = str(int(time.time()))
+        message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup(redpacket_id),parse_mode="Markdown")
         global_redpackets[redpacket_id]=redpacket
         try:
             bot.deleteMessage(update.message.chat_id,update.message.message_id)
@@ -630,16 +643,16 @@ def botcommandhandler(bot,update):
         thegroup = update.message.chat_id
         if "/list" in things[0]:
             if not thegroup in MININGWHITELIST:
-                MININGWHITELIST[thegroup]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
+                MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
             bot.sendMessage(update.message.chat_id, text="Mining Enabled")
         elif "/delist" in things[0]:
             if thegroup in MININGWHITELIST:
-                del MININGWHITELIST[thegroup]
+                del MININGWHITELIST[str(thegroup)]
             bot.sendMessage(update.message.chat_id, text="Mining Disabled")
         saveJson("_data/miningwhitelist.json",MININGWHITELIST)
     return
 def topescrow(seller=None,buyer=None):
-    escrowrecord = loadJson("_data/escrow.json",{})
+    escrowrecord = loadJson("_data/escrowstats.json",{})
     if not seller is None:
         if seller in escrowrecord['seller']:
             escrowrecord['seller'][seller]+=1
@@ -687,7 +700,7 @@ def topescrow(seller=None,buyer=None):
     else:
         message = updater.bot.sendMessage(BNB48C2C,text,parse_mode="Markdown")
         escrowrecord['pinid']=message.message_id
-    saveJson("_data/escrow.json",escrowrecord)
+    saveJson("_data/escrowstats.json",escrowrecord)
 
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
@@ -701,7 +714,7 @@ def cleanHandler(bot,update):
         for each in global_redpackets:
             balance = global_redpackets[each].balance()
             if balance <=0:
-                return
+                break
             global_redpackets[each].clear()
             koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,balance,"redpacket return")
             delayUpdateRedpacket(each)
@@ -809,14 +822,14 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if update.message.chat_id in MININGWHITELIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
+        if str(update.message.chat_id) in MININGWHITELIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
             mined=koge48core.mine(user.id,update.message.chat_id)
         else:
             mined = False
 
         if mined:
             logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
-            update.message.reply_markdown("{}挖到{}个{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
+            update.message.reply_markdown("{}💰{}{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
 
 
 '''
@@ -1055,7 +1068,8 @@ def main():
 
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
     dp.add_handler(CommandHandler( [ "test" ], testHandler))
-
+    dp.add_handler(InlineQueryHandler(inlinequeryHandler))
+    dp.add_handler(ChosenInlineResultHandler(choseninlineresultHandler))
     # log all errors
     dp.add_error_handler(error)
 

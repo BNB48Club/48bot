@@ -205,8 +205,10 @@ def callbackhandler(bot,update):
             update.callback_query.answer()
             bot.deleteMessage(update.callback_query.message.chat_id, update.callback_query.message.message_id)
             return
-
-        actualUpdateCasino(casino_id)
+        if not global_longhu_casinos[casino_id].needUpdate():
+            logger.warning("update casino")
+            global_longhu_casinos[casino_id].needUpdate(True)
+            delayUpdateCasino(casino_id)
 
         update.callback_query.answer("下注成功。余额{}Koge".format(player_balance))
     else:
@@ -218,12 +220,14 @@ def delayUpdateCasino(casino_id):
     thread.start()
 
 def actualUpdateCasino(casino_id):
+    time.sleep(1)
     updater.bot.edit_message_text(
         text=LonghuCasino.getRule()+"\n---------------\n"+global_longhu_casinos[casino_id].getLog(),
         chat_id=BNB48CASINO,
         message_id=casino_id,
         reply_markup=CASINO_MARKUP,
     )
+    global_longhu_casinos[casino_id].needUpdate(False)
 def buildslotmarkup():
     keys = [
             [
@@ -351,7 +355,7 @@ def stopbetcasino(casino_id):
     thread.start()
     
 def releaseandstartcasino(casino_id):
-    time.sleep(1)
+    time.sleep(2)
     #logger.warning("casino release")
     thecasino = global_longhu_casinos[casino_id]
     #logger.warning("start releasing")
