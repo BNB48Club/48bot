@@ -281,9 +281,10 @@ class Koge48:
         self._close(cursor)
         return changes
         
-    def getGroupMiningStatus(self,groupid): 
+    def getGroupMiningStatus(self): 
         cursor = self._mycursor()
-        sql = "SELECT sid,count(*) as amount FROM `cheque` WHERE source={} AND sid <> {} AND unix_timestamp(ts)>{} group by sid order by amount desc limit 10".format(groupid,Koge48.BNB48BOT,(time.time()-(7*24*3600)))
+        sql = "SELECT source,count(*) as amount FROM `cheque` WHERE `memo`='mining' AND `number` > 0 AND unix_timestamp(ts)>{} group by source order by amount desc".format(time.time()-(24*3600))
+        #print(sql)
         cursor.execute(sql)
         #logger.warning(sql)
         top10 = cursor.fetchall()

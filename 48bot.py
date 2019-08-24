@@ -129,8 +129,8 @@ def callbackhandler(bot,update):
                 bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
             except:
                 pass
-            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'),timeout=60)
             update.callback_query.answer("{}已确认".format(activeuser.full_name))
+            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'))
 
         elif thedatas[1] == "cancel" and ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
             if activeuser.id != float(thedatas[3]):
@@ -144,7 +144,7 @@ def callbackhandler(bot,update):
             except Exception as e:
                 logger.warning(e)
                 pass
-            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'),timeout=60)
+            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'))
             update.callback_query.answer("{}已取消".format(activeuser.full_name))
             
     elif "HONGBAO" in update.callback_query.data:
@@ -275,15 +275,16 @@ def groupadminhandler(bot,update):
         update.message.reply_text("只有管理员可以调用")
         return
     if "mining" in update.message.text:
-        top10 = koge48core.getGroupMiningStatus(chatid)
-        text="过去一周(7\*24小时){}挖矿排行榜:\n".format(update.message.chat.title)
+        top10 = koge48core.getGroupMiningStatus()
+        text="24小时算力排行榜:\n"
+        powtotal = 0
         for each in top10:
-            if str(each[0]) in UIDFULLNAMEMAP:
-                fullname = UIDFULLNAMEMAP[str(each[0])]
-            else:
-                fullname = str(each[0])
-            text+="[{}](tg://user?id={})挖出{}个块\n".format(fullname,each[0],each[1])
-        update.message.reply_markdown(text)
+            powtotal += each[1]
+        for each in top10:
+            fullname = MININGWHITELIST[each[0]]['title']
+            link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
+            text+="[{}]({}) 算力{}%\n".format(fullname,link,round(100.0*each[1]/powtotal,2))
+        update.message.reply_markdown(text,disable_web_page_preview=True)
 def richHandler(bot,update):
     top10 = koge48core.getTop(20)
     text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge总量{}\n永久Koge总量{}\nKoge富豪榜(含活动Koge):\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
@@ -456,21 +457,31 @@ def botcommandhandler(bot,update):
         latest = koge48core.signCheque(targetuid,number,"signed by SirIanM")
         update.message.reply_markdown("添加成功,目前最新余额{}".format(latest))
     elif "/community" in things[0]:
-        markdown=""
-        markdown+= "[Perlin 中文社区](https://t.me/perlinnetworkchat_cn)"
-        markdown += "\n"
-        markdown+= "[Matic 官方中文社群](https://t.me/maticnetwork_china)"
-        markdown += "\n"
-        markdown+= "[Harmony - 中文](https://t.me/harmonycn)"
-        markdown += "\n"
-        markdown+= "[Celer Network - 中文](https://t.me/celernetworkcn)"
-        markdown += "\n"
-        markdown+= "[麦子钱包中文群](https://t.me/mathwalletCN)"
-        markdown += "\n"
-        markdown+= "[MEET.ONE(中文)](https://t.me/MeetOne)"
-        markdown += "\n"
-        markdown+= "[Revain官方中文社区](https://t.me/RevainChinese)"
-        markdown += "\n-----------------\n"
+        koge48core.transferChequeBalance(update.message.from_user.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
+        markdown="本次查询费用由`{}`支付\n\n".format(update.message.from_user.full_name)
+        top10 = koge48core.getGroupMiningStatus()
+        markdown+="24小时聊天挖矿算力排行榜:\n"
+        powtotal = 0
+        for each in top10:
+            powtotal += each[1]
+
+        tempwhitelist = MININGWHITELIST.copy()
+        for each in top10:
+            try:
+                fullname = MININGWHITELIST[each[0]]['title']
+                link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
+                markdown+="[{}]({}) 算力 {}%\n".format(fullname,link,round(100.0*each[1]/powtotal,2))
+                tempwhitelist.pop(each[0])
+            except Exception as e:
+                print(e)
+                pass
+
+        for each in tempwhitelist:
+            fullname = MININGWHITELIST[each]['title']
+            link = 'https://t.me/{}'.format(MININGWHITELIST[each]['username'])
+            markdown+="[{}]({}) 算力 0%\n".format(fullname,link)
+
+        markdown += "-----------------\n"
         markdown += "[BNB48 训练营](https://t.me/bnb48club_cn)"
         markdown += "\n"
         markdown += "[BNB48 Camp](https://t.me/bnb48club_en)"
@@ -481,7 +492,7 @@ def botcommandhandler(bot,update):
         markdown += "\n"
         markdown+= "[BNB48 C2C场外交易群]("+BNB48C2CLINK+")"
         if update.message.chat_id == BNB48:
-            markdown += "\n-----------------\n"
+            markdown += "\n"
             markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
             #markdown += "\n"
             #markdown+= "[BNB48 媒体宣传](https://t.me/joinchat/GRaQmkZcD-7Y4q83Nmyj4Q)"
@@ -498,8 +509,8 @@ def botcommandhandler(bot,update):
             markdown += "\n"
             markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
         else:
-            markdown += "\n-----------------\n"
-            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge大于等于{}可自助加入核心群\n持仓Koge不足{}会被移出".format(ENTRANCE_THRESHOLDS[BNB48],KICK_THRESHOLDS[BNB48]);
+            markdown += "\n"
+            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge大于等于{}可自助加入核心群".format(ENTRANCE_THRESHOLDS[BNB48])
 
         update.message.reply_markdown(markdown,disable_web_page_preview=True)
     elif "/posttg" in things[0]:
@@ -642,11 +653,11 @@ def botcommandhandler(bot,update):
             #SirIanM only
         thegroup = update.message.chat_id
         if "/list" in things[0]:
-            if not thegroup in MININGWHITELIST:
+            if not str(thegroup) in MININGWHITELIST:
                 MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
             bot.sendMessage(update.message.chat_id, text="Mining Enabled")
         elif "/delist" in things[0]:
-            if thegroup in MININGWHITELIST:
+            if str(thegroup) in MININGWHITELIST:
                 del MININGWHITELIST[str(thegroup)]
             bot.sendMessage(update.message.chat_id, text="Mining Disabled")
         saveJson("_data/miningwhitelist.json",MININGWHITELIST)
@@ -980,7 +991,7 @@ def error(bot, update, error):
 
 
 mytoken = selectBot(bots)
-updater = Updater(token=mytoken, request_kwargs={'read_timeout': 30, 'connect_timeout': 15})
+updater = Updater(token=mytoken, request_kwargs={'read_timeout': 30, 'connect_timeout': 30})
 j = updater.job_queue
 
 
@@ -1008,7 +1019,6 @@ def main():
 
     dp.add_handler(CommandHandler(
         [
-            "mining"
         ],
         groupadminhandler)#只对管理员账号的命令做出响应
     )
