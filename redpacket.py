@@ -22,11 +22,10 @@ class RedPacket:
         else:
             self._needupdate = value
     def getLog(self):
-        text = "🧧*[{}]*\n{}发了{}个红包\n总计{} Koge\n".format(self._title,self._fromuser.full_name,self._origamount,self._origbalance)
-        text += "剩余{}个红包{} Koge\n-------------\n".format(self._amount,self._balance)
+        text = "🧧*[{}] by {}*\n*{}/{} shares ({}/{} Koge)*\n---\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance)
         for each in self._sequence:
             if 0 == self._amount and each == self._maxid:
-                text += "[{}](tg://user?id={}) {} Koge *[手气最佳]*\n".format(self._drawed[each][0],each,self._drawed[each][1])
+                text += "[{}](tg://user?id={}) {} Koge *[🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1])
             else:
                 text += "{} {} Koge\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
@@ -36,7 +35,7 @@ class RedPacket:
         if self._amount < 1:
             return -1
         self._amount = 0
-        self._drawed[0]=["退回",self._balance]
+        self._drawed[0]=["Refund",self._balance]
         self._balance = 0
         self._sequence.append(0)
         return

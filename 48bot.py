@@ -21,7 +21,6 @@ from selectBot import selectBot
 from botsapi import bots
 from koge48 import Koge48
 from redpacket import RedPacket
-from auction import Auction
 from ppt2img import genPNG
 from sendweibo import init_weibo, send_pic
 
@@ -58,6 +57,7 @@ FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
 MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
+MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
 ESCROWLIST = loadJson("_data/escrowlist.json",{})
 
 SirIanM=420909210
@@ -72,6 +72,7 @@ BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
+KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB，会按比例得到Koge。\n\nBNB48还通过空投*活动*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)活动Koge空投，同时活动Koge会以每天10%的速度自然衰减。\n\nKOGE目前通过Telegram Bot进行中心化管理，可以使用如下命令进行操作：\nescrow - 担保交易, 在场外交易群回复对方消息，格式为 `/escrow KOGE金额`\ntrans - KOGE转账，在任一有KOGE机器人的群回复对方消息，格式为 `/trans KOGE金额`\nhongbao - Koge红包 在任一有KOGE机器人的群发送，格式为 `/hongbao 金额 个数 [祝福语]`\n\n注意 _活动Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token，进行链上映射。链上映射时，活动Koge也将进行1:1映射，映射后不再区分活动与否。"
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
 KICK_THRESHOLDS={BNB48:100000}
@@ -90,7 +91,6 @@ koge48core = Koge48(
 
 
 global_redpackets = {}
-global_auctions = {}
 
 weiboclient = init_weibo('BNB48Club')
 
@@ -106,44 +106,150 @@ def is_number(s):
         pass
     return False
 
+def getCommunityContent(activeuser=None):
+    top10 = koge48core.getGroupMiningStatus()
+    markdown="24小时聊天挖矿算力排行榜:\n"
+    powtotal = 0
+    for each in top10:
+        powtotal += each[1]
 
+    tempwhitelist = MININGWHITELIST.copy()
+    for each in top10:
+        try:
+            fullname = MININGWHITELIST[each[0]]['title']
+            link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
+            markdown+="[{}]({}) {}%\n".format(fullname,link,round(100.0*each[1]/powtotal,2))
+            tempwhitelist.pop(each[0])
+        except Exception as e:
+            print(e)
+            pass
+
+    for each in tempwhitelist:
+        fullname = MININGWHITELIST[each]['title']
+        link = 'https://t.me/{}'.format(MININGWHITELIST[each]['username'])
+        markdown+="[{}]({}) 算力 0%\n".format(fullname,link)
+
+    markdown += "-----------------\n"
+    markdown += "[BNB48 公告](https://t.me/bnb48club_publish)"
+    if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
+        markdown += "\n"
+        markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
+        #markdown += "\n"
+        #markdown+= "[BNB48 媒体宣传](https://t.me/joinchat/GRaQmkZcD-7Y4q83Nmyj4Q)"
+        #markdown += "\n"
+        #markdown+= "[BNB48 技术开发](https://t.me/joinchat/GRaQmlISUPSpHFwVblxvxQ)"
+        #markdown += "\n"
+        #markdown+= "[BNB48 内部测试](https://t.me/joinchat/GRaQmlMuX_XdVSQgpxFT_g)"
+        markdown += "\n"
+        markdown+= "[BNB48 孵化器](https://t.me/joinchat/GRaQmlWXCEJIJN3niyUUhg)"
+        markdown += "\n"
+        markdown+= "[BNB48 移民咨询](https://t.me/joinchat/GRaQmlAedWPaQFjyfoTDYg)"
+        markdown += "\n"
+        markdown+= "[BNB48 翻墙交流](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
+        markdown += "\n"
+        markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
+    else:
+        markdown += "\n"
+        markdown += "更多群组仅对BNB48核心成员开放"
+    return markdown
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
     UIDFULLNAMEMAP[str(activeuser.id)]=activeuser.full_name
     logger.warning("{} callback, content: {}".format(activeuser.full_name,update.callback_query.data))
-    if "escrow" in update.callback_query.data:
+    if "MENU" in update.callback_query.data:
+        thedatas = update.callback_query.data.split('#')
+        if "BALANCE" == thedatas[1]:
+            response = "{}的{}余额为{}\n活动Koge余额为{}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id),','),format(koge48core.getBalance(activeuser.id),','))
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "CHANGES" == thedatas[1]:
+            response = "{}最近的Koge变动记录:\n".format(activeuser.full_name)
+            kogechanges=koge48core.getChequeRecentChanges(activeuser.id)
+            for each in kogechanges:
+                response += "  {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "API" == thedatas[1]:
+            response = ""
+            bindstatus = koge48core.getAirDropStatus(activeuser.id)
+            response += "\n\n为了确认空投数量，我们需要您提供币安账户的API(只读)。按照 `apikey#apisecret` 的格式输入api密钥即可进行绑定/更新"
+            response +="\n\n您当前绑定的币安APIkey(secret隐藏):\n  {}".format(bindstatus['api'][0])
+            response +="\n\n末次快照BNB余额:\n  {}".format(bindstatus['bnb'][1])
+            response += "\n\n请注意:_BNB48俱乐部与币安交易所无经营往来，持仓快照是根据币安交易所公开的API接口获取信息。俱乐部尽力保证程序按照设计运行并对服务器做出力所能及的安全防护，然而我们无法做出100%的安全承诺。在极端情况下，您提交的API信息有可能被盗，我们无力对这种极端情况带来的后果负责。请自行做好必要的安全措施，例如对绑定的API设置只读权限。_"
+            response += "\n\n您承诺是在充分了解上述风险之后决定继续绑定币安账户API。"
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "AIRDROP" == thedatas[1]:
+            response = "最近的空投记录:"
+            changes=koge48core.getRecentChanges(activeuser.id)
+            for each in changes:
+                response += "\n  {}前,`{}`,{}".format(each['before'],each['diff'],each['memo'])
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "MINING" == thedatas[1]:
+            response = "在KOGE机器人入驻并开通了聊天挖矿功能的Telegram公开群中聊天，有几率获得KOGE奖励。即聊天挖矿。"
+            response += "\n\n聊天挖矿出矿的概率服从以聊天消息间隔为变量的泊松分布，距离上条消息发出的时间越长则本条消息挖出矿的概率越大。"
+            response += "\n\n核心群成员享有聊天挖矿双倍出矿概率"
+            response += "\n\n换言之，越少其他人聊天，则越容易出矿。您可以查看社区排名，选择热度较低的群发言以更高效地挖矿。"
+            response += "\n\n每次出矿的金额大小服从一定范围内的平均分布。"
+            response += "\n\n通过聊天挖矿送出的KOGE由BNB48 Club®️运营资金支付。"
+            response += "\n\n如果需要在您的Telegram公开群引入聊天挖矿，请先将本机器人加入您的群，然后联系[BNB48](https://t.me/bnb48club_cn)开通。"
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "KOGE" == thedatas[1]:
+            update.callback_query.message.edit_text(KOGEINTRODUCTION,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "JOIN" == thedatas[1]:
+            if koge48core.getTotalBalance(activeuser.id) >= ENTRANCE_THRESHOLDS[BNB48]:
+                response = "欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48))
+            else:
+                response ="持仓Koge大于等于{}可自助加入核心群".format(ENTRANCE_THRESHOLDS[BNB48])
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "RICH" == thedatas[1]:
+            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
+            markdown="本次查询费用{}Koge由`{}`支付\n\n".format(PRICES['query'],activeuser.full_name)
+            top10 = koge48core.getTop(20)
+            text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge总量{}\n永久Koge总量{}\n---\nKoge富豪榜(含活动Koge):\n\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
+            for each in top10:
+                text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1])
+            update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        elif "COMMUNITY" == thedatas[1]:
+            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
+            markdown="本次查询费用{}Koge由`{}`支付\n\n".format(PRICES['query'],activeuser.full_name)
+            markdown+=getCommunityContent(activeuser)
+            update.callback_query.message.edit_text(markdown,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+        else:
+            update.callback_query.answer()
+
+    elif "escrow" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
         if thedatas[0] != "escrow":
             return
-        if thedatas[1] == "confirm" and ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
+        if thedatas[1] == "confirm":
             if activeuser.id != float(thedatas[2]):
                 update.callback_query.answer("只有发起者才能确认")
                 return
-            ESCROWLIST[str(update.callback_query.message.message_id)]="confirm"
-            saveJson("_data/escrowlist.json",ESCROWLIST)
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
-            if float(thedatas[4]) > 100:
-                topescrow(thedatas[2],thedatas[3])
-            try:
-                bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
-            except:
-                pass
+            if ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
+                ESCROWLIST[str(update.callback_query.message.message_id)]="confirm"
+                saveJson("_data/escrowlist.json",ESCROWLIST)
+                koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
+                if float(thedatas[4]) > 100:
+                    topescrow(thedatas[2],thedatas[3])
+                try:
+                    bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+                except:
+                    pass
             update.callback_query.answer("{}已确认".format(activeuser.full_name))
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'))
 
-        elif thedatas[1] == "cancel" and ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
+        elif thedatas[1] == "cancel":
             if activeuser.id != float(thedatas[3]):
                 update.callback_query.answer("只有接受者才能取消")
                 return
-            ESCROWLIST[str(update.callback_query.message.message_id)]="cancel"
-            saveJson("_data/escrowlist.json",ESCROWLIST)
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
-            try:
-                bot.sendMessage(int(thedatas[2]),"您向{}发起的担保付款{}Koge已被取消".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
-            except Exception as e:
-                logger.warning(e)
-                pass
+            if ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
+                ESCROWLIST[str(update.callback_query.message.message_id)]="cancel"
+                saveJson("_data/escrowlist.json",ESCROWLIST)
+                koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
+                try:
+                    bot.sendMessage(int(thedatas[2]),"您向{}发起的担保付款{}Koge已被取消".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+                except Exception as e:
+                    logger.warning(e)
+                    pass
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'))
             update.callback_query.answer("{}已取消".format(activeuser.full_name))
             
@@ -191,6 +297,39 @@ def actualAnswer(query,content=None):
         query.answer()
     else:
         query.answer(text=content)
+
+def builddashboardmarkup(lang="CN"):
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton('KOGE简介',callback_data="MENU#KOGE"),
+            ],
+            [
+                InlineKeyboardButton('账户余额',callback_data="MENU#BALANCE"),
+                InlineKeyboardButton('收支明细',callback_data="MENU#CHANGES"),
+            ],
+            [
+                InlineKeyboardButton('绑定持仓',callback_data="MENU#API"),
+                InlineKeyboardButton('空投记录',callback_data="MENU#AIRDROP"),
+            ],
+            [
+                InlineKeyboardButton('聊天挖矿💲',callback_data="MENU#MINING"),
+                InlineKeyboardButton('社区算力💲'.format(PRICES['query']),callback_data="MENU#COMMUNITY"),
+            ],
+            [
+                InlineKeyboardButton('加入核心群',callback_data="MENU#JOIN"),
+                InlineKeyboardButton('KOGE富豪榜',callback_data="MENU#RICH")
+            ],
+            [
+                InlineKeyboardButton('娱乐场',url=BNB48CASINOLINK),
+                InlineKeyboardButton('场外交易',url=BNB48C2CLINK)
+            ],
+            [
+                InlineKeyboardButton('将KOGE加入群',url="https://telegram.me/bnb48_bot?startgroup=join"),
+                #InlineKeyboardButton('EN/中文',callback_data="MENU#LANG#{}".format(lang))
+            ]
+        ]
+    )
 def buildredpacketmarkup(redpacket_id):
     return InlineKeyboardMarkup(
         [
@@ -218,21 +357,13 @@ def buildescrowmarkup(fromid,toid,transamount):
 def testHandler(bot,update):
     update.message.reply_text(bot.exportChatInviteLink(update.message.chat_id))
 def pmcommandhandler(bot,update):
+    #if not '/start' in update.message.text and update.message.chat.type != 'private':
     if update.message.chat.type != 'private':
         update.message.reply_text('该命令需私聊机器人')
         return
 
     things = update.message.text.split(' ')
-    if "/mybinding" in things[0]:
-        bindstatus = koge48core.getAirDropStatus(update.message.from_user.id)
-        response ="当前绑定的币安APIkey(secret 不显示):\n    {}\n\n".format(bindstatus['api'][0])
-        response +="末次快照BNB余额:\n    {}\n\n".format(bindstatus['bnb'][1])
-        if len(bindstatus['airdrops']) >0 :
-            response += "最近的空投记录:\n"
-            for each in bindstatus['airdrops']:
-                response += "    {}前 {} Koge48\n".format(each['before'],each['diff'])
-        update.message.reply_text(response)
-    elif "/send" in things[0] and len(things) >=3:
+    if "/send" in things[0] and len(things) >=3:
         if float(things[1]) <= 0:
             return
         if int(things[2]) <= 0:
@@ -256,17 +387,18 @@ def pmcommandhandler(bot,update):
                 update.message.reply_markdown("不存在的奖励号码")
         '''
     elif "/start" in things[0]:
-        update.message.reply_text("http://bnb48.club")
+        #if 'private' == update.message.chat.type:
+        update.message.reply_markdown(KOGEINTRODUCTION,reply_markup=builddashboardmarkup())
+        '''
+        elif 2 == len(things) and 'join' == things[1]:
+            listMiningGroup(update.message)
     elif "/join" in things[0]:
         if koge48core.getTotalBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
             update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
         else:
             update.message.reply_markdown("欢迎加入[BNB48Club](https://t.me/bnb48club_cn)")
-    elif "/bind" in things[0]:
-        update.message.reply_text(
-            "持有1BNB,每天可以获得固定比例Koge48。\n\n所有绑定过程均需要私聊管家机器人完成,在群组内调用绑定命令是无效的。请注意,BNB48俱乐部是投资者自发组织的松散社群,BNB48俱乐部与币安交易所无任何经营往来,交易所账户的持仓快照是根据币安交易所公开的API实现的,管家机器人是开源社区开发的项目。俱乐部没有能力保证项目不存在Bug,没有能力确保服务器不遭受攻击,也没有能力约束开源项目参与者不滥用您提交的信息。\n\n您提交的所有信息均有可能被盗,进而导致您的全部资产被盗。\n\n如果您决定提交币安账户API,您承诺是在充分了解上述风险之后做出的决定。\n\n"+
-            "输入apikey#apisecret绑定API\n"
-        )
+        '''
+
 def groupadminhandler(bot,update):
     chatid = update.message.chat_id
     user = update.message.from_user
@@ -285,22 +417,27 @@ def groupadminhandler(bot,update):
             link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
             text+="[{}]({}) 算力{}%\n".format(fullname,link,round(100.0*each[1]/powtotal,2))
         update.message.reply_markdown(text,disable_web_page_preview=True)
-def richHandler(bot,update):
-    top10 = koge48core.getTop(20)
-    text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge总量{}\n永久Koge总量{}\nKoge富豪榜(含活动Koge):\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
-    for each in top10:
-        if str(each[0]) in UIDFULLNAMEMAP:
-            fullname = UIDFULLNAMEMAP[str(each[0])]
-        else:
-            fullname = str(each[0])
-        text+="[{}](tg://user?id={})\t{}\n".format(fullname,each[0],each[1])
-    update.message.reply_markdown(text,quote=False)
-    
-def getusermd(user):
-    #return "[`{}`](tg://user?id={})".format(user.full_name,user.id)
-    return "`{}`".format(user.full_name)
+
+def getFullname(uid):
+    if str(uid) in UIDFULLNAMEMAP:
+        return UIDFULLNAMEMAP[str(uid)]
+    else:
+        return str(uid)
+def getusermd(user,link=True):
+    if user.id is None:
+        userid = int(user)
+        res = "[{}]".format(getFullname(userid))
+        if link:
+            res += "(tg://user?id={})".format(userid)
+        return res
+    else:
+        res="[{}]".format(user.full_name)
+        if link:
+            res += "(tg://user?id={})".format(user.id)
+        return res
+    #return "`{}`".format(user.full_name)
 def getkoge48md():
-    return "[Koge](http://bnb48.club/html/cn/governance.html)"
+    return "[Koge](https://t.me/bnb48_bot)"
 def siriancommandhandler(bot,update):
     if update.message.from_user.id != SirIanM:
         return
@@ -320,6 +457,14 @@ def siriancommandhandler(bot,update):
         ban(update.message.chat_id,targetuser.id)
     elif "/ban" in things[0]:
         ban(long(things[1],long(things[2])))
+    elif "/cheque" in things[0]:
+        if len(things) != 2:
+            update.message.reply_text("回复他人消息: /cheque 金额")
+            return
+        number = float(things[1])
+        latest = koge48core.signCheque(targetuser.id,number,"signed by SirIanM")
+        update.message.reply_markdown("添加成功,目前最新余额{}".format(latest))
+
     elif "/kogebonus" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
@@ -332,6 +477,22 @@ def siriancommandhandler(bot,update):
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,targetuser.id,transamount,"Koge Bonus")
         update.message.reply_markdown("向{}发放{} {}".format(getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+    elif "/list" in things[0] or "/delist" in things[0]:
+        thegroup = update.message.chat_id
+        if "/list" in things[0] and not update.message.chat.username is None:
+            if not str(thegroup) in MININGWHITELIST:
+                MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
+            bot.sendMessage(update.message.chat_id, text="Mining Enabled")
+        elif "/delist" in things[0]:
+            if str(thegroup) in MININGWHITELIST:
+                del MININGWHITELIST[str(thegroup)]
+            bot.sendMessage(update.message.chat_id, text="Mining Disabled")
+        saveJson("_data/miningwhitelist.json",MININGWHITELIST)
+    elif "/exclude" in things[0]:
+        if not targetuser.id in MININGBLACKLIST:
+            MININGBLACKLIST.append(targetuser.id)
+            saveJson("_data/miningblacklist.json",MININGBLACKLIST)
+        update.message.reply_text("excluded")
     elif "/unban" in things[0] and not targetuser is None:
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
@@ -413,15 +574,13 @@ def botcommandhandler(bot,update):
             bot.sendMessage(targetuser.id,"收到{}向您转账{}Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
-        update.message.reply_markdown("{}💸{} {}{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{} 💸 {} {}{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
-        '''
         if update.message.chat_id != BNB48C2C:
             update.message.reply_markdown("担保交易功能仅在[场外交易群]({})可用".format(BNB48C2CLINK))
             return
-        '''
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
@@ -446,73 +605,6 @@ def botcommandhandler(bot,update):
         number = float(things[1])
         latest = koge48core.burn(targetuid,number)
         update.message.reply_markdown("销毁成功,目前最新余额{}".format(latest))
-    elif "/cheque" in things[0]:
-        if SirIanM != update.message.from_user.id:
-            return
-        if len(things) != 2:
-            update.message.reply_text("回复他人消息: /cheque 金额")
-            return
-        number = float(things[1])
-        targetuid = update.message.reply_to_message.from_user.id
-        latest = koge48core.signCheque(targetuid,number,"signed by SirIanM")
-        update.message.reply_markdown("添加成功,目前最新余额{}".format(latest))
-    elif "/community" in things[0]:
-        koge48core.transferChequeBalance(update.message.from_user.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
-        markdown="本次查询费用由`{}`支付\n\n".format(update.message.from_user.full_name)
-        top10 = koge48core.getGroupMiningStatus()
-        markdown+="24小时聊天挖矿算力排行榜:\n"
-        powtotal = 0
-        for each in top10:
-            powtotal += each[1]
-
-        tempwhitelist = MININGWHITELIST.copy()
-        for each in top10:
-            try:
-                fullname = MININGWHITELIST[each[0]]['title']
-                link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
-                markdown+="[{}]({}) 算力 {}%\n".format(fullname,link,round(100.0*each[1]/powtotal,2))
-                tempwhitelist.pop(each[0])
-            except Exception as e:
-                print(e)
-                pass
-
-        for each in tempwhitelist:
-            fullname = MININGWHITELIST[each]['title']
-            link = 'https://t.me/{}'.format(MININGWHITELIST[each]['username'])
-            markdown+="[{}]({}) 算力 0%\n".format(fullname,link)
-
-        markdown += "-----------------\n"
-        markdown += "[BNB48 训练营](https://t.me/bnb48club_cn)"
-        markdown += "\n"
-        markdown += "[BNB48 Camp](https://t.me/bnb48club_en)"
-        markdown += "\n"
-        markdown += "[BNB48 公示](https://t.me/bnb48club_publish)"
-        markdown += "\n"
-        markdown += "[BNB48 娱乐场]("+BNB48CASINOLINK+")"
-        markdown += "\n"
-        markdown+= "[BNB48 C2C场外交易群]("+BNB48C2CLINK+")"
-        if update.message.chat_id == BNB48:
-            markdown += "\n"
-            markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
-            #markdown += "\n"
-            #markdown+= "[BNB48 媒体宣传](https://t.me/joinchat/GRaQmkZcD-7Y4q83Nmyj4Q)"
-            #markdown += "\n"
-            #markdown+= "[BNB48 技术开发](https://t.me/joinchat/GRaQmlISUPSpHFwVblxvxQ)"
-            #markdown += "\n"
-            #markdown+= "[BNB48 内部测试](https://t.me/joinchat/GRaQmlMuX_XdVSQgpxFT_g)"
-            markdown += "\n"
-            markdown+= "[BNB48 孵化器](https://t.me/joinchat/GRaQmlWXCEJIJN3niyUUhg)"
-            markdown += "\n"
-            markdown+= "[BNB48 移民咨询](https://t.me/joinchat/GRaQmlAedWPaQFjyfoTDYg)"
-            markdown += "\n"
-            markdown+= "[BNB48 翻墙交流](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
-            markdown += "\n"
-            markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
-        else:
-            markdown += "\n"
-            markdown += "更多群组仅对BNB48核心成员开放\n持仓Koge大于等于{}可自助加入核心群".format(ENTRANCE_THRESHOLDS[BNB48])
-
-        update.message.reply_markdown(markdown,disable_web_page_preview=True)
     elif "/posttg" in things[0]:
         if update.message.chat_id != BNB48MEDIA:
             photoid = update.message.reply_to_message.photo[-1].file_id
@@ -647,21 +739,15 @@ def botcommandhandler(bot,update):
 
         elif "/unrestrict" in things[0]:
             unrestrict(bot,update,update.message.chat_id,user,targetuser,update.message)
-    elif "/list" in things[0] or "/delist" in things[0]:
-        if update.message.from_user.id != SirIanM:
-            return
-            #SirIanM only
-        thegroup = update.message.chat_id
-        if "/list" in things[0]:
-            if not str(thegroup) in MININGWHITELIST:
-                MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
-            bot.sendMessage(update.message.chat_id, text="Mining Enabled")
-        elif "/delist" in things[0]:
-            if str(thegroup) in MININGWHITELIST:
-                del MININGWHITELIST[str(thegroup)]
-            bot.sendMessage(update.message.chat_id, text="Mining Disabled")
-        saveJson("_data/miningwhitelist.json",MININGWHITELIST)
     return
+def listMiningGroup(message):
+    thegroup = message.chat_id
+    if message.chat.username is None:
+        message.reply_text("Gossip Mining Only in Public Groups")
+    if not str(thegroup) in MININGWHITELIST:
+        MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
+        message.reply_text("Mining Enabled")
+
 def topescrow(seller=None,buyer=None):
     escrowrecord = loadJson("_data/escrowstats.json",{})
     if not seller is None:
@@ -718,9 +804,8 @@ def cleanHandler(bot,update):
         updater.job_queue.stop()
         for job in updater.job_queue.jobs():
             job.schedule_removal()
-            if job.name in [ "dealAuction" ]:
-                job.run(bot)
             logger.warning("job {} cleared".format(job.name))
+        logger.warning("All job cleared")
 
         for each in global_redpackets:
             balance = global_redpackets[each].balance()
@@ -729,6 +814,8 @@ def cleanHandler(bot,update):
             global_redpackets[each].clear()
             koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,balance,"redpacket return")
             delayUpdateRedpacket(each)
+
+        logger.warning("All redpackets cleared")
 
         saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
         update.message.reply_text('cleaned')
@@ -833,14 +920,14 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if str(update.message.chat_id) in MININGWHITELIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
+        if not user.id in MININGBLACKLIST and str(update.message.chat_id) in MININGWHITELIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
             mined=koge48core.mine(user.id,update.message.chat_id)
         else:
             mined = False
 
         if mined:
             logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
-            update.message.reply_markdown("{}💰{}{}".format(getusermd(user),mined,getkoge48md()),disable_web_page_preview=True)
+            update.message.reply_markdown("{} 💰 {} {}".format(getusermd(user,False),mined,getkoge48md()),disable_web_page_preview=True,quote=False)
 
 
 '''
@@ -958,7 +1045,7 @@ def checkThresholds(chatid,userid):
             try:
                 kick(chatid,userid)
                 #updater.bot.sendMessage(userid,"Koge持仓{}不足{},被移除出群。".format(balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-                updater.bot.sendMessage(chatid,"感觉{}Koge持仓{}不足{},移除出群前看看对不对。".format(userid,balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                updater.bot.sendMessage(chatid,"{}持仓{},不足{},移除出群。".format(getFullname(userid),balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
                 logger.warning("{}Koge持仓{}不足{},被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
                 return True
             except:
@@ -1022,7 +1109,6 @@ def main():
         ],
         groupadminhandler)#只对管理员账号的命令做出响应
     )
-    dp.add_handler(CommandHandler(["rich"],richHandler))
     #dp.add_handler(CommandHandler(["kogefaucettestnet"],kogefaucetHandler))
     #dp.add_handler(CommandHandler(["bnbfaucettestnet"],bnbfaucetHandler))
     dp.add_handler(CommandHandler(
@@ -1037,22 +1123,22 @@ def main():
             "unban",
             "groupid",
             "kogebonus",
+            "exclude",
+            "list",
+            "delist",
+            "cheque",
         ],
         siriancommandhandler)#
     )
     dp.add_handler(CommandHandler(
         [
-            "mybinding",
-            "bind",
             "redeem",
             "start",
             "send",
-            "join",
         ],
-        pmcommandhandler)#处理私聊机器人发送的命令
+        pmcommandhandler)#处理仅私聊有效的命令
     )
 
-    #dp.add_handler(CommandHandler(["auction"],auctionHandler)) 
     dp.add_handler(CommandHandler(
         [
             "trans",
@@ -1063,13 +1149,10 @@ def main():
             #"demote",
             #"restrict",
             #"unrestrict",
-            "list",
-            "delist",
             "hongbao",
             "redpacket",
-            "cheque",
             "burn",
-            "community",
+            #"community",
             "rapidnews",
             "posttg",
             "postweibo"
@@ -1082,12 +1165,17 @@ def main():
     dp.add_handler(ChosenInlineResultHandler(choseninlineresultHandler))
     # log all errors
     dp.add_error_handler(error)
+    Koge48.BNB48LIST = loadJson("_data/bnb48.list",[])
 
 
     #Start the schedule
     gap = 10800 - time.time()%10800
     logger.warning("will start airdrop in %s seconds",gap)
     job_airdrop = j.run_repeating(airdropportal,interval=10800,first=gap)
+
+    gap = time.time()%86400
+    logger.warning("will start community broadcast in %s seconds",gap)
+    job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
 
 
     # Start the Bot
@@ -1101,15 +1189,16 @@ def main():
 
 
 
-def airdropportal(bot,job):
-    try:
-        file=open("_data/bnb48.list","r")
-        bnb48list = json.load(file)
-        file.close()
-    except:
-        logger.warning("loading bnb48.list exception")
-        bnb48list = []
+def broadcastCommunity(bot,job):
+    content = getCommunityContent()
+    for eachgroupid in MININGWHITELIST:
+        try:
+            bot.sendMessage(eachgroupid,content,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+        except Exception as e:
+            print(e)
 
+def airdropportal(bot,job):
+    bnb48list = loadJson("_data/bnb48.list",[])
     Koge48.BNB48LIST = bnb48list
 
     for eachuid in bnb48list:
@@ -1125,8 +1214,9 @@ def airdropportal(bot,job):
     koge48core.KogeDecrease()
     koge48core.BNBAirDrop()
     saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
-    global MININGWHITELIST
+    global MININGWHITELIST,MININGBLACKLIST
     MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
+    MININGBLACKLIST = loadJson("_data/miningblacklist.json",{})
     return
 if __name__ == '__main__':
     

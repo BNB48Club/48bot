@@ -141,13 +141,14 @@ def callbackhandler(bot,update):
 
                     
                     jackpot = koge48core.getJackpot(activeuser.id,divideby=300/betsize)
-                    playerbalance += jackpot
-                    bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
-                    try:
-                        bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
-                    except:
-                        pass
-                    display+=" 从奖池拉下:{} Koge".format(jackpot)
+                    if jackpot > 0:
+                        playerbalance += jackpot
+                        bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
+                        try:
+                            bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
+                        except:
+                            pass
+                        display+=" 从奖池拉下:{} Koge".format(jackpot)
 
             display += "\n"
 

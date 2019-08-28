@@ -19,8 +19,8 @@ class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 1
-    MINE_DIFFER_SIZE = 11
-    LAMDA = 1/200.0
+    MINE_DIFFER_SIZE = 9
+    LAMDA = 1/360.0
     BNB48BOT = 571331274
     BNB48LIST = []
     JACKPOT = 777000
@@ -130,8 +130,9 @@ class Koge48:
         self._user=user
         self._passwd=passwd
         self._database=database
-        self._minets = time.time()
+        self._minets = {}
         self._cursor_conn_map = {}
+        self._startts = time.time()
         return
 
     def _mycursor(self):
@@ -166,7 +167,6 @@ class Koge48:
         cursor.execute(updatesql,(userid,apikey,apisecret,apikey,apisecret))
         self._commit(cursor)
         self._close(cursor)
-
     def changeBalance(self,userid,number,memo="",source=0):
         balance = self.getBalance(userid)
         assert userid == Koge48.BNB48BOT  or balance + number >= 0
@@ -255,11 +255,13 @@ class Koge48:
         if bnb is None:
             bnb = [0,0]
         #get last 10 airdrop
-        cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE  `memo` LIKE '%bnbairdrop%' AND `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
         airdrops=[]
+        '''
+        cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE  `memo` LIKE '%bnbairdrop%' AND `uid` = {} ORDER BY height DESC LIMIT 2".format(userid))
         currentts = time.time()
         for each in cursor.fetchall():
             airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2]})
+        '''
         self._close(cursor)
         return {"eth":eth,"api":api,"bnb":bnb,"airdrops":airdrops}
     def getChequeRecentChanges(self,userid):       
@@ -351,17 +353,22 @@ class Koge48:
         return self._getBalanceFromDb(userid) + self._getChequeBalanceFromDb(userid)
     def mine(self,minerid,groupid):
         currentts = time.time()
-        duration = currentts - self._minets
-        if minerid in Koge48.BNB48LIST:
+        if groupid in self._minets:
+            duration = currentts - self._minets[groupid]
+        else:
+            duration = currentts - self._startts
+
+        if str(minerid) in Koge48.BNB48LIST:
             duration *= 2
-        self._minets = currentts
+
+        self._minets[groupid] = currentts
         prob = 1-(math.e**(-duration*Koge48.LAMDA))
 
         if random.random() < prob:
             value = round(Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random(),2)
             self._changeChequeBalance(minerid,value,"mining",groupid)
             self._changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
-            logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
+            #logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
             return value
         else:
             return 0
