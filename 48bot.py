@@ -313,12 +313,12 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton('空投记录',callback_data="MENU#AIRDROP"),
             ],
             [
-                InlineKeyboardButton('聊天挖矿💲',callback_data="MENU#MINING"),
+                InlineKeyboardButton('聊天挖矿',callback_data="MENU#MINING"),
                 InlineKeyboardButton('社区算力💲'.format(PRICES['query']),callback_data="MENU#COMMUNITY"),
             ],
             [
                 InlineKeyboardButton('加入核心群',callback_data="MENU#JOIN"),
-                InlineKeyboardButton('KOGE富豪榜',callback_data="MENU#RICH")
+                InlineKeyboardButton('KOGE富豪榜💲',callback_data="MENU#RICH")
             ],
             [
                 InlineKeyboardButton('娱乐场',url=BNB48CASINOLINK),
