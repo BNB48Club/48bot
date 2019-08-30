@@ -57,6 +57,7 @@ FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
 MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
+Koge48.MININGWHITELIST = MININGWHITELIST
 MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
 ESCROWLIST = loadJson("_data/escrowlist.json",{})
 
@@ -72,7 +73,7 @@ BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
-KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB，会按比例得到Koge。\n\nBNB48还通过空投*活动*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)活动Koge空投，同时活动Koge会以每天10%的速度自然衰减。\n\nKOGE目前通过Telegram Bot进行中心化管理，可以使用如下命令进行操作：\nescrow - 担保交易, 在场外交易群回复对方消息，格式为 `/escrow KOGE金额`\ntrans - KOGE转账，在任一有KOGE机器人的群回复对方消息，格式为 `/trans KOGE金额`\nhongbao - Koge红包 在任一有KOGE机器人的群发送，格式为 `/hongbao 金额 个数 [祝福语]`\n\n注意 _活动Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token，进行链上映射。链上映射时，活动Koge也将进行1:1映射，映射后不再区分活动与否。"
+KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB,会按比例得到Koge。\n\nBNB48还通过空投*活动*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)活动Koge空投,同时活动Koge会以每天10%的速度自然衰减。\n\nKoge目前通过Telegram Bot进行中心化管理,可以使用如下命令进行操作：\nescrow - 担保交易,回复使用,`/escrow Koge金额`\ntrans - Koge转账,回复使用,`/trans Koge金额`\nhongbao - Koge红包,  `/hongbao 金额 个数 [祝福语]`\n\n注意 _活动Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token,进行链上映射。链上映射时,活动Koge也将进行1:1映射,映射后不再区分活动与否。"
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
 KICK_THRESHOLDS={BNB48:100000}
@@ -108,10 +109,11 @@ def is_number(s):
 
 def getCommunityContent(activeuser=None):
     top10 = koge48core.getGroupMiningStatus()
-    markdown="24小时聊天挖矿算力排行榜:\n"
     powtotal = 0
     for each in top10:
         powtotal += each[1]
+
+    markdown="*24小时出矿{}块, 社群算力排行榜*:\n---\n".format(powtotal)
 
     tempwhitelist = MININGWHITELIST.copy()
     for each in top10:
@@ -171,10 +173,10 @@ def callbackhandler(bot,update):
         elif "API" == thedatas[1]:
             response = ""
             bindstatus = koge48core.getAirDropStatus(activeuser.id)
-            response += "\n\n为了确认空投数量，我们需要您提供币安账户的API(只读)。按照 `apikey#apisecret` 的格式输入api密钥即可进行绑定/更新"
+            response += "\n\n为了确认空投数量,我们需要您提供币安账户的API(只读)。按照 `apikey#apisecret` 的格式输入api密钥即可进行绑定/更新"
             response +="\n\n您当前绑定的币安APIkey(secret隐藏):\n  {}".format(bindstatus['api'][0])
             response +="\n\n末次快照BNB余额:\n  {}".format(bindstatus['bnb'][1])
-            response += "\n\n请注意:_BNB48俱乐部与币安交易所无经营往来，持仓快照是根据币安交易所公开的API接口获取信息。俱乐部尽力保证程序按照设计运行并对服务器做出力所能及的安全防护，然而我们无法做出100%的安全承诺。在极端情况下，您提交的API信息有可能被盗，我们无力对这种极端情况带来的后果负责。请自行做好必要的安全措施，例如对绑定的API设置只读权限。_"
+            response += "\n\n请注意:_BNB48俱乐部与币安交易所无经营往来,持仓快照是根据币安交易所公开的API接口获取信息。俱乐部尽力保证程序按照设计运行并对服务器做出力所能及的安全防护,然而我们无法做出100%的安全承诺。在极端情况下,您提交的API信息有可能被盗,我们无力对这种极端情况带来的后果负责。请自行做好必要的安全措施,例如对绑定的API设置只读权限。_"
             response += "\n\n您承诺是在充分了解上述风险之后决定继续绑定币安账户API。"
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
         elif "AIRDROP" == thedatas[1]:
@@ -184,16 +186,19 @@ def callbackhandler(bot,update):
                 response += "\n  {}前,`{}`,{}".format(each['before'],each['diff'],each['memo'])
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
         elif "MINING" == thedatas[1]:
-            response = "在KOGE机器人入驻并开通了聊天挖矿功能的Telegram公开群中聊天，有几率获得KOGE奖励。即聊天挖矿。"
-            response += "\n\n聊天挖矿出矿的概率服从以聊天消息间隔为变量的泊松分布，距离上条消息发出的时间越长则本条消息挖出矿的概率越大。"
+            response = "在Koge机器人入驻并开通了聊天挖矿功能的Telegram公开群中聊天,有几率获得Koge奖励。即聊天挖矿。"
+            response += "\n\n聊天挖矿出矿的概率服从以聊天消息间隔为变量的泊松分布,距离上条消息发出的时间越长则本条消息挖出矿的概率越大。"
             response += "\n\n核心群成员享有聊天挖矿双倍出矿概率"
-            response += "\n\n换言之，越少其他人聊天，则越容易出矿。您可以查看社区排名，选择热度较低的群发言以更高效地挖矿。"
+            response += "\n\n换言之,越少其他人聊天,则越容易出矿。您可以查看社区排名,选择热度较低的群发言以更高效地挖矿。"
             response += "\n\n每次出矿的金额大小服从一定范围内的平均分布。"
-            response += "\n\n通过聊天挖矿送出的KOGE由BNB48 Club®️运营资金支付。"
-            response += "\n\n如果需要在您的Telegram公开群引入聊天挖矿，请先将本机器人加入您的群，然后联系[BNB48](https://t.me/bnb48club_cn)开通。"
+            response += "\n\n通过聊天挖矿送出的Koge由BNB48 Club®️运营资金支付。"
+            response += "\n\n如果需要在您的Telegram公开群引入聊天挖矿,请先将本机器人加入您的群,然后联系[BNB48](https://t.me/bnb48club_cn)开通。"
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
         elif "KOGE" == thedatas[1]:
-            update.callback_query.message.edit_text(KOGEINTRODUCTION,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+            try:
+                update.callback_query.message.edit_text(KOGEINTRODUCTION,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+            except:
+                pass
         elif "JOIN" == thedatas[1]:
             if koge48core.getTotalBalance(activeuser.id) >= ENTRANCE_THRESHOLDS[BNB48]:
                 response = "欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48))
@@ -209,9 +214,11 @@ def callbackhandler(bot,update):
                 text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1])
             update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
         elif "COMMUNITY" == thedatas[1]:
+            '''
             koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
             markdown="本次查询费用{}Koge由`{}`支付\n\n".format(PRICES['query'],activeuser.full_name)
-            markdown+=getCommunityContent(activeuser)
+            '''
+            markdown=getCommunityContent(activeuser)
             update.callback_query.message.edit_text(markdown,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
         else:
             update.callback_query.answer()
@@ -222,7 +229,7 @@ def callbackhandler(bot,update):
             return
         if thedatas[1] == "confirm":
             if activeuser.id != float(thedatas[2]):
-                update.callback_query.answer("只有发起者才能确认")
+                update.callback_query.answer("只有发起者才能确认",show_alert=True)
                 return
             if ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
                 ESCROWLIST[str(update.callback_query.message.message_id)]="confirm"
@@ -234,12 +241,12 @@ def callbackhandler(bot,update):
                     bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
                 except:
                     pass
-            update.callback_query.answer("{}已确认".format(activeuser.full_name))
+            update.callback_query.answer("{}已确认".format(activeuser.full_name),show_alert=True)
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'))
 
         elif thedatas[1] == "cancel":
             if activeuser.id != float(thedatas[3]):
-                update.callback_query.answer("只有接受者才能取消")
+                update.callback_query.answer("只有接受者才能取消",show_alert=True)
                 return
             if ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
                 ESCROWLIST[str(update.callback_query.message.message_id)]="cancel"
@@ -251,7 +258,7 @@ def callbackhandler(bot,update):
                     logger.warning(e)
                     pass
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'))
-            update.callback_query.answer("{}已取消".format(activeuser.full_name))
+            update.callback_query.answer("{}已取消".format(activeuser.full_name),show_alert=True)
             
     elif "HONGBAO" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
@@ -263,11 +270,11 @@ def callbackhandler(bot,update):
         thisdraw = redpacket.draw(activeuser)
         if thisdraw > 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
-            update.callback_query.answer("{} Koge".format(thisdraw))
+            update.callback_query.answer("{} Koge".format(thisdraw),show_alert=True)
         elif 0 == thisdraw:
-            update.callback_query.answer("每人只能领取一次")
+            update.callback_query.answer("每人只能领取一次",show_alert=True)
         else:
-            update.callback_query.answer("红包发完了")
+            update.callback_query.answer("红包发完了",show_alert=True)
 
         if 0 != thisdraw and not redpacket.needUpdate():
             redpacket.needUpdate(True)
@@ -317,18 +324,19 @@ def builddashboardmarkup(lang="CN"):
             ],
             [
                 InlineKeyboardButton('聊天挖矿',callback_data="MENU#MINING"),
-                InlineKeyboardButton('社区算力💲'.format(PRICES['query']),callback_data="MENU#COMMUNITY"),
+                InlineKeyboardButton('社区热度',callback_data="MENU#COMMUNITY"),
             ],
             [
                 InlineKeyboardButton('加入核心群',callback_data="MENU#JOIN"),
-                InlineKeyboardButton('KOGE富豪榜💲',callback_data="MENU#RICH")
+                InlineKeyboardButton('Koge富豪榜💲',callback_data="MENU#RICH")
             ],
             [
                 InlineKeyboardButton('娱乐场',url=BNB48CASINOLINK),
                 InlineKeyboardButton('场外交易',url=BNB48C2CLINK)
             ],
             [
-                InlineKeyboardButton('将KOGE机器人加入群',url="https://telegram.me/bnb48_bot?startgroup=join"),
+                InlineKeyboardButton('将Koge机器人加入群',url="https://telegram.me/bnb48_bot?startgroup=join"),
+                InlineKeyboardButton('转发社区热度',switch_inline_query="community")
                 #InlineKeyboardButton('EN/中文',callback_data="MENU#LANG#{}".format(lang))
             ]
         ]
@@ -558,6 +566,18 @@ def siriancommandhandler(bot,update):
         logger.warning("blacklist_name updated")
 
 def inlinequeryHandler(bot,update):
+    if "community" == update.inline_query.query:
+        update.inline_query.answer(
+            results=[
+                        InlineQueryResultArticle(
+                            id=update.inline_query.id+"community",
+                            cache_time=60,
+                            title="24小时社区热度排行",
+                            input_message_content=InputTextMessageContent(message_text=getCommunityContent(),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+                        )
+            ],
+            is_personal=False
+        )
     return
 def choseninlineresultHandler(bot,update):
     return
@@ -768,9 +788,9 @@ def topescrow(seller=None,buyer=None):
 
     sorted_seller = sorted(escrowrecord['seller'].items(),key=operator.itemgetter(1))
     sorted_seller.reverse()
-    text = "Koge担保交易功能使用方法:\n发送方使用 `/escrow 金额` 的格式回复接受方的消息，资金转入小秘书账户保管。\n发送方确认交易成功后资金转入接收方账户；或接受方对交易发起取消则资金原路返回。\n"
+    text = "Koge担保交易功能使用方法:\n发送方使用 `/escrow 金额` 的格式回复接受方的消息,资金转入小秘书账户保管。\n发送方确认交易成功后资金转入接收方账户；或接受方对交易发起取消则资金原路返回。\n"
     text += "--------------------\n"
-    text += "Koge卖家Top3(仅统计单笔100Koge以上，下同)\n"
+    text += "Koge卖家Top3(仅统计单笔100Koge以上,下同)\n"
     i=0
     for each in sorted_seller:
         i+=1
@@ -1221,6 +1241,7 @@ def airdropportal(bot,job):
     saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
     global MININGWHITELIST,MININGBLACKLIST
     MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
+    Koge48.MININGWHITELIST = MININGWHITELIST
     MININGBLACKLIST = loadJson("_data/miningblacklist.json",{})
     return
 if __name__ == '__main__':

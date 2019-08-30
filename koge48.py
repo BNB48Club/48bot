@@ -20,13 +20,18 @@ class Koge48:
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 1
     MINE_DIFFER_SIZE = 9
-    LAMDA = 1/600.0
     BNB48BOT = 571331274
     BNB48LIST = []
+    MININGWHITELIST = {}
     JACKPOT = 777000
     PRIZEPOOL = 888000
     #STATSTART = 430820
     STATSTART = 1
+    def MINING_LAMDA(self):
+        try:
+            return 1.0/2000*len(Koge48.MININGWHITELIST)
+        except:
+            return 1.0/1200
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
@@ -131,9 +136,10 @@ class Koge48:
         self._user=user
         self._passwd=passwd
         self._database=database
-        self._minets = {}
-        self._cursor_conn_map = {}
         self._startts = time.time()
+        #self._minets = {}
+        self._minets = self._startts
+        self._cursor_conn_map = {}
         return
 
     def _mycursor(self):
@@ -354,17 +360,20 @@ class Koge48:
         return self._getBalanceFromDb(userid) + self._getChequeBalanceFromDb(userid)
     def mine(self,minerid,groupid):
         currentts = time.time()
+        '''
         if groupid in self._minets:
             duration = currentts - self._minets[groupid]
         else:
             duration = currentts - self._startts
+        self._minets[groupid] = currentts
+        '''
+        duration = currentts - self._minets
+        self._minets = currentts
 
         if str(minerid) in Koge48.BNB48LIST:
             duration *= 2
 
-        self._minets[groupid] = currentts
-        prob = 1-(math.e**(-duration*Koge48.LAMDA))
-
+        prob = 1-(math.e**(-duration*self.MINING_LAMDA()))
         if random.random() < prob:
             value = round(Koge48.MINE_MIN_SIZE + Koge48.MINE_DIFFER_SIZE * random.random(),2)
             self._changeChequeBalance(minerid,value,"mining",groupid)
