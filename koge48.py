@@ -20,10 +20,11 @@ class Koge48:
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 1
     MINE_DIFFER_SIZE = 9
-    LAMDA = 1/360.0
+    LAMDA = 1/600.0
     BNB48BOT = 571331274
     BNB48LIST = []
     JACKPOT = 777000
+    PRIZEPOOL = 888000
     #STATSTART = 430820
     STATSTART = 1
     def KogeDecrease(self):

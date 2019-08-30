@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 #!/bin/usr/python
 import random
+import time
 class RedPacket:
     SINGLE_AVG = 1
-    def __init__(self,fromuser,balance,amount,title,groupid):
+    def __init__(self,fromuser,balance,amount,title):
         self._fromuser = fromuser
         self._origbalance = balance
         self._balance = balance
@@ -13,9 +14,23 @@ class RedPacket:
         self._drawed = {}
         self._sequence = []
         self._needupdate = False
-        self._groupid = groupid
         self._maxvalue=0
         self._maxid=-1
+        self._groupid = -1
+        self._messageid = -1
+        self._id = -1
+    def sender(self):
+        return self._fromuser
+    def messageId(self,mid=None):
+        if mid is None:
+            return self._messageid
+        else:
+            self._messageid = mid
+    def groupId(self,gid = None):
+        if gid is None:
+            return self._groupid
+        else:
+            self._groupid = gid
     def needUpdate(self,value=None):
         if value is None:
             return self._needupdate

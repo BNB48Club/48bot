@@ -271,21 +271,24 @@ def callbackhandler(bot,update):
 
         if 0 != thisdraw and not redpacket.needUpdate():
             redpacket.needUpdate(True)
-            delayUpdateRedpacket(redpacket_id,update.callback_query.message.message_id)
+            delayUpdateRedpacket(redpacket_id)
     else:
         update.callback_query.answer()
 
-def delayUpdateRedpacket(redpacket_id,message_id):
-    thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id,message_id])
+def delayUpdateRedpacket(redpacket_id):
+    thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id])
     thread.start()
-def actualUpdateRedpacket(redpacket_id,message_id):
+def actualUpdateRedpacket(redpacket_id):
     time.sleep(1)
     redpacket = global_redpackets[redpacket_id]
     if redpacket.left() < 1:
         thismarkup = None
     else:
         thismarkup = buildredpacketmarkup(redpacket_id)
-    updater.bot.edit_message_caption(redpacket._groupid,message_id,caption=redpacket.getLog(),reply_markup=thismarkup,parse_mode="Markdown")
+    try:
+        updater.bot.edit_message_caption(chat_id=redpacket.groupId(),message_id=redpacket.messageId(),caption=redpacket.getLog(),reply_markup=thismarkup,parse_mode="Markdown")
+    except:
+        pass
     redpacket.needUpdate(False)
 
 def delayAnswer(query,content=None):
@@ -325,7 +328,7 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton('场外交易',url=BNB48C2CLINK)
             ],
             [
-                InlineKeyboardButton('将KOGE加入群',url="https://telegram.me/bnb48_bot?startgroup=join"),
+                InlineKeyboardButton('将KOGE机器人加入群',url="https://telegram.me/bnb48_bot?startgroup=join"),
                 #InlineKeyboardButton('EN/中文',callback_data="MENU#LANG#{}".format(lang))
             ]
         ]
@@ -359,7 +362,7 @@ def testHandler(bot,update):
 def pmcommandhandler(bot,update):
     #if not '/start' in update.message.text and update.message.chat.type != 'private':
     if update.message.chat.type != 'private':
-        update.message.reply_text('该命令需私聊机器人')
+        #update.message.reply_text('该命令需私聊机器人')
         return
 
     things = update.message.text.split(' ')
@@ -680,10 +683,12 @@ def botcommandhandler(bot,update):
         else:
             title = "恭喜发财"
 
-        redpacket = RedPacket(update.message.from_user,balance,amount,title,update.message.chat_id)
+        redpacket = RedPacket(update.message.from_user,balance,amount,title)
+        redpacket.groupId(update.message.chat_id)
         #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         redpacket_id = str(int(time.time()))
         message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup(redpacket_id),parse_mode="Markdown")
+        redpacket.messageId(message.message_id)
         global_redpackets[redpacket_id]=redpacket
         try:
             bot.deleteMessage(update.message.chat_id,update.message.message_id)
@@ -810,7 +815,7 @@ def cleanHandler(bot,update):
         for each in global_redpackets:
             balance = global_redpackets[each].balance()
             if balance <=0:
-                break
+                continue
             global_redpackets[each].clear()
             koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,balance,"redpacket return")
             delayUpdateRedpacket(each)
@@ -1173,9 +1178,9 @@ def main():
     logger.warning("will start airdrop in %s seconds",gap)
     job_airdrop = j.run_repeating(airdropportal,interval=10800,first=gap)
 
-    gap = time.time()%86400
+    gap = 28800- time.time()%28800
     logger.warning("will start community broadcast in %s seconds",gap)
-    job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
+    job_airdrop = j.run_repeating(broadcastCommunity,interval=28800,first=gap)
 
 
     # Start the Bot
@@ -1193,7 +1198,7 @@ def broadcastCommunity(bot,job):
     content = getCommunityContent()
     for eachgroupid in MININGWHITELIST:
         try:
-            bot.sendMessage(eachgroupid,content,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(int(eachgroupid),content,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             print(e)
 
