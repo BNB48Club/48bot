@@ -125,6 +125,7 @@ def callbackhandler(bot,update):
 
         display = ""
         payout = 0
+        totaljackpot = 0
         while bettimes > 0:
             bettimes -= 1
             slotresults = slotPlay()
@@ -134,21 +135,25 @@ def callbackhandler(bot,update):
                 payout += betsize*slotresults[0]
                 if slotresults[0] == 250:
                     bot.sendMessage(BNB48CASINO,"{} \n {}在水果机转出{}倍奖金\n发送 /slot 试试手气".format(slotresults[1],activeuser.full_name,slotresults[0]))
+                    '''
                     try:
                         bot.sendMessage(activeuser.id,"恭喜您转出{}倍奖金".format(slotresults[0]))
                     except:
                         pass
-
+                    '''
                     
                     jackpot = koge48core.getJackpot(activeuser.id,divideby=300/betsize)
                     if jackpot > 0:
                         playerbalance += jackpot
                         bot.sendMessage(BNB48CASINO,"{}从奖池拉下:{} Koge".format(activeuser.full_name,jackpot))
+                        '''
                         try:
                             bot.sendMessage(activeuser.id,"恭喜您从奖池拉下:{} Koge".format(jackpot))
                         except:
                             pass
-                        display+=" 从奖池拉下:{} Koge".format(jackpot)
+                        '''
+                        display+=" 从JackPot拉下:{} Koge".format(jackpot)
+                        totaljackpot += jackpot
 
             display += "\n"
 
@@ -156,8 +161,11 @@ def callbackhandler(bot,update):
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,payout,"SLOT casino pay to {}".format(activeuser.full_name))
             playerbalance += payout
 
-        display+="{}:{}Koge".format(activeuser.full_name,playerbalance)
-        update.callback_query.answer()
+        display += "---\n赢得 {}, 拉下JackPot {}, 最新余额 {} Koge".format(payout,totaljackpot,playerbalance)
+        if totaljackpot > 0:
+            update.callback_query.answer("---\n赢得 {}, 拉下JackPot {}, 最新余额 {} Koge".format(payout,totaljackpot,playerbalance),show_alert=True)
+        else:
+            update.callback_query.answer()
         updater.bot.edit_message_caption(
                 chat_id=update.callback_query.message.chat_id,
                 message_id=message_id,

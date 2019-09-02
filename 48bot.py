@@ -315,7 +315,7 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton('KOGE简介',callback_data="MENU#KOGE"),
             ],
             [
-                InlineKeyboardButton('账户余额',callback_data="MENU#BALANCE"),
+                InlineKeyboardButton('账户余额🏦',callback_data="MENU#BALANCE"),
                 InlineKeyboardButton('收支明细',callback_data="MENU#CHANGES"),
             ],
             [
@@ -323,7 +323,7 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton('空投记录',callback_data="MENU#AIRDROP"),
             ],
             [
-                InlineKeyboardButton('聊天挖矿',callback_data="MENU#MINING"),
+                InlineKeyboardButton('聊天挖矿💬',callback_data="MENU#MINING"),
                 InlineKeyboardButton('社区热度',callback_data="MENU#COMMUNITY"),
             ],
             [
@@ -331,8 +331,8 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton('Koge富豪榜💲',callback_data="MENU#RICH")
             ],
             [
-                InlineKeyboardButton('娱乐场',url=BNB48CASINOLINK),
-                InlineKeyboardButton('场外交易',url=BNB48C2CLINK)
+                InlineKeyboardButton('娱乐场🎰',url=BNB48CASINOLINK),
+                InlineKeyboardButton('场外交易🤝',url=BNB48C2CLINK)
             ],
             [
                 InlineKeyboardButton('将Koge机器人加入群',url="https://telegram.me/bnb48_bot?startgroup=join"),
