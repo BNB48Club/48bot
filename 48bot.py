@@ -78,7 +78,7 @@ BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
-KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB,会按比例得到Koge。\n\nBNB48还通过空投*Floating*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)Floating Koge空投,同时Floating Koge会以每天10%的速度自然衰减。\n\nKoge目前通过Telegram Bot进行中心化管理,可以使用如下命令进行操作：\nescrow - 担保交易,回复使用,`/escrow Koge金额`\ntrans - Koge转账,回复使用,`/trans Koge金额`\nhongbao - Koge红包,  `/hongbao 金额 个数 [祝福语]`\n\n注意 _Floating Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token,进行链上映射。链上映射时,Floating Koge也将进行1:1映射,映射后不再区分Floating与否。"
+#KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB,会按比例得到Koge。\n\nBNB48还通过空投*Floating*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)Floating Koge空投,同时Floating Koge会以每天10%的速度自然衰减。\n\nKoge目前通过Telegram Bot进行中心化管理,可以使用如下命令进行操作：\nescrow - 担保交易,回复使用,`/escrow Koge金额`\ntrans - Koge转账,回复使用,`/trans Koge金额`\nhongbao - Koge红包,  `/hongbao 金额 个数 [祝福语]`\n\n注意 _Floating Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token,进行链上映射。链上映射时,Floating Koge也将进行1:1映射,映射后不再区分Floating与否。"
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
 KICK_THRESHOLDS={BNB48:100000}
@@ -398,7 +398,8 @@ def pmcommandhandler(bot,update):
         '''
     elif "/start" in things[0]:
         #if 'private' == update.message.chat.type:
-        update.message.reply_markdown(KOGEINTRODUCTION,reply_markup=builddashboardmarkup(getLang(update.message.from_user)))
+        lang=getLang(update.message.from_user)
+        update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
         '''
         elif 2 == len(things) and 'join' == things[1]:
             listMiningGroup(update.message)
