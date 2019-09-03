@@ -416,10 +416,10 @@ def rollerHandler(bot,update):
 
 def rollerMarkDownGenerator():
     text="JackPot奖池余额为{} Koge 水果机押中250倍可分享奖池\n\n".format(round(koge48core.getChequeBalance(Koge48.JACKPOT),2))
-    text+="下注排行榜奖池余额为{} Koge 下注前三名可分享奖池\n\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
+    text+="下注排行榜奖池余额为{} Koge 下注前三名可分享奖池\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
 
     top3 = koge48core.getTotalWager(last=True)
-    text+="本区间下注排行榜(奖金依据):\n"
+    text+="截至目前:\n"
     prizepool = koge48core.getChequeBalance(Koge48.PRIZEPOOL)
     topaward=[]
     topaward.append(prizepool/3)
@@ -435,7 +435,7 @@ def rollerMarkDownGenerator():
 
             text+="[{}](tg://user?id={})\t{}".format(fullname,each[0],each[1])
             if index < 3:
-                text += " 预计奖金 {} Koge\n".format(min(topaward[index],each[1]))
+                text += " 预计奖金 {} Koge\n".format(min(round(topaward[index],2),each[1]))
             else:
                 text += "\n"
             index += 1
@@ -661,7 +661,7 @@ def airdropportal(bot,job):
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.PRIZEPOOL,lasttotaldiv,"deposit prizepool")
-        announcementid = updater.bot.sendMessage(BNB48CASINO,"小秘书接收到下注总额{} Koge\n向下注者返现{} Koge\n向JackPot奖池注入{} KOGE, 奖池金额目前累计至{}Koge \n使用 /roller 命令查看排行榜与奖池".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,koge48core.getChequeBalance(Koge48.JACKPOT)))
+        announcementid = updater.bot.sendMessage(BNB48CASINO,"小秘书接收到下注总额{} Koge\n向下注者返现{} Koge\n向JackPot奖池注入{} KOGE\n使用 /roller 命令查看排行榜与奖池".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv))
 
     CASINO_DIVIDING = False
     return

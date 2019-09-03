@@ -13,6 +13,7 @@ import operator
 from threading import Thread
 import threading
 from telegram import *
+from bnb48locales import * #getLocaleString,BNB48_LOCALES
 #KeyboardButton, ParseMode, ReplyKeyboardMarkup
 from telegram.ext import *
 from telegram.ext.dispatcher import run_async
@@ -43,7 +44,11 @@ def saveJson(filename,content):
     file.flush()
     file.close()
 
-
+def getLang(user):
+    if "zh" in user.language_code:
+        return "CN"
+    else:
+        return "EN"
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.WARNING)
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
@@ -73,7 +78,7 @@ BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
-KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB,会按比例得到Koge。\n\nBNB48还通过空投*活动*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)活动Koge空投,同时活动Koge会以每天10%的速度自然衰减。\n\nKoge目前通过Telegram Bot进行中心化管理,可以使用如下命令进行操作：\nescrow - 担保交易,回复使用,`/escrow Koge金额`\ntrans - Koge转账,回复使用,`/trans Koge金额`\nhongbao - Koge红包,  `/hongbao 金额 个数 [祝福语]`\n\n注意 _活动Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token,进行链上映射。链上映射时,活动Koge也将进行1:1映射,映射后不再区分活动与否。"
+KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB,会按比例得到Koge。\n\nBNB48还通过空投*Floating*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)Floating Koge空投,同时Floating Koge会以每天10%的速度自然衰减。\n\nKoge目前通过Telegram Bot进行中心化管理,可以使用如下命令进行操作：\nescrow - 担保交易,回复使用,`/escrow Koge金额`\ntrans - Koge转账,回复使用,`/trans Koge金额`\nhongbao - Koge红包,  `/hongbao 金额 个数 [祝福语]`\n\n注意 _Floating Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token,进行链上映射。链上映射时,Floating Koge也将进行1:1映射,映射后不再区分Floating与否。"
 BINANCE_ANNI = 1531526400
 ENTRANCE_THRESHOLDS={BNB48:100000}
 KICK_THRESHOLDS={BNB48:100000}
@@ -113,7 +118,7 @@ def getCommunityContent(activeuser=None):
     for each in top10:
         powtotal += each[1]
 
-    markdown="*24小时出矿{}块, 社群算力排行榜*:\n---\n".format(powtotal)
+    markdown="*Last 24H {} Blocks*:\n---\n".format(powtotal)
 
     tempwhitelist = MININGWHITELIST.copy()
     for each in top10:
@@ -129,10 +134,10 @@ def getCommunityContent(activeuser=None):
     for each in tempwhitelist:
         fullname = MININGWHITELIST[each]['title']
         link = 'https://t.me/{}'.format(MININGWHITELIST[each]['username'])
-        markdown+="[{}]({}) 算力 0%\n".format(fullname,link)
+        markdown+="[{}]({}) 0%\n".format(fullname,link)
 
     markdown += "-----------------\n"
-    markdown += "[BNB48 公告](https://t.me/bnb48club_publish)"
+    markdown += "[BNB48 Publish](https://t.me/bnb48club_publish)"
     if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
         markdown += "\n"
         markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
@@ -150,9 +155,6 @@ def getCommunityContent(activeuser=None):
         markdown+= "[BNB48 翻墙交流](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
         markdown += "\n"
         markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
-    else:
-        markdown += "\n"
-        markdown += "更多群组仅对BNB48核心成员开放"
     return markdown
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
@@ -161,65 +163,62 @@ def callbackhandler(bot,update):
     logger.warning("{} callback, content: {}".format(activeuser.full_name,update.callback_query.data))
     if "MENU" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
+        lang = thedatas[2]
         if "BALANCE" == thedatas[1]:
-            response = "{}的{}余额为{}\n活动Koge余额为{}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id),','),format(koge48core.getBalance(activeuser.id),','))
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+            response = "{} {} {}\nFloating {}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id),','),format(koge48core.getBalance(activeuser.id),','))
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "CHANGES" == thedatas[1]:
-            response = "{}最近的Koge变动记录:\n".format(activeuser.full_name)
+            response = "{}:\n".format(activeuser.full_name)
             kogechanges=koge48core.getChequeRecentChanges(activeuser.id)
             for each in kogechanges:
-                response += "  {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+                response += "  {} ago,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "API" == thedatas[1]:
-            response = ""
             bindstatus = koge48core.getAirDropStatus(activeuser.id)
-            response += "\n\n为了确认空投数量,我们需要您提供币安账户的API(只读)。按照 `apikey#apisecret` 的格式输入api密钥即可进行绑定/更新"
-            response +="\n\n您当前绑定的币安APIkey(secret隐藏):\n  {}".format(bindstatus['api'][0])
-            response +="\n\n末次快照BNB余额:\n  {}".format(bindstatus['bnb'][1])
-            response += "\n\n请注意:_BNB48俱乐部与币安交易所无经营往来,持仓快照是根据币安交易所公开的API接口获取信息。俱乐部尽力保证程序按照设计运行并对服务器做出力所能及的安全防护,然而我们无法做出100%的安全承诺。在极端情况下,您提交的API信息有可能被盗,我们无力对这种极端情况带来的后果负责。请自行做好必要的安全措施,例如对绑定的API设置只读权限。_"
-            response += "\n\n您承诺是在充分了解上述风险之后决定继续绑定币安账户API。"
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+            response = getLocaleString("APIINTRODUCTION",lang).format(bindstatus['api'][0],bindstatus['bnb'][1])
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "AIRDROP" == thedatas[1]:
-            response = "最近的空投记录:"
+            response = "Airdrops:"
             changes=koge48core.getRecentChanges(activeuser.id)
             for each in changes:
-                response += "\n  {}前,`{}`,{}".format(each['before'],each['diff'],each['memo'])
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+                response += "\n  {} ago,`{}`,{}".format(each['before'],each['diff'],each['memo'])
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "MINING" == thedatas[1]:
-            response = "在Koge机器人入驻并开通了聊天挖矿功能的Telegram公开群中聊天,有几率获得Koge奖励。即聊天挖矿。"
-            response += "\n\n聊天挖矿出矿的概率服从以聊天消息间隔为变量的泊松分布,距离上条消息发出的时间越长则本条消息挖出矿的概率越大。"
-            response += "\n\n核心群成员享有聊天挖矿双倍出矿概率"
-            response += "\n\n换言之,越少其他人聊天,则越容易出矿。您可以查看社区排名,选择热度较低的群发言以更高效地挖矿。"
-            response += "\n\n每次出矿的金额大小服从一定范围内的平均分布。"
-            response += "\n\n通过聊天挖矿送出的Koge由BNB48 Club®️运营资金支付。"
-            response += "\n\n如果需要在您的Telegram公开群引入聊天挖矿,请先将本机器人加入您的群,然后联系[BNB48](https://t.me/bnb48club_cn)开通。"
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+            response = getLocaleString("MININGINTRODUCTION",lang)
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "KOGE" == thedatas[1]:
             try:
-                update.callback_query.message.edit_text(KOGEINTRODUCTION,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+                update.callback_query.message.edit_text(getLocaleString("KOGEINTRODUCTION",lang),disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
             except:
                 pass
         elif "JOIN" == thedatas[1]:
             if koge48core.getTotalBalance(activeuser.id) >= ENTRANCE_THRESHOLDS[BNB48]:
-                response = "欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48))
+                response = "[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48))
             else:
-                response ="持仓Koge大于等于{}可自助加入核心群".format(ENTRANCE_THRESHOLDS[BNB48])
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+                response =getLocaleString("JOININTRODUCTION",lang).format(ENTRANCE_THRESHOLDS[BNB48])
+            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "RICH" == thedatas[1]:
-            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
-            markdown="本次查询费用{}Koge由`{}`支付\n\n".format(PRICES['query'],activeuser.full_name)
+            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query rich')
+            markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
             top10 = koge48core.getTop(20)
-            text="所有绑定API领KOGE空投的账户共计持有BNB {}\n活动Koge总量{}\n永久Koge总量{}\n---\nKoge富豪榜(含活动Koge):\n\n".format(koge48core.getTotalBNB(),koge48core.getTotalFree(),koge48core.getTotalFrozen())
+            text="Total BNB Holding: {}\nTotal Floating Koge: {}\nTotal Permanent Koge:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalBNB(),','),format(koge48core.getTotalFree(),','),format(koge48core.getTotalFrozen(),','))
             for each in top10:
                 text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1])
-            update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+            update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "COMMUNITY" == thedatas[1]:
             '''
-            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
-            markdown="本次查询费用{}Koge由`{}`支付\n\n".format(PRICES['query'],activeuser.full_name)
+            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query rich')
+            markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
             '''
             markdown=getCommunityContent(activeuser)
-            update.callback_query.message.edit_text(markdown,disable_web_page_preview=True,reply_markup=builddashboardmarkup(),parse_mode=ParseMode.MARKDOWN)
+            update.callback_query.message.edit_text(markdown,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
+        elif "LANG" == thedatas[1]:
+
+            if "CN" == thedatas[2]:
+                newlang = "EN"
+            else:
+                newlang = "CN"
+            update.callback_query.message.edit_text(update.callback_query.message.text_markdown,disable_web_page_preview=True,reply_markup=builddashboardmarkup(newlang),parse_mode=ParseMode.MARKDOWN)
         else:
             update.callback_query.answer()
 
@@ -272,9 +271,9 @@ def callbackhandler(bot,update):
             koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
             update.callback_query.answer("{} Koge".format(thisdraw),show_alert=True)
         elif 0 == thisdraw:
-            update.callback_query.answer("每人只能领取一次",show_alert=True)
+            update.callback_query.answer("每人只能领取一次/One person, One share",show_alert=True)
         else:
-            update.callback_query.answer("红包发完了",show_alert=True)
+            update.callback_query.answer("红包发完了/Out of share",show_alert=True)
 
         if 0 != thisdraw and not redpacket.needUpdate():
             redpacket.needUpdate(True)
@@ -312,39 +311,39 @@ def builddashboardmarkup(lang="CN"):
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton('KOGE简介',callback_data="MENU#KOGE"),
+                InlineKeyboardButton(getLocaleString("MENU_KOGE",lang),callback_data="MENU#KOGE#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang)
             ],
             [
-                InlineKeyboardButton('账户余额🏦',callback_data="MENU#BALANCE"),
-                InlineKeyboardButton('收支明细',callback_data="MENU#CHANGES"),
+                InlineKeyboardButton(getLocaleString("MENU_BALANCE",lang),callback_data="MENU#BALANCE#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_CHANGES",lang),callback_data="MENU#CHANGES#"+lang),
             ],
             [
-                InlineKeyboardButton('绑定持仓',callback_data="MENU#API"),
-                InlineKeyboardButton('空投记录',callback_data="MENU#AIRDROP"),
+                InlineKeyboardButton(getLocaleString("MENU_API",lang),callback_data="MENU#API#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_AIRDROP",lang),callback_data="MENU#AIRDROP#"+lang),
             ],
             [
-                InlineKeyboardButton('聊天挖矿💬',callback_data="MENU#MINING"),
-                InlineKeyboardButton('社区热度',callback_data="MENU#COMMUNITY"),
+                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_COMMUNITY",lang),callback_data="MENU#COMMUNITY#"+lang),
             ],
             [
-                InlineKeyboardButton('加入核心群',callback_data="MENU#JOIN"),
-                InlineKeyboardButton('Koge富豪榜💲',callback_data="MENU#RICH")
+                InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang)
             ],
             [
-                InlineKeyboardButton('娱乐场🎰',url=BNB48CASINOLINK),
-                InlineKeyboardButton('场外交易🤝',url=BNB48C2CLINK)
+                InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
+                InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK)
             ],
             [
-                InlineKeyboardButton('将Koge机器人加入群',url="https://telegram.me/bnb48_bot?startgroup=join"),
-                InlineKeyboardButton('转发社区热度',switch_inline_query="community")
-                #InlineKeyboardButton('EN/中文',callback_data="MENU#LANG#{}".format(lang))
-            ]
+                InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
+                InlineKeyboardButton(getLocaleString("MENU_SENDRANK",lang),switch_inline_query="community")
+            ],
         ]
     )
 def buildredpacketmarkup(redpacket_id):
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton('💰抢红包！',callback_data="HONGBAO#{}".format(redpacket_id))]
+            [InlineKeyboardButton('🙋‍♀️🙋‍♂️',callback_data="HONGBAO#{}".format(redpacket_id))]
         ]
     )
 
@@ -399,7 +398,7 @@ def pmcommandhandler(bot,update):
         '''
     elif "/start" in things[0]:
         #if 'private' == update.message.chat.type:
-        update.message.reply_markdown(KOGEINTRODUCTION,reply_markup=builddashboardmarkup())
+        update.message.reply_markdown(KOGEINTRODUCTION,reply_markup=builddashboardmarkup(getLang(update.message.from_user)))
         '''
         elif 2 == len(things) and 'join' == things[1]:
             listMiningGroup(update.message)
@@ -701,7 +700,7 @@ def botcommandhandler(bot,update):
         if len(things) > 3:
             title = things[3]
         else:
-            title = "恭喜发财"
+            title = "Winner winner, chicken dinner"
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title)
         redpacket.groupId(update.message.chat_id)
@@ -710,6 +709,12 @@ def botcommandhandler(bot,update):
         message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup(redpacket_id),parse_mode="Markdown")
         redpacket.messageId(message.message_id)
         global_redpackets[redpacket_id]=redpacket
+
+        if not message.chat.username is None:
+            #bot.sendMessage(BNB48,"https://t.me/{}/{}".format(message.chat.username,message.message_id))
+            bot.sendMessage(BNB48,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            if message.chat_id != BNB48CN:
+                bot.sendMessage(BNB48CN,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         try:
             bot.deleteMessage(update.message.chat_id,update.message.message_id)
         except:
@@ -722,7 +727,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        response = "{}的{}余额为{}\n活动Koge余额为{}\n".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id))
+        response = "{}的{}余额为{}\nFloating Koge余额为{}\n".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id))
         try:
             bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
@@ -740,7 +745,7 @@ def botcommandhandler(bot,update):
         for each in kogechanges:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
 
-        response += "\n最近的活动Koge变动记录:\n"
+        response += "\n最近的Floating Koge变动记录:\n"
         changes=koge48core.getRecentChanges(targetuser.id)
         for each in changes:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])

@@ -27,7 +27,7 @@ class Koge48:
     PRIZEPOOL = 888000
     #STATSTART = 430820
     STATSTART = 1
-    LAMDA = 1.0/300
+    LAMDA = 1.0/600
     '''
     def MINING_LAMDA(self):
         try:
