@@ -442,9 +442,9 @@ def rollerMarkDownGenerator():
     except:
         pass
 
-    top20 = koge48core.getHisBetRecords(limit=20)
+    top10 = koge48core.getHisBetRecords(limit=10)
     text+="\n历史下注榜(分红依据):\n"
-    for each in top20:
+    for each in top10:
         if str(each[0]) in UIDFULLNAMEMAP:
             fullname = UIDFULLNAMEMAP[str(each[0])]
         else:

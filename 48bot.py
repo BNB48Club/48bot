@@ -281,6 +281,12 @@ def callbackhandler(bot,update):
     else:
         update.callback_query.answer()
 
+def delayMessageDelete(message):
+    thread = Thread(target = actualMessageDelete, args=[message])
+    thread.start()
+def actualMessageDelete(message):
+    time.sleep(0.1/Koge48.LAMDA)
+    message.delete()
 def delayUpdateRedpacket(redpacket_id):
     thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id])
     thread.start()
@@ -958,7 +964,15 @@ def botmessagehandler(bot, update):
 
         if mined:
             logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
-            update.message.reply_markdown("{} 💰 {} {}".format(getusermd(user,False),mined,getkoge48md()),disable_web_page_preview=True,quote=False)
+            minemessage = update.message.reply_markdown("{} 💰 {} {}".format(getusermd(user,False),mined,getkoge48md()),disable_web_page_preview=True,quote=False)
+            if "lasthint" in  MININGWHITELIST[str(update.message.chat_id)]:
+                lasthintid = MININGWHITELIST[str(update.message.chat_id)]["lasthint"]
+                try:
+                    bot.deleteMessage(update.message.chat_id,lasthintid)
+                except:
+                    pass
+            MININGWHITELIST[str(update.message.chat_id)]["lasthint"] = minemessage.message_id
+            saveJson("_data/miningwhitelist.json",MININGWHITELIST)
 
 
 '''

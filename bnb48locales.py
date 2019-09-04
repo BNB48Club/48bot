@@ -30,7 +30,7 @@ BNB48_LOCALES={
     },
     "EN":{
         "KOGEINTRODUCTION":"Koge is issued/managed by BNB48 Club. \n\nBy [donating](http://bnb48club.mikecrm.com/c3iNLGn) to BNB48 Club, you get Koge correspondingly.\n\nAlso, by holding BNB in binance.com, you will be eligible to claim *floating* Koge from BNB48 at a rate of 1:1 each day. Notice that *floating* Koge decreases at 10% everyday.\n\nKoge is now managed by this very Telegram Bot, you can operate your Koge through following commands: \n/escrow - escrow payment,reply to use,`<Number of Koge>`\n/trans - Koge transfer. Reply to use,`<Number of Koge>`\n/redpacket - lucky draw,`<Number of Koge> <Number of shares> [Title, optional]`\n\n_You can't operate *floating* Koge through above commands_\n\nKoge will be mapped to on-chain token in the future, the converting rate will be fixed at 1:1 no matter *floating* or not.",
-        "APIINTRODUCTION":"Only through API can we safely retrieve your hodl information. `apikey#apisecret` , if you decide to do so, input following syntax on the left.\nThis APIkey(API secret hidden) is currently binded to your account:\n*{}*\n\nBNB Balance in last snapshot:\n*{}*\nNotice that _BNB48 Club doesn't own nor belong to Binance. Hodl snapshot is retrieved through public engpoint published by Binance. We will try to store/handle your API carefully but we can not guarantee anything. In the worst condition, leaking of tradable API may cause a loss of fund. Please make sure you only submit read-only API info_\nBefore submitting anything, you promise you understand the risk above and still decide to submit API info.",
+        "APIINTRODUCTION":"Only through API can we safely retrieve your hodl information. `apikey#apisecret` , if you decide to do so, input following syntax on the left.\nThis APIkey(API secret hidden) is currently binded to your account:\n*{}*\n\nBNB Balance in last snapshot:\n*{}*\nNotice that _BNB48 Club is in no way affiliated with Binance. Hodl snapshot is retrieved through public engpoint published by Binance. We will try to store/handle your API carefully but we can not guarantee anything. In the worst condition, leaking of tradable API may cause a loss of fund. Please make sure you only submit read-only API info_\nBefore submitting anything, you promise you understand the risk above and still decide to submit API info.",
         "MININGINTRODUCTION":"Gossip Mining, refers to the process of chat in Telegram groups while one acquires KOGE airdrop randomly.\n\n Probability of finding a new BLOCK subjects to Poission distribution, which means, the longer time between your message and the last message in this group, the high possibility you are going to find a new BLOCK. \n\n _Member of Elite group has a doubled power of mining._\n\nIn another word, chat in groups with fewer members is more likely to bring you some KOGE. You can view `Community Rank` to find out Gossip Mining power rank.\n\n KOGE in each block differs in a small range. \n\n Gossip Mining is funded by BNB48 Club®, no extra minting occurs.\n\n If you would like to introduce Gossip Mining in your group, simply add KOGE bot as a member and contact [BNB48](https://t.me/bnb48club_en) to activate.",
         "JOININTRODUCTION":"You need a balance of {} Koge to join",
         "MENU_KOGE":"What is Koge❓",
@@ -44,8 +44,8 @@ BNB48_LOCALES={
         "MENU_RICH":"Koge Forbes 💲",
         "MENU_CASINO":"Casino 🎰",
         "MENU_C2C":"OTC trade 🤝",
-        "MENU_ADDROBOT":"Add KOGE Robot to ...",
-        "MENU_SENDRANK":"Send Community Rank to...",
+        "MENU_ADDROBOT":"Add Bot",
+        "MENU_SENDRANK":"Publish Community Rank",
         "MENU_LANG":"中文 ⚙️"
     }
 }

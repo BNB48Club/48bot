@@ -334,11 +334,11 @@ class Koge48:
         
     def getTopGainer(self):
         cursor = self._mycursor()
-        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > %s GROUP BY `sid` ORDER BY `total` DESC LIMIT 20"
+        betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > %s GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
         cursor.execute(betsql,(Koge48.BNB48BOT,Koge48.STATSTART))
-        top20 = cursor.fetchall()
+        top10 = cursor.fetchall()
         self._close(cursor)
-        return top20
+        return top10
 
     def getTop(self,amount=10):
         cursor = self._mycursor()
@@ -347,7 +347,7 @@ class Koge48:
         top10 = cursor.fetchall()
         self._close(cursor)
         return top10
-    def getTopDonator(self,amount=20):
+    def getTopDonator(self,amount=10):
         cursor = self._mycursor()
         sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
         cursor.execute(sql)
