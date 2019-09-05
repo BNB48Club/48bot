@@ -24,8 +24,8 @@ BNB48_LOCALES={
         "MENU_RICH":"富豪榜💲",
         "MENU_CASINO":"娱乐场🎰",
         "MENU_C2C":"场外交易🤝",
-        "MENU_ADDROBOT":"添加机器人到...",
-        "MENU_SENDRANK":"转发社区热度排名到...",
+        "MENU_ADDROBOT":"添加机器人",
+        "MENU_SENDRANK":"转发社区热度",
         "MENU_LANG":"EN ⚙️"
     },
     "EN":{

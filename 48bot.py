@@ -198,8 +198,10 @@ def callbackhandler(bot,update):
                 response =getLocaleString("JOININTRODUCTION",lang).format(ENTRANCE_THRESHOLDS[BNB48])
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "RICH" == thedatas[1]:
+            '''
             koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query rich')
             markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
+            '''
             top10 = koge48core.getTop(20)
             text="Total BNB Holding: {}\nTotal Floating Koge: {}\nTotal Permanent Koge:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalBNB(),','),format(koge48core.getTotalFree(),','),format(koge48core.getTotalFrozen(),','))
             for each in top10:
@@ -314,6 +316,12 @@ def actualAnswer(query,content=None):
         query.answer(text=content)
 
 def builddashboardmarkup(lang="CN"):
+    '''
+    [
+        InlineKeyboardButton(getLocaleString("MENU_API",lang),callback_data="MENU#API#"+lang),
+        InlineKeyboardButton(getLocaleString("MENU_AIRDROP",lang),callback_data="MENU#AIRDROP#"+lang),
+    ],
+    '''
     return InlineKeyboardMarkup(
         [
             [
@@ -323,10 +331,6 @@ def builddashboardmarkup(lang="CN"):
             [
                 InlineKeyboardButton(getLocaleString("MENU_BALANCE",lang),callback_data="MENU#BALANCE#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_CHANGES",lang),callback_data="MENU#CHANGES#"+lang),
-            ],
-            [
-                InlineKeyboardButton(getLocaleString("MENU_API",lang),callback_data="MENU#API#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_AIRDROP",lang),callback_data="MENU#AIRDROP#"+lang),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
@@ -349,7 +353,7 @@ def builddashboardmarkup(lang="CN"):
 def buildredpacketmarkup(redpacket_id):
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton('🙋‍♀️🙋‍♂️',callback_data="HONGBAO#{}".format(redpacket_id))]
+            [InlineKeyboardButton('💰',callback_data="HONGBAO#{}".format(redpacket_id))]
         ]
     )
 
@@ -1256,8 +1260,9 @@ def airdropportal(bot,job):
             print(eachuid)
             pass
 
-    koge48core.KogeDecrease()
-    koge48core.BNBAirDrop()
+    if time.time() < 1568563200:
+        koge48core.KogeDecrease()
+        koge48core.BNBAirDrop()
     saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
     global MININGWHITELIST,MININGBLACKLIST
     MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})

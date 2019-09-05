@@ -425,17 +425,20 @@ def rollerMarkDownGenerator():
     topaward.append(prizepool/3)
     topaward.append(prizepool/6)
     topaward.append(prizepool/12)
+    awardicons=["🥇","🥈","🥉","",""]
     try:
         index = 0
         for each in top3:
+            if index > 4:
+                break
             if str(each[0]) in UIDFULLNAMEMAP:
                 fullname = UIDFULLNAMEMAP[str(each[0])]
             else:
                 fullname = str(each[0])
 
-            text+="[{}](tg://user?id={})\t{}".format(fullname,each[0],each[1])
+            text+="{} [{}](tg://user?id={})\t{}".format(awardicons[index],fullname,each[0],each[1])
             if index < 3:
-                text += " 预计奖金 {} Koge\n".format(min(round(topaward[index],2),each[1]))
+                text += " {} Koge\n".format(min(round(topaward[index],2),each[1]))
             else:
                 text += "\n"
             index += 1
@@ -443,7 +446,7 @@ def rollerMarkDownGenerator():
         pass
 
     top10 = koge48core.getHisBetRecords(limit=10)
-    text+="\n历史下注榜(分红依据):\n"
+    text+="\n*历史下注榜(分红依据)*:\n"
     for each in top10:
         if str(each[0]) in UIDFULLNAMEMAP:
             fullname = UIDFULLNAMEMAP[str(each[0])]
@@ -453,7 +456,7 @@ def rollerMarkDownGenerator():
 
 
     top10 = koge48core.getTopGainer()
-    text+="\n历史净赢榜:\n"
+    text+="\n*历史净赢榜*:\n"
     for each in top10:
         if str(each[0]) in UIDFULLNAMEMAP:
             fullname = UIDFULLNAMEMAP[str(each[0])]

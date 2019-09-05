@@ -25,6 +25,7 @@ def get_access_token(app_key, app_secret, callback_url):
 
 UID=""
 def init_weibo(account):
+    callback_url = 'https://api.weibo.com/oauth2/default.html'
     weiboconfig = ConfigParser.ConfigParser()
     weiboconfig.read("conf/weibo.conf")
     app_key = weiboconfig.get(account,"app_key")
@@ -35,7 +36,6 @@ def init_weibo(account):
     global UID
     UID = weiboconfig.get(account,"uid")
 
-    callback_url = 'https://api.weibo.com/oauth2/default.html'
 
     client = APIClient(app_key=app_key, app_secret=app_secret, redirect_uri=callback_url)
     client.set_access_token(access_token, expires_in)
@@ -50,8 +50,13 @@ def send_pic(client,picpath,title):
     return "https://weibo.com/{}/{}".format(UID,mid2str(r['mid']))
 
 def send_mes(client,message):
+    mes = message.decode('utf-8')
+    r = client.statuses.share.post(status=mes+" https://www.binance.co/register.html?ref=10150829")
+    return "https://weibo.com/{}/{}".format(UID,mid2str(r['mid']))
+    '''
     utext = unicode(message,"UTF-8")
     return mid2str(client.post.statuses__share(status=message)['mid'])
+    '''
 
 
 
@@ -125,4 +130,5 @@ def test():
 
 if __name__ == '__main__':
     client = init_weibo('BNB48Club')
-    print(send_pic(client,"temp.png","testtitle"))
+    #print(send_pic(client,"temp.png","testtitle"))
+    print(send_mes(client,"币安宝什么时候出不限量的活期版本？没有我明天再问一下"))
