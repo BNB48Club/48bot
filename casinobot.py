@@ -85,7 +85,7 @@ def is_number(s):
 SLOTICONS=["🍎","🍇","🍓","🍒","🍊","🍐","🍑","🎰","🍉","🍋"]
 
 def slotDesc():
-    res="共三列图标,每列随机出现10个图标中的一个,转出结果中出现如下组合(从第一列开始)可以获得不同倍数的奖金。\n"
+    res=""
     res+=(SLOTICONS[7]*3 + " ✖️250 + JackPot\n")
     res+=(SLOTICONS[3]*3 + " ✖️30\n")
     res+=(SLOTICONS[1]*3 + " ✖️30\n")
@@ -96,8 +96,8 @@ def slotDesc():
     res+=(SLOTICONS[8]*3 + " ✖️30\n")
     res+=(SLOTICONS[9]*3 + " ✖️30\n")
     res+=(SLOTICONS[0]*3 + " ✖️30\n")
-    res+=(SLOTICONS[7]*2 + "  ✖️20\n")
-    res+=(SLOTICONS[7] + "   ✖️3")
+    res+=(SLOTICONS[7]*2 + "🔲 ✖️20\n")
+    res+=(SLOTICONS[7] + "🔲🔲 ✖️3")
     return res
 
 def slotPlay():

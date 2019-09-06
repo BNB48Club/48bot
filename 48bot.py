@@ -220,7 +220,7 @@ def callbackhandler(bot,update):
                 newlang = "EN"
             else:
                 newlang = "CN"
-            update.callback_query.message.edit_text(update.callback_query.message.text_markdown,disable_web_page_preview=True,reply_markup=builddashboardmarkup(newlang),parse_mode=ParseMode.MARKDOWN)
+            update.callback_query.message.edit_text(getLocaleString("KOGEINTRODUCTION",newlang),disable_web_page_preview=True,reply_markup=builddashboardmarkup(newlang),parse_mode=ParseMode.MARKDOWN)
         else:
             update.callback_query.answer()
 
@@ -318,27 +318,27 @@ def actualAnswer(query,content=None):
 def builddashboardmarkup(lang="CN"):
     '''
     [
-        InlineKeyboardButton(getLocaleString("MENU_API",lang),callback_data="MENU#API#"+lang),
-        InlineKeyboardButton(getLocaleString("MENU_AIRDROP",lang),callback_data="MENU#AIRDROP#"+lang),
+        InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
+        InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang)
     ],
     '''
     return InlineKeyboardMarkup(
         [
             [
                 InlineKeyboardButton(getLocaleString("MENU_KOGE",lang),callback_data="MENU#KOGE#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang)
+                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_BALANCE",lang),callback_data="MENU#BALANCE#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_CHANGES",lang),callback_data="MENU#CHANGES#"+lang),
             ],
             [
-                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_COMMUNITY",lang),callback_data="MENU#COMMUNITY#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_SENDRANK",lang),switch_inline_query="community")
             ],
             [
-                InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang)
+                InlineKeyboardButton(getLocaleString("MENU_API",lang),callback_data="MENU#API#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_AIRDROP",lang),callback_data="MENU#AIRDROP#"+lang),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
@@ -346,7 +346,7 @@ def builddashboardmarkup(lang="CN"):
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
-                InlineKeyboardButton(getLocaleString("MENU_SENDRANK",lang),switch_inline_query="community")
+                InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang)
             ],
         ]
     )
@@ -699,17 +699,20 @@ def botcommandhandler(bot,update):
             amount = 10
 
         if amount > 100:
-            update.message.reply_text("红包最多分成100份")
+            #update.message.reply_text("红包最多分成100份")
             return
 
         if balance/amount < RedPacket.SINGLE_AVG:
-            update.message.reply_text("每个红包平均应至少为{}".format(RedPacket.SINGLE_AVG))
+            #update.message.reply_text("Min: {}".format(RedPacket.SINGLE_AVG))
             return
 
         koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
         
         if len(things) > 3:
-            title = things[3]
+            del things[0]
+            del things[0]
+            del things[0]
+            title = " ".join(things)
         else:
             title = "Winner winner, chicken dinner"
 
@@ -1222,9 +1225,9 @@ def main():
     logger.warning("will start airdrop in %s seconds",gap)
     job_airdrop = j.run_repeating(airdropportal,interval=10800,first=gap)
 
-    gap = 28800- time.time()%28800
+    gap = 86400- time.time()%86400
     logger.warning("will start community broadcast in %s seconds",gap)
-    job_airdrop = j.run_repeating(broadcastCommunity,interval=28800,first=gap)
+    job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
 
 
     # Start the Bot
