@@ -60,7 +60,7 @@ PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 
 FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
-UIDFULLNAMEMAP = loadJson("_data/uidfullnamemap.json",{})
+USERINFOMAP = loadJson("_data/userinfomap.json",{})
 MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
 Koge48.MININGWHITELIST = MININGWHITELIST
 MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
@@ -159,7 +159,7 @@ def getCommunityContent(activeuser=None):
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
-    UIDFULLNAMEMAP[str(activeuser.id)]=activeuser.full_name
+    USERINFOMAP[str(activeuser.id)]=activeuser.full_name
     logger.warning("{} callback, content: {}".format(activeuser.full_name,update.callback_query.data))
     if "MENU" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
@@ -440,8 +440,8 @@ def groupadminhandler(bot,update):
         update.message.reply_markdown(text,disable_web_page_preview=True)
 
 def getFullname(uid):
-    if str(uid) in UIDFULLNAMEMAP:
-        return UIDFULLNAMEMAP[str(uid)]
+    if str(uid) in USERINFOMAP:
+        return USERINFOMAP[str(uid)]
     else:
         return str(uid)
 def getusermd(user,link=True):
@@ -815,8 +815,8 @@ def topescrow(seller=None,buyer=None):
         i+=1
         if i>3:
             break
-        if str(each[0]) in UIDFULLNAMEMAP:
-            fullname = UIDFULLNAMEMAP[str(each[0])]
+        if str(each[0]) in USERINFOMAP:
+            fullname = USERINFOMAP[str(each[0])]
         else:
             fullname = str(each[0])
         text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
@@ -831,8 +831,8 @@ def topescrow(seller=None,buyer=None):
         i+=1
         if i>3:
             break
-        if str(each[0]) in UIDFULLNAMEMAP:
-            fullname = UIDFULLNAMEMAP[str(each[0])]
+        if str(each[0]) in USERINFOMAP:
+            fullname = USERINFOMAP[str(each[0])]
         else:
             fullname = str(each[0])
         text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
@@ -861,7 +861,7 @@ def cleanHandler(bot,update):
 
         logger.warning("All redpackets cleared")
 
-        saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
+        saveJson("_data/userinfomap.json",USERINFOMAP)
         update.message.reply_text('cleaned')
         updater.stop()
         updater.is_idle = False
@@ -939,7 +939,7 @@ def kogefaucetHandler(bot,update):
 def botmessagehandler(bot, update):
     #checkThresholds(update.message.chat_id,update.message.from_user.id)
 
-    UIDFULLNAMEMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
+    USERINFOMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
 
     message_text = update.message.text
     if "#SellBNBAt48BTC" in message_text:
@@ -964,7 +964,7 @@ def botmessagehandler(bot, update):
                 return
         #mining
         user = update.message.from_user
-        if not user.id in MININGBLACKLIST and str(update.message.chat_id) in MININGWHITELIST and len(update.message.text) > 5 and not update.message.chat.username is None and not update.message.chat.all_members_are_administrators:
+        if minable(update):
             mined=koge48core.mine(user.id,update.message.chat_id)
         else:
             mined = False
@@ -981,6 +981,18 @@ def botmessagehandler(bot, update):
             MININGWHITELIST[str(update.message.chat_id)]["lasthint"] = minemessage.message_id
             saveJson("_data/miningwhitelist.json",MININGWHITELIST)
 
+def minable(update):
+    user = update.message.from_user
+    if user.id in MININGBLACKLIST:
+        return False
+    if not str(update.message.chat_id) in MININGWHITELIST:
+        return False
+    if len(update.message.text) < 5:
+        return False
+    if update.message.chat.username is None:
+        return False
+    
+    return True
 
 '''
 def replyCommand(bot,update):
@@ -1065,7 +1077,7 @@ def onleft(bot,update):
     update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
 
 def welcome(bot, update):
-    UIDFULLNAMEMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
+    USERINFOMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
     if update.message.chat_id == BNB48 or update.message.chat_id == BNB48CASINO:
         bot.exportChatInviteLink(update.message.chat_id)
     #筛选垃圾消息
@@ -1266,7 +1278,7 @@ def airdropportal(bot,job):
     if time.time() < 1568563200:
         koge48core.KogeDecrease()
         koge48core.BNBAirDrop()
-    saveJson("_data/uidfullnamemap.json",UIDFULLNAMEMAP)
+    saveJson("_data/userinfomap.json",USERINFOMAP)
     global MININGWHITELIST,MININGBLACKLIST
     MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
     Koge48.MININGWHITELIST = MININGWHITELIST

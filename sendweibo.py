@@ -4,6 +4,8 @@ __author__ = 'BNB48'
 __reference__='https://gist.github.com/mrluanma/6000424'
 import ConfigParser
 import sys
+import time
+import random
 from weibo import APIClient
 
 def get_access_token(app_key, app_secret, callback_url):
@@ -129,6 +131,7 @@ def test():
 
 
 if __name__ == '__main__':
+    time.sleep(600*random.random())
     client = init_weibo('BNB48Club')
     #print(send_pic(client,"temp.png","testtitle"))
     print(send_mes(client,"币安宝什么时候出不限量的活期版本？没有我明天再问一下"))

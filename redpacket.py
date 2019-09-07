@@ -37,7 +37,7 @@ class RedPacket:
         else:
             self._needupdate = value
     def getLog(self):
-        text = "🧧*[{}] by {}*\n*{}/{} shares ({}/{} Koge)*\n---\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance)
+        text = "🧧*[{}] {}*\n*{}/{} ({}/{} Koge)*\n---\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance)
         for each in self._sequence:
             if 0 == self._amount and each == self._maxid:
                 text += "[{}](tg://user?id={})* {} Koge [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1])

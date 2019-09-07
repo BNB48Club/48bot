@@ -22,19 +22,11 @@ class Koge48:
     MINE_DIFFER_SIZE = 4
     BNB48BOT = 571331274
     BNB48LIST = []
-    MININGWHITELIST = {}
     JACKPOT = 777000
     PRIZEPOOL = 888000
     #STATSTART = 430820
     STATSTART = 1
     LAMDA = 1.0/500
-    '''
-    def MINING_LAMDA(self):
-        try:
-            return 1.0/2000*len(Koge48.MININGWHITELIST)
-        except:
-            return 1.0/1200
-    '''
     def KogeDecrease(self):
         userlist = []
         logger.warning("decreasing")
@@ -141,6 +133,8 @@ class Koge48:
         self._database=database
         self._startts = time.time()
         self._minets = {}
+        self._miners = {}
+        self._lastminer = 0
         self._cursor_conn_map = {}
         return
 
@@ -361,12 +355,18 @@ class Koge48:
     def getTotalBalance(self,userid):
         return self._getBalanceFromDb(userid) + self._getChequeBalanceFromDb(userid)
     def mine(self,minerid,groupid):
+        if minerid == self._lastminer:
+            return 0
+        if groupid in self._miners and minerid == self._miners[groupid]:
+            return 0 
         currentts = time.time()
         if groupid in self._minets:
             duration = currentts - self._minets[groupid]
         else:
             duration = currentts - self._startts
         self._minets[groupid] = currentts
+        self._miners[groupid] = minerid
+        self._lastminer = minerid
 
         if str(minerid) in Koge48.BNB48LIST:
             duration *= 2
