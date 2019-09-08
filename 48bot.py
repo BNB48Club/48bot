@@ -95,8 +95,13 @@ koge48core = Koge48(
   kogeconfig.get("mysql","database")
 )
 
-
 global_redpackets = {}
+USERPROPERTIES = {
+    "BinanceEmail":"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$",
+    "BinanceUID":"^\d{8}$",
+    "ETH":"^(0x)[0-9A-Fa-f]{40}$",
+    "BNB":"^(bnb1)[0-9a-z]{38}$"
+}
 
 weiboclient = init_weibo('BNB48Club')
 
@@ -270,8 +275,9 @@ def callbackhandler(bot,update):
         redpacket = global_redpackets[redpacket_id]
         thisdraw = redpacket.draw(activeuser)
         if thisdraw > 0:
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
-            update.callback_query.answer("{} Koge".format(thisdraw),show_alert=True)
+            if "KOGE" == redpacket.currency():
+                koge48core.transferChequeBalance(Koge48.BNB48BOT,activeuser.id,thisdraw,"collect redpacket from {}".format(redpacket._fromuser.full_name))
+            update.callback_query.answer("{} {}".format(thisdraw,redpacket.currency()),show_alert=True)
         elif 0 == thisdraw:
             update.callback_query.answer("每人只能领取一次/One person, One share",show_alert=True)
         else:
@@ -679,6 +685,12 @@ def botcommandhandler(bot,update):
             update.message.reply_text("需要在群内发送")
             return
         user = update.message.from_user
+        
+        currency = "KOGE"
+
+        if len(things) >1 and not is_number(things[1]):
+            currency = things[1]
+            del things[1]
 
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
@@ -706,7 +718,8 @@ def botcommandhandler(bot,update):
             #update.message.reply_text("Min: {}".format(RedPacket.SINGLE_AVG))
             return
 
-        koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
+        if "KOGE" == currency:
+            koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
         
         if len(things) > 3:
             del things[0]
@@ -716,7 +729,7 @@ def botcommandhandler(bot,update):
         else:
             title = "Winner winner, chicken dinner"
 
-        redpacket = RedPacket(update.message.from_user,balance,amount,title)
+        redpacket = RedPacket(update.message.from_user,balance,amount,title,currency)
         redpacket.groupId(update.message.chat_id)
         #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         redpacket_id = str(int(time.time()))
@@ -856,7 +869,8 @@ def cleanHandler(bot,update):
             if balance <=0:
                 continue
             global_redpackets[each].clear()
-            koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,balance,"redpacket return")
+            if "KOGE" == global_redpackets[each].currency():
+                koge48core.transferChequeBalance(Koge48.BNB48BOT,global_redpackets[each]._fromuser.id,balance,"redpacket return")
             delayUpdateRedpacket(each)
 
         logger.warning("All redpackets cleared")
@@ -1165,7 +1179,10 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
-    #dp.add_handler(RegexHandler("^0(X|x)\w{40}$",ethhandler))
+    dp.add_handler(RegexHandler(USERPROPERTIES["ETH"],ethhandler))
+    dp.add_handler(RegexHandler(USERPROPERTIES["BNB"],bnbhandler))
+    dp.add_handler(RegexHandler(USERPROPERTIES["BinanceEmail"],binanceemailhandler))
+    dp.add_handler(RegexHandler(USERPROPERTIES["BinanceUID"],binanceuidhandler))
 
 
     dp.add_handler(CommandHandler(

@@ -4,7 +4,7 @@ import random
 import time
 class RedPacket:
     SINGLE_AVG = 1
-    def __init__(self,fromuser,balance,amount,title):
+    def __init__(self,fromuser,balance,amount,title,currency="KOGE"):
         self._fromuser = fromuser
         self._origbalance = balance
         self._balance = balance
@@ -19,6 +19,11 @@ class RedPacket:
         self._groupid = -1
         self._messageid = -1
         self._id = -1
+        self._currency = currency
+    def getResult():
+        return self._drawed
+    def currency(self):
+        return self._currency
     def sender(self):
         return self._fromuser
     def messageId(self,mid=None):
@@ -37,12 +42,12 @@ class RedPacket:
         else:
             self._needupdate = value
     def getLog(self):
-        text = "🧧*[{}] {}*\n*{}/{} ({}/{} Koge)*\n---\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance)
+        text = "🧧*[{}] {}*\n*{}/{} ({}/{} {})*\n---\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance,self._currency)
         for each in self._sequence:
             if 0 == self._amount and each == self._maxid:
-                text += "[{}](tg://user?id={})* {} Koge [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1])
+                text += "[{}](tg://user?id={})* {} {} [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1],self._currency)
             else:
-                text += "{} {} Koge\n".format(self._drawed[each][0],self._drawed[each][1])
+                text += "{} {} {}\n".format(self._drawed[each][0],self._drawed[each][1],self._currency)
         return text
     def left(self):
         return self._amount
