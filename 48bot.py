@@ -45,7 +45,9 @@ def saveJson(filename,content):
     file.close()
 
 def getLang(user):
-    if "zh" in user.language_code:
+    if user.language_code is None:
+        return "CN"
+    elif "zh" in user.language_code:
         return "CN"
     else:
         return "EN"
@@ -61,6 +63,17 @@ PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 USERINFOMAP = loadJson("_data/userinfomap.json",{})
+def userInfo(uid,key,value=None):
+    realuid = str(uid)
+    realkey=str(key)
+    if value is None:
+        if realkey in USERINFOMAP[realuid]:
+            return USERINFOMAP[realuid][realkey]
+        else:
+            return None
+    else:
+        USERINFOMAP[realuid][realkey] = value
+    
 MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
 Koge48.MININGWHITELIST = MININGWHITELIST
 MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
@@ -71,6 +84,7 @@ SirIanM=420909210
 BNB48=-1001136778297
 BNB48PUBLISH=-1001180859399
 BNB48CN= -1001345282090
+BNB48EN= -1001377752898
 BNB48C2C = -1001491897749
 BNB48CASINO=-1001319319354
 BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
@@ -99,8 +113,9 @@ global_redpackets = {}
 USERPROPERTIES = {
     "BinanceEmail":"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$",
     "BinanceUID":"^\d{8}$",
-    "ETH":"^(0x)[0-9A-Fa-f]{40}$",
-    "BNB":"^(bnb1)[0-9a-z]{38}$"
+    #"ETH":"^(0x)[0-9A-Fa-f]{40}$",
+    #"BNB":"^(bnb1)[0-9a-z]{38}$",
+    #"EOS":"^[1-5a-z\.]{1,12}$"
 }
 
 weiboclient = init_weibo('BNB48Club')
@@ -164,7 +179,7 @@ def getCommunityContent(activeuser=None):
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
-    USERINFOMAP[str(activeuser.id)]=activeuser.full_name
+    userInfo(activeuser.id,"FULLNAME",activeuser.full_name)
     logger.warning("{} callback, content: {}".format(activeuser.full_name,update.callback_query.data))
     if "MENU" in update.callback_query.data:
         thedatas = update.callback_query.data.split('#')
@@ -178,9 +193,16 @@ def callbackhandler(bot,update):
             for each in kogechanges:
                 response += "  {} ago,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
-        elif "API" == thedatas[1]:
+        elif "BIND" == thedatas[1]:
             bindstatus = koge48core.getAirDropStatus(activeuser.id)
-            response = getLocaleString("APIINTRODUCTION",lang).format(bindstatus['api'][0],bindstatus['bnb'][1])
+            response = getLocaleString("BINDINTRODUCTION",lang).format(bindstatus['api'][0],bindstatus['bnb'][1])
+            for each in USERPROPERTIES:
+                response += "\n*{}*:".format(each)
+                value = userInfo(update.effective_user.id,each)
+                logger.warning(value)
+                if not value is None:
+                    response += "\n"
+                    response += value
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "AIRDROP" == thedatas[1]:
             response = "Airdrops:"
@@ -323,10 +345,6 @@ def actualAnswer(query,content=None):
 
 def builddashboardmarkup(lang="CN"):
     '''
-    [
-        InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
-        InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang)
-    ],
     '''
     return InlineKeyboardMarkup(
         [
@@ -343,12 +361,16 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton(getLocaleString("MENU_SENDRANK",lang),switch_inline_query="community")
             ],
             [
-                InlineKeyboardButton(getLocaleString("MENU_API",lang),callback_data="MENU#API#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_AIRDROP",lang),callback_data="MENU#AIRDROP#"+lang),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
                 InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK)
+            ],
+            [
+                InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang)
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
@@ -383,7 +405,6 @@ def buildescrowmarkup(fromid,toid,transamount):
 def testHandler(bot,update):
     update.message.reply_text(bot.exportChatInviteLink(update.message.chat_id))
 def pmcommandhandler(bot,update):
-    #if not '/start' in update.message.text and update.message.chat.type != 'private':
     if update.message.chat.type != 'private':
         #update.message.reply_text('该命令需私聊机器人')
         return
@@ -415,17 +436,23 @@ def pmcommandhandler(bot,update):
     elif "/start" in things[0]:
         #if 'private' == update.message.chat.type:
         lang=getLang(update.message.from_user)
-        update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
-        '''
-        elif 2 == len(things) and 'join' == things[1]:
-            listMiningGroup(update.message)
-    elif "/join" in things[0]:
-        if koge48core.getTotalBalance(update.message.from_user.id) >= ENTRANCE_THRESHOLDS[BNB48]:
-            update.message.reply_markdown("欢迎加入[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48)))
+        if len(things) > 1 and "fill" == things[1]:
+            response = getLocaleString("FILLHINT",lang)
+            response += getAssociation(update.effective_user.id)
+            update.message.reply_markdown(response,disable_web_page_preview=True)
         else:
-            update.message.reply_markdown("欢迎加入[BNB48Club](https://t.me/bnb48club_cn)")
-        '''
+            update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
 
+def getAssociation(uid):
+    response = ""
+    for each in USERPROPERTIES:
+        response += "\n*{}*:\n".format(each)
+        value = userInfo(uid,each)
+        if not value is None:
+            response += value
+        else:
+            response += "`______`"
+    return response
 def groupadminhandler(bot,update):
     chatid = update.message.chat_id
     user = update.message.from_user
@@ -446,10 +473,11 @@ def groupadminhandler(bot,update):
         update.message.reply_markdown(text,disable_web_page_preview=True)
 
 def getFullname(uid):
-    if str(uid) in USERINFOMAP:
-        return USERINFOMAP[str(uid)]
+    name = userInfo(uid,"FULLNAME")
+    if name is None:
+        return uid
     else:
-        return str(uid)
+        return name
 def getusermd(user,link=True):
     if user.id is None:
         userid = int(user)
@@ -610,10 +638,10 @@ def botcommandhandler(bot,update):
         transamount = float(things[1])
         koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
         try:
-            bot.sendMessage(targetuser.id,"收到{}向您转账{}Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(targetuser.id,"{} 💸 {} Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
-        update.message.reply_markdown("{} 💸 {} {}{}".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{} 💸 {} {} Koge".format(getusermd(user),getusermd(targetuser),transamount),disable_web_page_preview=True)
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
@@ -682,7 +710,7 @@ def botcommandhandler(bot,update):
         bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
-            update.message.reply_text("需要在群内发送")
+            #update.message.reply_text("需要在群内发送")
             return
         user = update.message.from_user
         
@@ -695,11 +723,11 @@ def botcommandhandler(bot,update):
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
-            update.message.reply_text("发红包格式: `/hongbao 金额 拆成多少份`")
+            #update.message.reply_text("发红包格式: `/hongbao 金额 拆成多少份`")
             return
 
         if balance <= 0:
-            update.message.reply_markdown("发红包格式: `/hongbao 金额 拆成多少份`")
+            #update.message.reply_markdown("发红包格式: `/hongbao 金额 拆成多少份`")
             return
 
 
@@ -742,6 +770,8 @@ def botcommandhandler(bot,update):
             bot.sendMessage(BNB48,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             if message.chat_id != BNB48CN:
                 bot.sendMessage(BNB48CN,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            if message.chat_id != BNB48EN:
+                bot.sendMessage(BNB48EN,"Someone releases a luckydraw 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         try:
             bot.deleteMessage(update.message.chat_id,update.message.message_id)
         except:
@@ -828,10 +858,7 @@ def topescrow(seller=None,buyer=None):
         i+=1
         if i>3:
             break
-        if str(each[0]) in USERINFOMAP:
-            fullname = USERINFOMAP[str(each[0])]
-        else:
-            fullname = str(each[0])
+        fullname = getFullname(each[0])
         text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
 
     text += "--------------------\n"
@@ -844,10 +871,7 @@ def topescrow(seller=None,buyer=None):
         i+=1
         if i>3:
             break
-        if str(each[0]) in USERINFOMAP:
-            fullname = USERINFOMAP[str(each[0])]
-        else:
-            fullname = str(each[0])
+        fullname = getFullname(each[0])
         text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
     if "pinid" in escrowrecord:
         updater.bot.editMessageText(text,BNB48C2C,escrowrecord['pinid'],parse_mode="Markdown")
@@ -880,17 +904,30 @@ def cleanHandler(bot,update):
         updater.stop()
         updater.is_idle = False
         sys.exit()
+def bnbhandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
+    userInfo(update.effective_user.id,"BNB",update.message.text)
+    update.message.reply_text("eos address")
+def eoshandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
+    update.message.reply_text("ETH: {}".format(update.message.text))
 def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
-    eth = update.message.text
-    ethrichlist=[]
-    if eth in ethrichlist:
-        update.message.reply_text("请不要拿链上富豪榜地址冒充,如果这个地址确实属于你,请私聊@SirIanM")
-    else:
-        koge48core.setEthAddress(update.message.from_user.id,eth)
-        update.message.reply_text("eth绑定完成。请注意绑定过程不校验地址持仓BNB余额")
-
+    userInfo(update.effective_user.id,"ETH",update.message.text)
+    update.message.reply_text("Binance UID: {}".format(update.message.text))
+def binanceuidhandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
+    userInfo(update.effective_user.id,"BinanceUID",update.message.text)
+    update.message.reply_markdown(getAssociation((update.effective_user.id)))
+def binanceemailhandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
+    userInfo(update.effective_user.id,"BinanceEmail",update.message.text)
+    update.message.reply_markdown(getAssociation((update.effective_user.id)))
 
 def apihandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
@@ -953,8 +990,7 @@ def kogefaucetHandler(bot,update):
 def botmessagehandler(bot, update):
     #checkThresholds(update.message.chat_id,update.message.from_user.id)
 
-    USERINFOMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
-
+    userInfo(update.message.from_user.id,"FULLNAME",update.message.from_user.full_name)
     message_text = update.message.text
     if "#SellBNBAt48BTC" in message_text:
         file=open("/var/www/html/sell48","r")
@@ -1091,7 +1127,7 @@ def onleft(bot,update):
     update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
 
 def welcome(bot, update):
-    USERINFOMAP[str(update.message.from_user.id)]=update.message.from_user.full_name
+    userInfo(update.message.from_user.id,"FULLNAME",update.message.from_user.full_name)
     if update.message.chat_id == BNB48 or update.message.chat_id == BNB48CASINO:
         bot.exportChatInviteLink(update.message.chat_id)
     #筛选垃圾消息
@@ -1179,8 +1215,9 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
-    dp.add_handler(RegexHandler(USERPROPERTIES["ETH"],ethhandler))
-    dp.add_handler(RegexHandler(USERPROPERTIES["BNB"],bnbhandler))
+    #dp.add_handler(RegexHandler(USERPROPERTIES["ETH"],ethhandler))
+    #dp.add_handler(RegexHandler(USERPROPERTIES["EOS"],eoshandler))
+    #dp.add_handler(RegexHandler(USERPROPERTIES["BNB"],bnbhandler))
     dp.add_handler(RegexHandler(USERPROPERTIES["BinanceEmail"],binanceemailhandler))
     dp.add_handler(RegexHandler(USERPROPERTIES["BinanceUID"],binanceuidhandler))
 
@@ -1252,7 +1289,7 @@ def main():
     #Start the schedule
     gap = 10800 - time.time()%10800
     logger.warning("will start airdrop in %s seconds",gap)
-    job_airdrop = j.run_repeating(airdropportal,interval=10800,first=gap)
+    job_airdrop = j.run_repeating(periodical,interval=10800,first=gap)
 
     gap = 86400- time.time()%86400
     logger.warning("will start community broadcast in %s seconds",gap)
@@ -1278,7 +1315,7 @@ def broadcastCommunity(bot,job):
         except Exception as e:
             print(e)
 
-def airdropportal(bot,job):
+def periodical(bot,job):
     bnb48list = loadJson("_data/bnb48.list",[])
     Koge48.BNB48LIST = bnb48list
 

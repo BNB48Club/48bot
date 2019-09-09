@@ -2,6 +2,17 @@
 #!/bin/usr/python
 import random
 import time
+import re
+
+def has_hanzi(line):    
+    #uline = unicode(line, 'utf-8')
+    pattern = u'[\u4e00-\u9fa5]+'
+    search = re.search(pattern, line)
+    if search:
+        return True
+    else:
+        return False
+
 class RedPacket:
     SINGLE_AVG = 1
     def __init__(self,fromuser,balance,amount,title,currency="KOGE"):
@@ -20,6 +31,10 @@ class RedPacket:
         self._messageid = -1
         self._id = -1
         self._currency = currency
+        if has_hanzi(self._title):
+            self._lang = "CN"
+        else:
+            self._lang = "EN"
     def getResult():
         return self._drawed
     def currency(self):
@@ -42,7 +57,12 @@ class RedPacket:
         else:
             self._needupdate = value
     def getLog(self):
-        text = "🧧*[{}] {}*\n*{}/{} ({}/{} {})*\n---\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance,self._currency)
+        text = "🧧*[{}]\n{}*\n*{}/{} ({}/{} {})*\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance,self._currency)
+        if "KOGE" != self._currency:
+            if "CN"==self._lang:
+                text += "📝[填写领奖信息](https://t.me/bnb48_bot?start=fill)\n"
+            else:
+                text += "📝[Claim My {}](https://t.me/bnb48_bot?start=fill)\n".format(self._currency)
         for each in self._sequence:
             if 0 == self._amount and each == self._maxid:
                 text += "[{}](tg://user?id={})* {} {} [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1],self._currency)

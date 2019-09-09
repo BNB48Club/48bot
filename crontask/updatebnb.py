@@ -3,7 +3,7 @@ import configparser
 import time
 from binance.client import Client
 import json
-from web3.auto.infura import w3
+#from web3.auto.infura import w3
 #import MySQLdb
 import pymysql
 
