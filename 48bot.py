@@ -805,16 +805,28 @@ def botcommandhandler(bot,update):
             currency = things[1]
             del things[1]
 
-        if not user.id in getAdminsInThisGroup(update.message.chat_id):
+        if "KOGE" != currency and not user.id in getAdminsInThisGroup(update.message.chat_id):
+            try:
+                update.message.delete()
+            except:
+                pass
             return
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
             #update.message.reply_text("发红包格式: `/hongbao 金额 拆成多少份`")
+            try:
+                update.message.delete()
+            except:
+                pass
             return
 
         if balance <= 0:
             #update.message.reply_markdown("发红包格式: `/hongbao 金额 拆成多少份`")
+            try:
+                update.message.delete()
+            except:
+                pass
             return
 
 
@@ -827,10 +839,18 @@ def botcommandhandler(bot,update):
 
         if "KOGE" == currency and amount > 100:
             #update.message.reply_text("红包最多分成100份")
+            try:
+                update.message.delete()
+            except:
+                pass
             return
 
         if "KOGE" == currency and balance/amount < RedPacket.SINGLE_AVG:
             #update.message.reply_text("Min: {}".format(RedPacket.SINGLE_AVG))
+            try:
+                update.message.delete()
+            except:
+                pass
             return
 
         if "KOGE" == currency:
@@ -861,7 +881,8 @@ def botcommandhandler(bot,update):
             if message.chat_id != BNB48EN:
                 bot.sendMessage(BNB48EN,"Someone releases a luckydraw 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         try:
-            bot.deleteMessage(update.message.chat_id,update.message.message_id)
+            update.message.delete()
+            #bot.deleteMessage(update.message.chat_id,update.message.message_id)
         except:
             pass
 
