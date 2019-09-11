@@ -49,6 +49,16 @@ def getLang(user):
         return "CN"
     else:
         return "EN"
+def getAdminsInThisGroup(groupid):
+    try:
+        admins = updater.bot.get_chat_administrators(groupid)
+    except:
+        admins = []
+    RESULTS=[]
+    for admin in admins:
+        RESULTS.append(admin.user.id)
+    return RESULTS
+
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.WARNING)
 logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
@@ -795,6 +805,8 @@ def botcommandhandler(bot,update):
             currency = things[1]
             del things[1]
 
+        if not user.id in getAdminsInThisGroup(update.message.chat_id):
+            return
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
