@@ -29,18 +29,32 @@ class RedPacket:
         self._maxid=-1
         self._groupid = -1
         self._messageid = -1
-        self._id = -1
+        self._id = "-1"
         self._currency = currency
         if has_hanzi(self._title):
             self._lang = "CN"
         else:
             self._lang = "EN"
+    def export(self):
+        res = {}
+        res["map"]=self._drawed
+        res["id"]=self._id
+        res["currency"]=self._currency
+        res["title"]=self._title
+        res["sender"]=self._fromuser.id
+        res["prop"]="BinanceEmail"
+        return res
     def getResult():
         return self._drawed
     def currency(self):
         return self._currency
     def sender(self):
         return self._fromuser
+    def id(self,nid=None):
+        if id is None:
+            return self._id
+        else:
+            self._id = nid
     def messageId(self,mid=None):
         if mid is None:
             return self._messageid
@@ -60,14 +74,16 @@ class RedPacket:
         text = "🧧*[{}]\n{}*\n*{}/{} ({}/{} {})*\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance,self._currency)
         if "KOGE" != self._currency:
             if "CN"==self._lang:
-                text += "📝[填写领奖信息](https://t.me/bnb48_bot?start=fill)\n"
+                text += "📝[填写领奖信息]"
             else:
-                text += "📝[Claim My {}](https://t.me/bnb48_bot?start=fill)\n".format(self._currency)
+                text += "📝[Claim {}]".format(self._currency)
+            text += "(https://t.me/bnb48_bot?start=fill{})\n".format(self._id)
+        text += "---\n"
         for each in self._sequence:
             if 0 == self._amount and each == self._maxid:
-                text += "[{}](tg://user?id={})* {} {} [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1],self._currency)
+                text += "[{}](tg://user?id={}) *{} {} [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1],self._currency)
             else:
-                text += "{} {} {}\n".format(self._drawed[each][0],self._drawed[each][1],self._currency)
+                text += "[{}](tg://user?id={}) {} {}\n".format(self._drawed[each][0],each,self._drawed[each][1],self._currency)
         return text
     def left(self):
         return self._amount

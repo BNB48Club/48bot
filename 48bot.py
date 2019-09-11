@@ -45,9 +45,7 @@ def saveJson(filename,content):
     file.close()
 
 def getLang(user):
-    if user.language_code is None:
-        return "CN"
-    elif "zh" in user.language_code:
+    if (not user.language_code is None) and "zh" in user.language_code:
         return "CN"
     else:
         return "EN"
@@ -63,15 +61,22 @@ PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 USERINFOMAP = loadJson("_data/userinfomap.json",{})
+def clearUserInfo(uid,key):
+    realuid = str(uid)
+    realkey=str(key)
+    if realuid in USERINFOMAP and realkey in USERINFOMAP[realuid]:
+        del  USERINFOMAP[realuid][realkey]
 def userInfo(uid,key,value=None):
     realuid = str(uid)
     realkey=str(key)
     if value is None:
-        if realkey in USERINFOMAP[realuid]:
+        if realuid in USERINFOMAP and realkey in USERINFOMAP[realuid]:
             return USERINFOMAP[realuid][realkey]
         else:
             return None
     else:
+        if not realuid in USERINFOMAP:
+            USERINFOMAP[realuid]={}
         USERINFOMAP[realuid][realkey] = value
     
 MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
@@ -111,10 +116,10 @@ koge48core = Koge48(
 
 global_redpackets = {}
 USERPROPERTIES = {
-    "BinanceEmail":"^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$",
-    "BinanceUID":"^\d{8}$",
-    #"ETH":"^(0x)[0-9A-Fa-f]{40}$",
-    #"BNB":"^(bnb1)[0-9a-z]{38}$",
+    "BinanceEmail":"^[a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+([:,：]\d+){0,1}$",
+    #"BinanceUID":"^\d{8}$",
+    "ETH":"^(0x)[0-9A-Fa-f]{40}$",
+    "BNB":"^(bnb1)[0-9a-z]{38}([:,：]\d+){0,1}$",
     #"EOS":"^[1-5a-z\.]{1,12}$"
 }
 
@@ -181,7 +186,7 @@ def callbackhandler(bot,update):
     activeuser = update.callback_query.from_user
     userInfo(activeuser.id,"FULLNAME",activeuser.full_name)
     logger.warning("{} callback, content: {}".format(activeuser.full_name,update.callback_query.data))
-    if "MENU" in update.callback_query.data:
+    if update.callback_query.data.startswith("MENU#"):
         thedatas = update.callback_query.data.split('#')
         lang = thedatas[2]
         if "BALANCE" == thedatas[1]:
@@ -251,10 +256,28 @@ def callbackhandler(bot,update):
         else:
             update.callback_query.answer()
 
-    elif "escrow" in update.callback_query.data:
+    elif update.callback_query.data.startswith("FILLING#"):
         thedatas = update.callback_query.data.split('#')
-        if thedatas[0] != "escrow":
+        lang = getLang(update.effective_user)
+        #logger.warning("chat action")
+        #bot.sendChatAction(update.effective_user.id,"Waiting for {}...".format(thedatas[1]))
+        userInfo(update.effective_user.id,"FILLING",update.effective_message.message_id)
+        update.effective_message.edit_reply_markup(reply_markup=buildfilling(update.effective_user.id,thedatas[1]))
+        update.callback_query.answer(getLocaleString("FILLHINT",lang))
+    elif update.callback_query.data.startswith("FILL#"):
+        thedatas = update.callback_query.data.split('#')
+        redpacketid = thedatas[1]
+        prop = thedatas[2]
+        currentstat = thedatas[3]
+        export = loadJson("_data/redpacket{}.json".format(redpacketid),{})
+        if prop == export["prop"]:
+            update.callback_query.answer()
             return
+        export["prop"]=prop
+        saveJson("_data/redpacket{}.json".format(redpacketid),export)
+        update.effective_message.edit_text(genDistList(export),reply_markup=buildfillselection(export),parse_mode=ParseMode.MARKDOWN)
+    elif update.callback_query.data.startswith("escrow#"):
+        thedatas = update.callback_query.data.split('#')
         if thedatas[1] == "confirm":
             if activeuser.id != float(thedatas[2]):
                 update.callback_query.answer("只有发起者才能确认",show_alert=True)
@@ -288,7 +311,7 @@ def callbackhandler(bot,update):
             update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'))
             update.callback_query.answer("{}已取消".format(activeuser.full_name),show_alert=True)
             
-    elif "HONGBAO" in update.callback_query.data:
+    elif update.callback_query.data.startswith("HONGBAO#"):
         thedatas = update.callback_query.data.split('#')
         redpacket_id = thedatas[1]
         if not redpacket_id in global_redpackets:
@@ -329,7 +352,11 @@ def actualUpdateRedpacket(redpacket_id):
         thismarkup = buildredpacketmarkup(redpacket_id)
     try:
         updater.bot.edit_message_caption(chat_id=redpacket.groupId(),message_id=redpacket.messageId(),caption=redpacket.getLog(),reply_markup=thismarkup,parse_mode="Markdown")
-    except:
+        if "KOGE" != redpacket.currency():
+            export = redpacket.export()
+            saveJson("_data/redpacket{}.json".format(export["id"]),export)
+    except Exception as e:
+        print(e)
         pass
     redpacket.needUpdate(False)
 
@@ -343,9 +370,31 @@ def actualAnswer(query,content=None):
     else:
         query.answer(text=content)
 
+def buildfilling(uid,editing=None):
+    res = []
+    for each in USERPROPERTIES:
+        if editing == each:
+            res.append([InlineKeyboardButton(each+"    ✍️",callback_data="FILLING#{}".format(each))])
+        else:
+            info = userInfo(uid,each)
+            if info is None:
+                info = ""
+            res.append([InlineKeyboardButton(each+"    "+info,callback_data="FILLING#{}".format(each))])
+    return  InlineKeyboardMarkup(res)
+
+def buildfillselection(export):
+    res = []
+    for each in USERPROPERTIES:
+        if each ==  export['prop']:
+            flag = "✅"
+            command = "CHECKED"
+        else:
+            flag = "🔘"
+            command = "UNCHECKED"
+        res.append([InlineKeyboardButton(each+flag,callback_data="FILL#{}#{}#{}".format(export["id"],each,command))])
+    return  InlineKeyboardMarkup(res)
+
 def builddashboardmarkup(lang="CN"):
-    '''
-    '''
     return InlineKeyboardMarkup(
         [
             [
@@ -436,14 +485,39 @@ def pmcommandhandler(bot,update):
     elif "/start" in things[0]:
         #if 'private' == update.message.chat.type:
         lang=getLang(update.message.from_user)
-        if len(things) > 1 and "fill" == things[1]:
-            response = getLocaleString("FILLHINT",lang)
-            response += getAssociation(update.effective_user.id)
-            update.message.reply_markdown(response,disable_web_page_preview=True)
+        if len(things) > 1 and things[1].startswith("fill"):
+            redpacketid = things[1][4:]
+            export = loadJson("_data/redpacket{}.json".format(redpacketid),{})
+            if "sender" in export and export["sender"] == update.effective_user.id:
+                update.message.reply_markdown(genDistList(export),reply_markup=buildfillselection(export))
+                if str(update.effective_user.id) in export['map']:
+                    response = "[{}]{}\n{} {}\n\n".format(export['title'],userInfo(export['sender'],"FULLNAME"),export['map'][str(update.effective_user.id)][1],export["currency"])
+            else:
+                response = getLocaleString("ASSOCIATION",lang)
+                update.message.reply_markdown(response,disable_web_page_preview=True,reply_markup=buildfilling(update.effective_user.id,update.effective_message.message_id))
         else:
             update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
 
+def genDistList(export):
+    res = "UserID,Address,Amount,Currency\n"
+    for eachid in export["map"]:
+        res += "[{}](tg://user?id={}),".format(eachid,eachid)
+        info = userInfo(eachid,export['prop'])
+        if info is None:
+            info = ""
+        res += info
+        res += ","
+        res += str(export["map"][eachid][1])
+        res += ","
+        res += export["currency"]
+        res += "\n"
+    return res
 def getAssociation(uid):
+    mid = userInfo(uid,"FILLING")
+    if not mid is None:
+        updater.bot.edit_message_reply_markup(chat_id=uid,message_id=mid,reply_markup=buildfilling(uid))
+        clearUserInfo(uid,"FILLING")
+
     response = ""
     for each in USERPROPERTIES:
         response += "\n*{}*:\n".format(each)
@@ -451,8 +525,9 @@ def getAssociation(uid):
         if not value is None:
             response += value
         else:
-            response += "`______`"
+            response += ""
     return response
+
 def groupadminhandler(bot,update):
     chatid = update.message.chat_id
     user = update.message.from_user
@@ -738,11 +813,11 @@ def botcommandhandler(bot,update):
         else:
             amount = 10
 
-        if amount > 100:
+        if "KOGE" == currency and amount > 100:
             #update.message.reply_text("红包最多分成100份")
             return
 
-        if balance/amount < RedPacket.SINGLE_AVG:
+        if "KOGE" == currency and balance/amount < RedPacket.SINGLE_AVG:
             #update.message.reply_text("Min: {}".format(RedPacket.SINGLE_AVG))
             return
 
@@ -755,12 +830,13 @@ def botcommandhandler(bot,update):
             del things[0]
             title = " ".join(things)
         else:
-            title = "Winner winner, chicken dinner"
+            title = "How lucky are you ?"
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title,currency)
-        redpacket.groupId(update.message.chat_id)
-        #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         redpacket_id = str(int(time.time()))
+        redpacket.groupId(update.message.chat_id)
+        redpacket.id(redpacket_id)
+        #message = bot.sendPhoto(update.message.chat_id,photo=open("redpacket.png","rb"),caption=redpacket.getLog(),reply_markup=buildredpacketmarkup())
         message = bot.sendPhoto(update.message.chat_id,photo="AgADBQADOqkxG6cCyVY36YVebnCyl_14-TIABAEAAwIAA3gAA5dPAgABFgQ",caption=redpacket.getLog(),reply_markup=buildredpacketmarkup(redpacket_id),parse_mode="Markdown")
         redpacket.messageId(message.message_id)
         global_redpackets[redpacket_id]=redpacket
@@ -908,7 +984,9 @@ def bnbhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
     userInfo(update.effective_user.id,"BNB",update.message.text)
-    update.message.reply_text("eos address")
+    markdown=getAssociation((update.effective_user.id))
+    if not markdown is None:
+        update.message.reply_markdown(markdown)
 def eoshandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
@@ -917,17 +995,20 @@ def ethhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
     userInfo(update.effective_user.id,"ETH",update.message.text)
-    update.message.reply_text("Binance UID: {}".format(update.message.text))
+    markdown=getAssociation((update.effective_user.id))
+    if not markdown is None:
+        update.message.reply_markdown(markdown)
 def binanceuidhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
     userInfo(update.effective_user.id,"BinanceUID",update.message.text)
-    update.message.reply_markdown(getAssociation((update.effective_user.id)))
 def binanceemailhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
     userInfo(update.effective_user.id,"BinanceEmail",update.message.text)
-    update.message.reply_markdown(getAssociation((update.effective_user.id)))
+    markdown=getAssociation((update.effective_user.id))
+    if not markdown is None:
+        update.message.reply_markdown(markdown)
 
 def apihandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
@@ -1215,11 +1296,11 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
-    #dp.add_handler(RegexHandler(USERPROPERTIES["ETH"],ethhandler))
+    dp.add_handler(RegexHandler(USERPROPERTIES["ETH"],ethhandler))
     #dp.add_handler(RegexHandler(USERPROPERTIES["EOS"],eoshandler))
-    #dp.add_handler(RegexHandler(USERPROPERTIES["BNB"],bnbhandler))
+    dp.add_handler(RegexHandler(USERPROPERTIES["BNB"],bnbhandler))
     dp.add_handler(RegexHandler(USERPROPERTIES["BinanceEmail"],binanceemailhandler))
-    dp.add_handler(RegexHandler(USERPROPERTIES["BinanceUID"],binanceuidhandler))
+    #dp.add_handler(RegexHandler(USERPROPERTIES["BinanceUID"],binanceuidhandler))
 
 
     dp.add_handler(CommandHandler(

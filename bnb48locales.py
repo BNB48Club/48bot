@@ -27,7 +27,8 @@ BNB48_LOCALES={
         "MENU_ADDROBOT":"添加机器人",
         "MENU_SENDRANK":"转发",
         "MENU_LANG":"EN ⚙️",
-        "FILLHINT":"请直接输入需要绑定/更新的信息"
+        "FILLHINT":"请输入新的地址。如果有memo/id，请在地址后面输入一个冒号分隔然后写上：",
+        "ASSOCIATION":"可绑定地址"
 
     },
     "EN":{
@@ -49,6 +50,7 @@ BNB48_LOCALES={
         "MENU_ADDROBOT":"Add Bot",
         "MENU_SENDRANK":"Forward",
         "MENU_LANG":"中文 ⚙️",
-        "FILLHINT":"Please directly input what you need to associate/update"
+        "FILLHINT":"Please input new address, if you need to provide a memo/id, attach at the end with a ':'",
+        "ASSOCIATION":"Associated addresses"
     }
 }
