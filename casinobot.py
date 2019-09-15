@@ -612,19 +612,20 @@ def airdropportal(bot,job):
 
         try:
             prizepool = koge48core.getChequeBalance(Koge48.PRIZEPOOL)
-            top1award = min(prizepool/3,lastbetrecords[0][1])
-            top2award = min(prizepool/6,lastbetrecords[1][1])
-            top3award = min(prizepool/12,lastbetrecords[2][1])
 
+            top1award = min(prizepool/3,lastbetrecords[0][1])
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[0][0],top1award,"top1 award")
             updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放{} Koge奖金".format(lastbetrecords[0][0],lastbetrecords[0][0],top1award),parse_mode=ParseMode.MARKDOWN)
 
+            top2award = min(prizepool/6,lastbetrecords[1][1])
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[1][0],top2award,"top2 award")
             updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放{} Koge奖金".format(lastbetrecords[1][0],lastbetrecords[1][0],top2award),parse_mode=ParseMode.MARKDOWN)
 
+            top3award = min(prizepool/12,lastbetrecords[2][1])
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[2][0],top3award,"top3 award")
             updater.bot.sendMessage(BNB48CASINO,"向[{}](tg://user?id={})发放{} Koge奖金".format(lastbetrecords[2][0],lastbetrecords[2][0],top3award),parse_mode=ParseMode.MARKDOWN)
-        except:
+        except Exception as e:
+            print(e)
             pass
 
         hisbet = float(koge48core.getTotalWager(last=False))

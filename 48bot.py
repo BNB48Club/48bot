@@ -200,7 +200,7 @@ def callbackhandler(bot,update):
         thedatas = update.callback_query.data.split('#')
         lang = thedatas[2]
         if "BALANCE" == thedatas[1]:
-            response = "{} {} {}\nFloating {}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id),','),format(koge48core.getBalance(activeuser.id),','))
+            response = "{} {} {}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id),','))
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "CHANGES" == thedatas[1]:
             response = "{}:\n".format(activeuser.full_name)
@@ -218,12 +218,6 @@ def callbackhandler(bot,update):
                 if not value is None:
                     response += "\n"
                     response += value
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
-        elif "AIRDROP" == thedatas[1]:
-            response = "Airdrops:"
-            changes=koge48core.getRecentChanges(activeuser.id)
-            for each in changes:
-                response += "\n  {} ago,`{}`,{}".format(each['before'],each['diff'],each['memo'])
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "MINING" == thedatas[1]:
             response = getLocaleString("MININGINTRODUCTION",lang)
@@ -245,7 +239,7 @@ def callbackhandler(bot,update):
             markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
             '''
             top10 = koge48core.getTop(20)
-            text="Total BNB Holding: {}\nTotal Floating Koge: {}\nTotal Permanent Koge:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalBNB(),','),format(koge48core.getTotalFree(),','),format(koge48core.getTotalFrozen(),','))
+            text="Koge Total Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen(),','))
             for each in top10:
                 text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1])
             update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
@@ -420,10 +414,6 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton(getLocaleString("MENU_SENDRANK",lang),switch_inline_query="community")
             ],
             [
-                InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_AIRDROP",lang),callback_data="MENU#AIRDROP#"+lang),
-            ],
-            [
                 InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
                 InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK)
             ],
@@ -437,6 +427,11 @@ def builddashboardmarkup(lang="CN"):
             ],
         ]
     )
+    '''
+        [
+            InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
+        ],
+    '''
 def buildredpacketmarkup(redpacket_id):
     return InlineKeyboardMarkup(
         [
@@ -509,17 +504,20 @@ def pmcommandhandler(bot,update):
             update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
 
 def genDistList(export):
-    res = "UserID,Address,Amount,Currency\n"
+    res = "Address,Amount\n"
     for eachid in export["map"]:
-        res += "[{}](tg://user?id={}),".format(eachid,eachid)
+        res += "["
         info = userInfo(eachid,export['prop'])
         if info is None:
-            info = ""
+            info = "___"
         res += info
         res += ","
         res += str(export["map"][eachid][1])
+        '''
         res += ","
         res += export["currency"]
+        '''
+        res += "](tg://user?id={})".format(eachid)
         res += "\n"
     return res
 def getAssociation(uid):
@@ -1443,9 +1441,6 @@ def periodical(bot,job):
             print(eachuid)
             pass
 
-    if time.time() < 1568563200:
-        koge48core.KogeDecrease()
-        koge48core.BNBAirDrop()
     saveJson("_data/userinfomap.json",USERINFOMAP)
     global MININGWHITELIST,MININGBLACKLIST
     MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})

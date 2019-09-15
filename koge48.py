@@ -27,35 +27,6 @@ class Koge48:
     #STATSTART = 430820
     STATSTART = 1
     LAMDA = 1.0/500
-    def KogeDecrease(self):
-        userlist = []
-        logger.warning("decreasing")
-        cursor = self._mycursor()
-        cursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%decreasing%' ORDER by height DESC LIMIT 1")
-        try:
-            lastts = cursor.fetchone()[0]
-            secondsduration = time.time() - lastts
-        except:
-            secondsduration = 24*3600
-        if secondsduration < 1000:
-            logger.warning("skip")
-            return
-        multi_factor = Koge48.DAY_DECREASE**(secondsduration/(24*3600))
-        cursor.execute("SELECT `uid`,sum(`differ`) AS `bal` FROM `changelog` GROUP BY `uid`")
-        res = cursor.fetchall()
-        for each in res:
-            uid = each[0]
-            userlist.append(uid)
-            bal = each[1]
-            if bal > 100:
-                self.changeBalance(uid,bal*(multi_factor - 1),'decreasing')
-            elif bal > 1:
-                self.changeBalance(uid,-bal,'decreasing')
-        self._commit(cursor)
-        logger.warning("decreased")
-        self._close(cursor)
-        return userlist
-
     def getTotalWager(self,last=True):
         cursor = self._mycursor()
         if last:
@@ -100,31 +71,6 @@ class Koge48:
         except:
             return []
 
-    def BNBAirDrop(self):
-        logger.warning("airdroping")
-        cursor = self._mycursor()
-        cursor.execute("SELECT unix_timestamp(ts) FROM `changelog` WHERE `memo` LIKE '%bnbairdrop%' ORDER by height DESC LIMIT 1")
-        try:
-            lastts = cursor.fetchone()[0]
-            secondsduration = time.time() - lastts
-        except:
-            secondsduration = 24*3600
-
-        if secondsduration < 1000:
-            logger.warning("skip")
-            return
-
-
-        cursor.execute("SELECT *,offchain+onchain as total FROM `bnb`")
-        res = cursor.fetchall()
-
-        for each in res:
-            bnbamount = each[4]
-            if bnbamount > 0:
-                self.changeBalance(each[0],secondsduration*bnbamount/(24*3600),'bnbairdrop')
-        logger.warning("airdroped")
-        self._close(cursor)
-        
     def __init__(self,host,user,passwd,database):
 
         self._host=host
@@ -170,16 +116,6 @@ class Koge48:
         cursor.execute(updatesql,(userid,apikey,apisecret,apikey,apisecret))
         self._commit(cursor)
         self._close(cursor)
-    def changeBalance(self,userid,number,memo="",source=0):
-        balance = self.getBalance(userid)
-        assert userid == Koge48.BNB48BOT  or balance + number >= 0
-        newblocksql = "INSERT INTO changelog (uid,differ,memo,source) VALUES (%s,%s,%s,%s)"
-        cursor = self._mycursor()
-        cursor.execute(newblocksql,(userid,number,memo,source))
-        self._commit(cursor)
-        self._close(cursor)
-        return balance + number
-
     def getJackpot(self,targetid,divideby=3):
         balance = self._getChequeBalanceFromDb(Koge48.JACKPOT)
         todivide = int(balance/divideby)
@@ -229,15 +165,6 @@ class Koge48:
             return 0
         else:
             return res[0]
-    def _getBalanceFromDb(self,userid):
-        cursor = self._mycursor()
-        cursor.execute("SELECT sum(`differ`) FROM `changelog` WHERE `uid` = {}".format(userid))
-        res = cursor.fetchone()
-        self._close(cursor)
-        if res[0] is None:
-            return 0
-        else:
-            return res[0]
     def getAirDropStatus(self,userid):
         cursor = self._mycursor()
         #get eth
@@ -259,12 +186,6 @@ class Koge48:
             bnb = [0,0]
         #get last 10 airdrop
         airdrops=[]
-        '''
-        cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE  `memo` LIKE '%bnbairdrop%' AND `uid` = {} ORDER BY height DESC LIMIT 2".format(userid))
-        currentts = time.time()
-        for each in cursor.fetchall():
-            airdrops.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2]})
-        '''
         self._close(cursor)
         return {"eth":eth,"api":api,"bnb":bnb,"airdrops":airdrops}
     def getChequeRecentChanges(self,userid):       
@@ -276,16 +197,6 @@ class Koge48:
             changes.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"number":each[1],"memo":each[4]})
         self._close(cursor)
         return changes
-    def getRecentChanges(self,userid):       
-        cursor = self._mycursor()
-        cursor.execute("SELECT *,unix_timestamp(ts) AS timestamp FROM `changelog` WHERE `uid` = {} ORDER BY height DESC LIMIT 10".format(userid))
-        changes=[]
-        currentts = time.time()
-        for each in cursor.fetchall():
-            changes.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"diff":each[2],"memo":each[4]})
-        self._close(cursor)
-        return changes
-        
     def getGroupMiningStatus(self): 
         cursor = self._mycursor()
         sql = "SELECT source,count(*) as amount FROM `cheque` WHERE `memo`='mining' AND `number` > 0 AND unix_timestamp(ts)>{} group by source order by amount desc".format(time.time()-(24*3600))
@@ -296,14 +207,7 @@ class Koge48:
         self._close(cursor)
         return top10
     def getTotal(self):
-        return self.getTotalFree()+self.getTotalFrozen()
-    def getTotalFree(self):
-        cursor = self._mycursor()
-        sql = "SELECT sum(`differ`) FROM `changelog` "
-        cursor.execute(sql)
-        one = cursor.fetchall()
-        self._close(cursor)
-        return one[0][0]
+        return self.getTotalFrozen()
     def getTotalFrozen(self):
         cursor = self._mycursor()
         sql = "SELECT sum(`number`) FROM `cheque`"
@@ -326,6 +230,13 @@ class Koge48:
         self._close(cursor)
         return one[0][0]
         
+    def getTop(self,amount=10):
+        cursor = self._mycursor()
+        sql = "SELECT `sid`,sum(`number`) AS `total` from `cheque` GROUP BY `sid` ORDER BY `total` DESC LIMIT {}".format(amount)
+        cursor.execute(sql)
+        top10 = cursor.fetchall()
+        self._close(cursor)
+        return top10
     def getTopGainer(self):
         cursor = self._mycursor()
         betsql = "SELECT `sid`,sum(`number`) as `total` FROM `cheque` WHERE `sid` <> %s AND `memo` LIKE '%casino%' AND `id` > %s GROUP BY `sid` ORDER BY `total` DESC LIMIT 10"
@@ -334,13 +245,6 @@ class Koge48:
         self._close(cursor)
         return top10
 
-    def getTop(self,amount=10):
-        cursor = self._mycursor()
-        sql = "SELECT table1.uid, table1.active + COALESCE(table2.deactive,0) AS `total` from (SELECT SUM(`differ`) AS `active` , `uid` FROM `changelog` GROUP BY `uid`) AS `table1` LEFT JOIN (SELECT SUM(`number`) AS `deactive`, `sid` FROM `cheque` GROUP BY `sid`) AS `table2` ON table1.uid = table2.sid OR table2.sid = table1.uid ORDER BY `total` DESC LIMIT {}".format(amount)
-        cursor.execute(sql)
-        top10 = cursor.fetchall()
-        self._close(cursor)
-        return top10
     def getTopDonator(self,amount=10):
         cursor = self._mycursor()
         sql = "SELECT `sid`,sum(`number`) AS `sum` FROM `cheque` GROUP BY `sid` ORDER BY `sum` DESC LIMIT {}".format(amount)
@@ -348,12 +252,10 @@ class Koge48:
         top10 = cursor.fetchall()
         self._close(cursor)
         return top10
-    def getBalance(self,userid):
-        return self._getBalanceFromDb(userid)
     def getChequeBalance(self,userid):
         return self._getChequeBalanceFromDb(userid)
     def getTotalBalance(self,userid):
-        return self._getBalanceFromDb(userid) + self._getChequeBalanceFromDb(userid)
+        return self._getChequeBalanceFromDb(userid)
     def mine(self,minerid,groupid):
         if minerid == self._lastminer:
             return 0
