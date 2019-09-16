@@ -835,8 +835,11 @@ def botcommandhandler(bot,update):
         else:
             amount = 10
 
-        if "KOGE" == currency and amount > 100:
-            #update.message.reply_text("红包最多分成100份")
+        if "KOGE" == currency and amount > 40:
+            try:
+                update.effective_user.send_message("MAX 40")
+            except:
+                pass
             try:
                 update.message.delete()
             except:
@@ -891,7 +894,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        response = "{}的{}余额为{}\nFloating Koge余额为{}\n".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id),koge48core.getBalance(targetuser.id))
+        response = "{}的{}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id))
         try:
             bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
@@ -1236,7 +1239,7 @@ def onleft(bot,update):
     for SPAMWORD in SPAMWORDS:
         if SPAMWORD in update.message.left_chat_member.full_name:
             bot.deleteMessage(update.message.chat_id,update.message.message_id)
-    update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
+    #update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
 
 def welcome(bot, update):
     userInfo(update.message.from_user.id,"FULLNAME",update.message.from_user.full_name)
@@ -1245,7 +1248,7 @@ def welcome(bot, update):
     #筛选垃圾消息
     isSpam = False
     for newUser in update.message.new_chat_members:
-        if  update.message.chat_id == BNB48CN and update.message.from_user.id != newUser.id and not newUser.is_bot and koge48core.getBalance(newUser.id) == 0 and koge48core.getChequeBalance(newUser.id) == 0:
+        if  update.message.chat_id == BNB48CN and update.message.from_user.id != newUser.id and not newUser.is_bot and koge48core.getChequeBalance(newUser.id) == 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,newUser.id,Koge48.MINE_MIN_SIZE,"invited")
             koge48core.transferChequeBalance(Koge48.BNB48BOT,update.message.from_user.id,Koge48.MINE_MIN_SIZE,"inviting")
             update.message.reply_text("{}邀请{},两人各挖到{}Koge".format(update.message.from_user.full_name,newUser.full_name,Koge48.MINE_MIN_SIZE))

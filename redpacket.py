@@ -81,9 +81,9 @@ class RedPacket:
         text += "---\n"
         for each in self._sequence:
             if 0 == self._amount and each == self._maxid:
-                text += "[{}](tg://user?id={}) *{} {} [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1],self._currency)
+                text += "[{}](tg://user?id={}) *{} [🍀]*\n".format(self._drawed[each][0],each,self._drawed[each][1])
             else:
-                text += "[{}](tg://user?id={}) {} {}\n".format(self._drawed[each][0],each,self._drawed[each][1],self._currency)
+                text += "`{}` {}\n".format(self._drawed[each][0],self._drawed[each][1])
         return text
     def left(self):
         return self._amount

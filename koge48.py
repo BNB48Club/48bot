@@ -271,7 +271,7 @@ class Koge48:
         self._lastminer = minerid
 
         if str(minerid) in Koge48.BNB48LIST:
-            duration *= 2
+            duration *= 1.2
 
         prob = 1-(math.e**(-duration*Koge48.LAMDA))
         if random.random() < prob:
