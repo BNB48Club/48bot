@@ -19,15 +19,15 @@ class Koge48:
     SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
     DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 1
-    MINE_DIFFER_SIZE = 4
+    MINE_DIFFER_SIZE = 2
     BNB48BOT = 571331274
     BNB48LIST = []
     JACKPOT = 777000
     PRIZEPOOL = 888000
     #STATSTART = 430820
     STATSTART = 1
-    LAMDA = 1.0/500
-    def getTotalWager(self,last=True):
+    LAMDA = 1.0/600
+    def getTotalBet(self,last=True):
         cursor = self._mycursor()
         if last:
             cursor.execute("SELECT unix_timestamp(ts) FROM `cheque` WHERE `memo` LIKE '%deposit jackpot%' ORDER by id DESC LIMIT 1")

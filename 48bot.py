@@ -172,6 +172,8 @@ def getCommunityContent(activeuser=None):
         markdown+="[{}]({}) 0%\n".format(fullname,link)
 
     markdown += "-----------------\n"
+    markdown+= "[科学上网](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
+    markdown += "\n"
     markdown += "[BNB48 Publish](https://t.me/bnb48club_publish)"
     if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
         markdown += "\n"
@@ -182,14 +184,12 @@ def getCommunityContent(activeuser=None):
         #markdown+= "[BNB48 技术开发](https://t.me/joinchat/GRaQmlISUPSpHFwVblxvxQ)"
         #markdown += "\n"
         #markdown+= "[BNB48 内部测试](https://t.me/joinchat/GRaQmlMuX_XdVSQgpxFT_g)"
-        markdown += "\n"
-        markdown+= "[BNB48 孵化器](https://t.me/joinchat/GRaQmlWXCEJIJN3niyUUhg)"
-        markdown += "\n"
-        markdown+= "[BNB48 移民咨询](https://t.me/joinchat/GRaQmlAedWPaQFjyfoTDYg)"
-        markdown += "\n"
-        markdown+= "[BNB48 翻墙交流](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
-        markdown += "\n"
-        markdown+= "[BNB48 离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
+        #markdown += "\n"
+        #markdown+= "[孵化器](https://t.me/joinchat/GRaQmlWXCEJIJN3niyUUhg)"
+        #markdown += "\n"
+        #markdown+= "[移民交流](https://t.me/joinchat/GRaQmlAedWPaQFjyfoTDYg)"
+        #markdown += "\n"
+        #markdown+= "[离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
     return markdown
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
@@ -403,27 +403,20 @@ def builddashboardmarkup(lang="CN"):
         [
             [
                 InlineKeyboardButton(getLocaleString("MENU_KOGE",lang),callback_data="MENU#KOGE#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
-            ],
-            [
                 InlineKeyboardButton(getLocaleString("MENU_BALANCE",lang),callback_data="MENU#BALANCE#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_CHANGES",lang),callback_data="MENU#CHANGES#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang),
             ],
             [
+                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_COMMUNITY",lang),callback_data="MENU#COMMUNITY#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_SENDRANK",lang),switch_inline_query="community")
-            ],
-            [
                 InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
-                InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK)
+                InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang)
-            ],
-            [
                 InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
-                InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang)
+                InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang),
             ],
         ]
     )
@@ -877,10 +870,12 @@ def botcommandhandler(bot,update):
         if not message.chat.username is None:
             #bot.sendMessage(BNB48,"https://t.me/{}/{}".format(message.chat.username,message.message_id))
             bot.sendMessage(BNB48,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            '''
             if message.chat_id != BNB48CN:
                 bot.sendMessage(BNB48CN,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             if message.chat_id != BNB48EN:
                 bot.sendMessage(BNB48EN,"Someone releases a luckydraw 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            '''
         try:
             update.message.delete()
             #bot.deleteMessage(update.message.chat_id,update.message.message_id)
