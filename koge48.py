@@ -197,12 +197,18 @@ class Koge48:
             changes.append({"before":str(datetime.timedelta(seconds=int(currentts - each[6]))),"number":each[1],"memo":each[4]})
         self._close(cursor)
         return changes
+    
+    def getMiningStatus(self,groupid): 
+        cursor = self._mycursor()
+        sql = "SELECT sid,sum(number) as amount FROM `cheque` WHERE `memo`='mining' AND `number` > 0 AND unix_timestamp(ts)>{} AND `source` = {} group by sid order by amount desc LIMIT 10".format(time.time()-(24*3600),groupid)
+        cursor.execute(sql)
+        top10 = cursor.fetchall()
+        self._close(cursor)
+        return top10
     def getGroupMiningStatus(self): 
         cursor = self._mycursor()
         sql = "SELECT source,count(*) as amount FROM `cheque` WHERE `memo`='mining' AND `number` > 0 AND unix_timestamp(ts)>{} group by source order by amount desc".format(time.time()-(24*3600))
-        #print(sql)
         cursor.execute(sql)
-        #logger.warning(sql)
         top10 = cursor.fetchall()
         self._close(cursor)
         return top10
@@ -267,8 +273,6 @@ class Koge48:
         else:
             duration = currentts - self._startts
         self._minets[groupid] = currentts
-        self._miners[groupid] = minerid
-        self._lastminer = minerid
 
         if str(minerid) in Koge48.BNB48LIST:
             duration *= 1.2
@@ -279,6 +283,8 @@ class Koge48:
             self._changeChequeBalance(minerid,value,"mining",groupid)
             self._changeChequeBalance(Koge48.BNB48BOT,-value,"mining",groupid)
             #logger.warning("%s mined from %s on prob %s",minerid,groupid,prob)
+            self._miners[groupid] = minerid
+            self._lastminer = minerid
             return value
         else:
             return 0

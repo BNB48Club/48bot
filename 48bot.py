@@ -147,34 +147,15 @@ def is_number(s):
         pass
     return False
 
-def getCommunityContent(activeuser=None):
+def getCommunityContent(activeuser=None,groupid=None):
     top10 = koge48core.getGroupMiningStatus()
     powtotal = 0
     for each in top10:
         powtotal += each[1]
 
-    markdown="*Last 24H {} Blocks*:\n---\n".format(powtotal)
-
-    tempwhitelist = MININGWHITELIST.copy()
-    for each in top10:
-        try:
-            fullname = MININGWHITELIST[each[0]]['title']
-            link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
-            markdown+="[{}]({}) {}%\n".format(fullname,link,round(100.0*each[1]/powtotal,2))
-            tempwhitelist.pop(each[0])
-        except Exception as e:
-            print(e)
-            pass
-
-    for each in tempwhitelist:
-        fullname = MININGWHITELIST[each]['title']
-        link = 'https://t.me/{}'.format(MININGWHITELIST[each]['username'])
-        markdown+="[{}]({}) 0%\n".format(fullname,link)
-
-    markdown += "-----------------\n"
     #markdown+= "[BNB48 GFW](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
     #markdown += "\n"
-    markdown += "[BNB48 Publish](https://t.me/bnb48club_publish)"
+    markdown = "[BNB48 Publish](https://t.me/bnb48club_publish)"
     if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
         markdown += "\n"
         markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
@@ -190,6 +171,31 @@ def getCommunityContent(activeuser=None):
         #markdown+= "[移民交流](https://t.me/joinchat/GRaQmlAedWPaQFjyfoTDYg)"
         #markdown += "\n"
         #markdown+= "[离岸公司](https://t.me/joinchat/GRaQmlcgwROYjcmMbAu7NQ)"
+
+    markdown += "\n-----------------"
+    markdown +="\n*Last 24H {} Blocks*:".format(powtotal)
+
+    tempwhitelist = MININGWHITELIST.copy()
+
+    for each in top10:
+        try:
+            fullname = MININGWHITELIST[each[0]]['title']
+            link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
+            markdown+="\n[{}]({}) {}%".format(fullname,link,round(100.0*each[1]/powtotal,2))
+            tempwhitelist.pop(each[0])
+        except Exception as e:
+            print(e)
+            pass
+
+    for each in tempwhitelist:
+        fullname = MININGWHITELIST[each]['title']
+        link = 'https://t.me/{}'.format(MININGWHITELIST[each]['username'])
+        markdown+="\n[{}]({}) 0%".format(fullname,link)
+
+    if not groupid is None:
+        markdown += "\n"
+        markdown += getMiningDetail(groupid)
+
     return markdown
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
@@ -717,6 +723,10 @@ def botcommandhandler(bot,update):
         ESCROWLIST[str(message.message_id)]="start"
         saveJson("_data/escrowlist.json",ESCROWLIST)
             
+    elif "/mining" in things[0]:
+        content = getCommunityContent(groupid=update.effective_chat.id)
+        delayMessageDelete(update.message,0)
+        delayMessageDelete(update.message.reply_markdown(content,disable_web_page_preview=True,quote=False))
     elif "/burn" in things[0]:
         user = update.message.from_user
         targetuid = user.id
@@ -1263,6 +1273,7 @@ def main():
             "hongbao",
             "redpacket",
             "burn",
+            "mining",
             #"community",
             "rapidnews",
             "posttg",
@@ -1300,10 +1311,21 @@ def main():
 
 
 
+def getMiningDetail(groupid):
+    content=""
+    top10 = koge48core.getMiningStatus(groupid)
+    if len(top10) > 0:
+        content += "-----------------"
+        for each in top10:
+            content += "\n{} Koge, [{}](tg://user?id={})".format(each[1],userInfo(each[0],"FULLNAME"),each[0])
+    return content
+
 def broadcastCommunity(bot,job):
     content = getCommunityContent()
     for eachgroupid in MININGWHITELIST:
         try:
+            content += "\n"
+            content += getMiningDetail(eachgroupid)
             bot.sendMessage(int(eachgroupid),content,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             print(e)
