@@ -172,8 +172,8 @@ def getCommunityContent(activeuser=None):
         markdown+="[{}]({}) 0%\n".format(fullname,link)
 
     markdown += "-----------------\n"
-    markdown+= "[科学上网](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
-    markdown += "\n"
+    #markdown+= "[BNB48 GFW](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
+    #markdown += "\n"
     markdown += "[BNB48 Publish](https://t.me/bnb48club_publish)"
     if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
         markdown += "\n"
@@ -319,7 +319,7 @@ def callbackhandler(bot,update):
         thedatas = update.callback_query.data.split('#')
         redpacket_id = thedatas[1]
         if not redpacket_id in global_redpackets:
-            update.callback_query.message.delete()
+            delayMessageDelete(update.callback_query.message)
             return
         redpacket = global_redpackets[redpacket_id]
         thisdraw = redpacket.draw(activeuser)
@@ -338,12 +338,15 @@ def callbackhandler(bot,update):
     else:
         update.callback_query.answer()
 
-def delayMessageDelete(message):
-    thread = Thread(target = actualMessageDelete, args=[message])
+def delayMessageDelete(message,delay=10):
+    thread = Thread(target = actualMessageDelete, args=[message,delay])
     thread.start()
-def actualMessageDelete(message):
-    time.sleep(0.1/Koge48.LAMDA)
-    message.delete()
+def actualMessageDelete(message,delay):
+    time.sleep(delay)
+    try:
+        message.delete()
+    except Exception as e:
+        print e
 def delayUpdateRedpacket(redpacket_id):
     thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id])
     thread.start()
@@ -453,7 +456,7 @@ def testHandler(bot,update):
     update.message.reply_text(bot.exportChatInviteLink(update.message.chat_id))
 def pmcommandhandler(bot,update):
     if update.message.chat.type != 'private':
-        #update.message.reply_text('该命令需私聊机器人')
+        delayMessageDelete(update.message.reply_text('pm'))
         return
 
     things = update.message.text.split(' ')
@@ -470,16 +473,6 @@ def pmcommandhandler(bot,update):
             return
         koge48core.transferChequeBalance(user.id,targetuserid,transamount,"from {} send to {}".format(user.full_name,targetuserid))
         update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),targetuserid,transamount,getkoge48md()),disable_web_page_preview=True)
-        '''
-        elif "/redeem" in things[0]:
-            change = koge48core.redeemCheque(update.message.from_user.id,things[1])
-            if change > 0:
-                update.message.reply_markdown("领取到{} {}".format(change,getkoge48md()),disable_web_page_preview=True)
-            elif change == -1:
-                update.message.reply_markdown("该奖励已被领取")
-            elif change == 0:
-                update.message.reply_markdown("不存在的奖励号码")
-        '''
     elif "/start" in things[0]:
         #if 'private' == update.message.chat.type:
         lang=getLang(update.message.from_user)
@@ -534,19 +527,8 @@ def groupadminhandler(bot,update):
     user = update.message.from_user
     admins = bot.get_chat_administrators(chatid)
     if not bot.getChatMember(chatid,user.id) in admins:
-        update.message.reply_text("只有管理员可以调用")
+        delayMessageDelete(update.message.reply_text("Admin Only"))
         return
-    if "mining" in update.message.text:
-        top10 = koge48core.getGroupMiningStatus()
-        text="24小时算力排行榜:\n"
-        powtotal = 0
-        for each in top10:
-            powtotal += each[1]
-        for each in top10:
-            fullname = MININGWHITELIST[each[0]]['title']
-            link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
-            text+="[{}]({}) 算力{}%\n".format(fullname,link,round(100.0*each[1]/powtotal,2))
-        update.message.reply_markdown(text,disable_web_page_preview=True)
 
 def getFullname(uid):
     name = userInfo(uid,"FULLNAME")
@@ -786,7 +768,7 @@ def botcommandhandler(bot,update):
         bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
     elif "/hongbao" in things[0] or "/redpacket" in things[0]:
         if update.message.chat.type == 'private':
-            #update.message.reply_text("需要在群内发送")
+            delayMessageDelete(update.message.reply_text("send in a group"))
             return
         user = update.message.from_user
         
@@ -797,27 +779,16 @@ def botcommandhandler(bot,update):
             del things[1]
 
         if "KOGE" != currency and not user.id in getAdminsInThisGroup(update.message.chat_id):
-            try:
-                update.message.delete()
-            except:
-                pass
+            delayMessageDelete(update.message)
             return
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
         else:
-            #update.message.reply_text("发红包格式: `/hongbao 金额 拆成多少份`")
-            try:
-                update.message.delete()
-            except:
-                pass
+            delayMessageDelete(update.message,1)
             return
 
         if balance <= 0:
-            #update.message.reply_markdown("发红包格式: `/hongbao 金额 拆成多少份`")
-            try:
-                update.message.delete()
-            except:
-                pass
+            delayMessageDelete(update.message,1)
             return
 
 
@@ -833,18 +804,11 @@ def botcommandhandler(bot,update):
                 update.effective_user.send_message("MAX 40")
             except:
                 pass
-            try:
-                update.message.delete()
-            except:
-                pass
+            delayMessageDelete(update.message)
             return
 
         if "KOGE" == currency and balance/amount < RedPacket.SINGLE_AVG:
-            #update.message.reply_text("Min: {}".format(RedPacket.SINGLE_AVG))
-            try:
-                update.message.delete()
-            except:
-                pass
+            delayMessageDelete(update.message)
             return
 
         if "KOGE" == currency:
@@ -876,11 +840,7 @@ def botcommandhandler(bot,update):
             if message.chat_id != BNB48EN:
                 bot.sendMessage(BNB48EN,"Someone releases a luckydraw 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             '''
-        try:
-            update.message.delete()
-            #bot.deleteMessage(update.message.chat_id,update.message.message_id)
-        except:
-            pass
+        delayMessageDelete(update.message)
 
     elif "/bal" in things[0]:
         user = update.message.from_user
@@ -1122,7 +1082,6 @@ def botmessagehandler(bot, update):
                 restrict(bot, update,update.message.chat_id, None, update.message.from_user, 1, update.message)
                 logger.warning(update.message.from_user.full_name+u" restricted because of " + update.message.text);
                 return
-        #mining
         user = update.message.from_user
         if minable(update):
             mined=koge48core.mine(user.id,update.message.chat_id)
@@ -1131,15 +1090,16 @@ def botmessagehandler(bot, update):
 
         if mined:
             logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
-            minemessage = update.message.reply_markdown("{} 💰 {} {}".format(getusermd(user,False),mined,getkoge48md()),disable_web_page_preview=True,quote=False)
+            delayMessageDelete(update.message.reply_markdown("{} 💰 {} {}".format(getusermd(user,False),mined,getkoge48md()),disable_web_page_preview=True,quote=False))
             if "lasthint" in  MININGWHITELIST[str(update.message.chat_id)]:
                 lasthintid = MININGWHITELIST[str(update.message.chat_id)]["lasthint"]
+                del MININGWHITELIST[str(update.message.chat_id)]["lasthint"]
                 try:
                     bot.deleteMessage(update.message.chat_id,lasthintid)
                 except:
                     pass
-            MININGWHITELIST[str(update.message.chat_id)]["lasthint"] = minemessage.message_id
-            saveJson("_data/miningwhitelist.json",MININGWHITELIST)
+            #MININGWHITELIST[str(update.message.chat_id)]["lasthint"] = minemessage.message_id
+            #saveJson("_data/miningwhitelist.json",MININGWHITELIST)
 
 def minable(update):
     user = update.message.from_user
@@ -1154,87 +1114,10 @@ def minable(update):
     
     return True
 
-'''
-def replyCommand(bot,update):
-    # Only take care of replys in BNB48
-    if update.message.chat_id != BNB48:
-        logger.warning('not this group')
-        return
-    # Only admins can reply
-    talkingmember = bot.getChatMember(BNB48, update.effective_user.id)
-    if talkingmember.status != 'creator' and talkingmember.status != 'administrator':
-        #bot.sendMessage(update.message.chat_id, text="不是管理员不要捣蛋", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        logger.warning(talkingmember.status)
-        return
-
-    #################
-    #If directly reply the newmember msg
-    replyed = update.message.reply_to_message
-    # If message == pass && new members
-    if hasattr(replyed,'new_chat_members') and len(replyed.new_chat_members)>0 and update.message.text == 'pass':
-        for newUser in replyed.new_chat_members:
-            bot.restrictChatMember(update.message.chat_id,user_id=newUser.id,can_send_messages=True,can_send_media_messages=True,can_send_other_messages=True, can_add_web_page_previews=True)
-            logger.warning(newUser.full_name+" passed");
-        return
-
-    # If a normal forwarded pass process
-    beingreplieduser = replyed.from_user
-    if beingreplieduser.id != 571331274 and beingreplieduser.id != 405689392:
-        logger.warning('not to me, to {}'.format(beingreplieduser.id))
-        return
-
-    try:
-        newmember = replyed.forward_from
-        newmemberid = replyed.forward_from.id
-    except AttributeError:
-        logger.warning('not a forward message')
-        return
-
-    if update.message.text == 'pass':
-        newchatmember = bot.getChatMember(BNB48, newmemberid)
-        if newchatmember.status == 'restricted':
-            bot.restrictChatMember(update.message.chat_id,user_id=newmemberid,can_send_messages=True,can_send_media_messages=True,can_send_other_messages=True, can_add_web_page_previews=True)
-            bot.sendMessage(newmemberid, text=u"您已通过审核,成为BNB48 Club正式会员")
-            bot.sendMessage(update.message.chat_id, text=u"欢迎新成员"+newmember.full_name)#, reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-        else:
-            bot.sendMessage(update.message.chat_id, text=newchatmember.status+u"该成员之前已经通过审核或已经离开本群", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-            
-
-    elif update.message.text == 'unblock':
-        BLACKLIST.remove(newmemberid)
-        bot.sendMessage(update.message.chat_id, text=u"移出申请黑名单", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-    elif update.message.text == 'block':
-        BLACKLIST.add(newmemberid)
-        bot.sendMessage(update.message.chat_id, text=u"加入申请黑名单", reply_to_message_id=update.message.message_id,parse_mode=ParseMode.MARKDOWN)
-    else:
-        bot.sendMessage(newmemberid, text=update.message.text)
-        #原样转发管理员的消息
-    '''
-def photoHandler(bot,update):
-    userid = update.effective_user.id
-    if userid in BLACKLIST:
-        return
-
-    chatmember = bot.getChatMember(BNB48,userid)
-    sayingmember = bot.getChatMember(BNB48, userid)
-    if sayingmember.status == 'restricted' or userid == SirIanM:
-        forward = bot.forwardMessage(BNB48,update.effective_user.id,update.message.message_id)
-        bot.sendMessage(update.message.chat_id, text=u"已提交持仓证明,请关注群内审批情况,耐心等待。如无必要,无需频繁重复发送。", reply_to_message_id=update.message.message_id)
-        #给每名管理员私聊发送提醒
-        admins = bot.getChatAdministrators(BNB48)
-        for eachadmin in admins:
-            try:
-                bot.sendMessage(eachadmin.user.id, text=NOTIFYADMINS)
-            except TelegramError:
-                logger.warning('TelegramError, could be while send private message to admins')
-                continue
-
-    
 def onleft(bot,update):
     for SPAMWORD in SPAMWORDS:
         if SPAMWORD in update.message.left_chat_member.full_name:
-            bot.deleteMessage(update.message.chat_id,update.message.message_id)
-    #update.message.reply_markdown(text="`{}` 离开了本群".format(update.message.left_chat_member.full_name),quote=False)
+            delayMessageDelete(update.message)
 
 def welcome(bot, update):
     userInfo(update.message.from_user.id,"FULLNAME",update.message.from_user.full_name)
