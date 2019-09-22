@@ -700,7 +700,11 @@ def botcommandhandler(bot,update):
         if user.id == targetuser.id:
             return
         transamount = float(things[1])
-        koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
+        try:
+            koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
+        except:
+            delayMessageDelete(update.message)
+            return
         try:
             bot.sendMessage(targetuser.id,"{} 💸 {} Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
         except:
@@ -710,7 +714,7 @@ def botcommandhandler(bot,update):
         if float(things[1]) <= 0:
             return
         if update.message.chat_id != BNB48C2C:
-            update.message.reply_markdown("担保交易功能仅在[场外交易群]({})可用".format(BNB48C2CLINK))
+            delayMessageDelete(update.message.reply_markdown("[BNB48 Trade]({})".format(BNB48C2CLINK)))
             return
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
@@ -718,7 +722,13 @@ def botcommandhandler(bot,update):
         if targetuser.id == Koge48.BNB48BOT or targetuser.id == user.id:
             return
         transamount = float(things[1])
-        koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
+
+        try:
+            koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
+        except:
+            delayMessageDelete(update.message)
+            return
+
         message = update.message.reply_markdown("{}向{}发起担保转账{}{},由小秘书保管资金居间担保。\n发起者点击✅按钮,小秘书完成转账至接受者。\n接受者点击❌按钮,小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁,如存在故意过错方,该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
         ESCROWLIST[str(message.message_id)]="start"
         saveJson("_data/escrowlist.json",ESCROWLIST)
@@ -727,6 +737,12 @@ def botcommandhandler(bot,update):
         content = getCommunityContent(groupid=update.effective_chat.id)
         delayMessageDelete(update.message,0)
         delayMessageDelete(update.message.reply_markdown(content,disable_web_page_preview=True,quote=False))
+    elif "/donate" in things[0] or "/juankuan" in things[0]:
+        try:
+            koge48core.transferChequeBalance(update.effective_user.id,Koge48.BNB48BOT,100,"donation")
+            update.message.reply_text("🙏 100 Koge")
+        except:
+            delayMessageDelete(update.message)
     elif "/burn" in things[0]:
         user = update.message.from_user
         targetuid = user.id
@@ -1274,6 +1290,8 @@ def main():
             "redpacket",
             "burn",
             "mining",
+            "donate",
+            "juankuan",
             #"community",
             "rapidnews",
             "posttg",
@@ -1324,9 +1342,10 @@ def broadcastCommunity(bot,job):
     content = getCommunityContent()
     for eachgroupid in MININGWHITELIST:
         try:
-            content += "\n"
-            content += getMiningDetail(eachgroupid)
-            bot.sendMessage(int(eachgroupid),content,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            thiscontent = content
+            thiscontent += "\n"
+            thiscontent += getMiningDetail(eachgroupid)
+            bot.sendMessage(int(eachgroupid),thiscontent,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             print(e)
 

@@ -457,14 +457,14 @@ def rollerMarkDownGenerator():
     text+="\n*Total Wager (for dividend)*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
-        text+="[{}](tg://user?id={}) {} Koge\n".format(fullname,each[0],each[1])
+        text+="{} Koge [{}](tg://user?id={})\n".format(each[1],fullname,each[0])
 
 
     top10 = koge48core.getTopGainer()
     text+="\n*Net Win*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
-        text+="[{}](tg://user?id={}) {} Koge\n".format(fullname,each[0],each[1])
+        text+="{} Koge [{}](tg://user?id={})\n".format(each[1],fullname,each[0])
 
     text+= "\nHouse Balance:{}\n".format(koge48core.getChequeBalance(Koge48.BNB48BOT))
     '''
@@ -615,15 +615,15 @@ def airdropportal(bot,job):
         try:
             prizepool = koge48core.getChequeBalance(Koge48.PRIZEPOOL)
 
-            top1award = min(prizepool/3,lastbetrecords[0][1])
+            top1award = round(min(prizepool/3,lastbetrecords[0][1]),2)
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[0][0],top1award,"top1 award")
             updater.bot.sendMessage(BNB48CASINO,"Top1 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[0][0],"FULLNAME"),lastbetrecords[0][0],top1award),parse_mode=ParseMode.MARKDOWN)
 
-            top2award = min(prizepool/6,lastbetrecords[1][1])
+            top2award = round(min(prizepool/6,lastbetrecords[1][1]),2)
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[1][0],top2award,"top2 award")
             updater.bot.sendMessage(BNB48CASINO,"Top2 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[1][0],"FULLNAME"),lastbetrecords[1][0],top2award),parse_mode=ParseMode.MARKDOWN)
 
-            top3award = min(prizepool/12,lastbetrecords[2][1])
+            top3award = round(min(prizepool/12,lastbetrecords[2][1]),2)
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[2][0],top3award,"top3 award")
             updater.bot.sendMessage(BNB48CASINO,"Top3 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[2][0],"FULLNAME"),lastbetrecords[2][0],top3award),parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
@@ -667,7 +667,7 @@ def airdropportal(bot,job):
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.PRIZEPOOL,lasttotaldiv,"deposit prizepool")
-        announcementid = updater.bot.sendMessage(BNB48CASINO,"Last Round\n\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv))
+        updater.bot.sendMessage(BNB48CASINO,"*Last Round*\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE\nAdd to PrizePool: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,lasttotaldiv),parse_mode=ParseMode.MARKDOWN)
 
     CASINO_DIVIDING = False
     return
