@@ -136,7 +136,7 @@ class Koge48:
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
         assert number > 0
-        assert not sourceid in MININGBLACKLIST
+        assert not sourceid in Koge48.MININGBLACKLIST
         if sourceid != Koge48.BNB48BOT:
             sbalance = self._getChequeBalanceFromDb(sourceid)
             assert sourceid == Koge48.BNB48BOT or sbalance - number >= 0

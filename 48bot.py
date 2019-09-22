@@ -879,7 +879,7 @@ def botcommandhandler(bot,update):
             if message.chat_id != BNB48EN:
                 bot.sendMessage(BNB48EN,"Someone releases a luckydraw 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             '''
-        delayMessageDelete(update.message)
+        delayMessageDelete(update.message,0)
 
     elif "/bal" in things[0]:
         user = update.message.from_user
