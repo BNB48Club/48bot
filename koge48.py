@@ -7,6 +7,7 @@ import mysql.connector
 import logging
 import math
 import ConfigParser
+from jsonfile import *
 
 from binance.client import Client
 
@@ -21,12 +22,22 @@ class Koge48:
     MINE_MIN_SIZE = 1
     MINE_DIFFER_SIZE = 2
     BNB48BOT = 571331274
-    BNB48LIST = []
     JACKPOT = 777000
     PRIZEPOOL = 888000
     #STATSTART = 430820
     STATSTART = 1
     LAMDA = 1.0/600
+
+    BNB48LIST = []
+    MININGBLACKLIST = []
+    MININGWHITELIST = {}
+
+    @staticmethod
+    def refresh():
+        Koge48.MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
+        Koge48.MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
+        Koge48.BNB48LIST = loadJson("_data/bnb48.list",[])
+        
     def getTotalBet(self,last=True):
         cursor = self._mycursor()
         if last:
@@ -125,6 +136,7 @@ class Koge48:
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
         assert number > 0
+        assert not sourceid in MININGBLACKLIST
         if sourceid != Koge48.BNB48BOT:
             sbalance = self._getChequeBalanceFromDb(sourceid)
             assert sourceid == Koge48.BNB48BOT or sbalance - number >= 0

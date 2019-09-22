@@ -6,6 +6,11 @@ def getLocaleString(key,lang):
         return BNB48_LOCALES["CN"][key]
     else:
         return "NOT DEFINED"
+def isLocaleString(key,text):
+    for eachlang in BNB48_LOCALES:
+        if BNB48_LOCALES[eachlang][key] == text:
+            return True
+    return False
 
 BNB48_LOCALES={
     "CN":{

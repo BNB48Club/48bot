@@ -19,6 +19,7 @@ from telegram.ext import *
 from telegram.ext.dispatcher import run_async
 # import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 from selectBot import selectBot
+from jsonfile import *
 from botsapi import bots
 from koge48 import Koge48
 from redpacket import RedPacket
@@ -28,21 +29,6 @@ from sendweibo import init_weibo, send_pic
 
 reload(sys)  
 sys.setdefaultencoding('utf8')
-
-def loadJson(filename,default=[]):
-    try:
-        file=open(filename,"r")
-        lastData = json.load(file)
-        file.close()
-        return lastData
-    except:
-        return default
-
-def saveJson(filename,content):
-    file = codecs.open(filename,"w","utf-8")
-    file.write(json.dumps(content))
-    file.flush()
-    file.close()
 
 def getLang(user):
     if (not user.language_code is None) and "zh" in user.language_code:
@@ -89,9 +75,6 @@ def userInfo(uid,key,value=None):
             USERINFOMAP[realuid]={}
         USERINFOMAP[realuid][realkey] = value
     
-MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
-Koge48.MININGWHITELIST = MININGWHITELIST
-MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
 ESCROWLIST = loadJson("_data/escrowlist.json",{})
 
 SirIanM=420909210
@@ -155,7 +138,7 @@ def getCommunityContent(activeuser=None,groupid=None):
 
     #markdown+= "[BNB48 GFW](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
     #markdown += "\n"
-    markdown = "[BNB48 Publish](https://t.me/bnb48club_publish)"
+    markdown = "[Koge Channel](https://t.me/bnb48club_publish)"
     if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
         markdown += "\n"
         markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
@@ -175,12 +158,12 @@ def getCommunityContent(activeuser=None,groupid=None):
     markdown += "\n-----------------"
     markdown +="\n*Last 24H {} Blocks*:".format(powtotal)
 
-    tempwhitelist = MININGWHITELIST.copy()
+    tempwhitelist = Koge48.MININGWHITELIST.copy()
 
     for each in top10:
         try:
-            fullname = MININGWHITELIST[each[0]]['title']
-            link = 'https://t.me/{}'.format(MININGWHITELIST[each[0]]['username'])
+            fullname = Koge48.MININGWHITELIST[each[0]]['title']
+            link = 'https://t.me/{}'.format(Koge48.MININGWHITELIST[each[0]]['username'])
             markdown+="\n[{}]({}) {}%".format(fullname,link,round(100.0*each[1]/powtotal,2))
             tempwhitelist.pop(each[0])
         except Exception as e:
@@ -188,8 +171,8 @@ def getCommunityContent(activeuser=None,groupid=None):
             pass
 
     for each in tempwhitelist:
-        fullname = MININGWHITELIST[each]['title']
-        link = 'https://t.me/{}'.format(MININGWHITELIST[each]['username'])
+        fullname = Koge48.MININGWHITELIST[each]['title']
+        link = 'https://t.me/{}'.format(Koge48.MININGWHITELIST[each]['username'])
         markdown+="\n[{}]({}) 0%".format(fullname,link)
 
     if not groupid is None:
@@ -407,6 +390,32 @@ def buildfillselection(export):
         res.append([InlineKeyboardButton(each+flag,callback_data="FILL#{}#{}#{}".format(export["id"],each,command))])
     return  InlineKeyboardMarkup(res)
 
+def buildkeyboard(lang="CN"):
+    return ReplyKeyboardMarkup(
+        [
+            [
+                getLocaleString("MENU_BALANCE",lang),
+                getLocaleString("MENU_CHANGES",lang),
+            ],
+            [
+                getLocaleString("MENU_RICH",lang),
+                getLocaleString("MENU_COMMUNITY",lang),
+            ],
+            [
+                getLocaleString("MENU_CASINO",lang),
+                getLocaleString("MENU_C2C",lang),
+                getLocaleString("MENU_JOIN",lang),
+            ],
+            [
+                getLocaleString("MENU_KOGE",lang),
+                getLocaleString("MENU_MINING",lang),
+            ],
+            [
+                getLocaleString("MENU_LANG",lang)
+            ]
+        ],
+        resize_keyboard = True
+    )
 def builddashboardmarkup(lang="CN"):
     return InlineKeyboardMarkup(
         [
@@ -494,6 +503,9 @@ def pmcommandhandler(bot,update):
                 update.message.reply_markdown(response,disable_web_page_preview=True,reply_markup=buildfilling(update.effective_user.id,update.effective_message.message_id))
         else:
             update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
+    elif "/key" in things[0]:
+        lang=getLang(update.message.from_user)
+        update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=buildkeyboard(lang))
 
 def genDistList(export):
     res = "Address,Amount\n"
@@ -599,19 +611,20 @@ def siriancommandhandler(bot,update):
     elif "/list" in things[0] or "/delist" in things[0]:
         thegroup = update.message.chat_id
         if "/list" in things[0] and not update.message.chat.username is None:
-            if not str(thegroup) in MININGWHITELIST:
-                MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
+            if not str(thegroup) in Koge48.MININGWHITELIST:
+                Koge48.MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
             bot.sendMessage(update.message.chat_id, text="Mining Enabled")
         elif "/delist" in things[0]:
-            if str(thegroup) in MININGWHITELIST:
-                del MININGWHITELIST[str(thegroup)]
+            if str(thegroup) in Koge48.MININGWHITELIST:
+                del Koge48.MININGWHITELIST[str(thegroup)]
             bot.sendMessage(update.message.chat_id, text="Mining Disabled")
-        saveJson("_data/miningwhitelist.json",MININGWHITELIST)
+        saveJson("_data/miningwhitelist.json",Koge48.MININGWHITELIST)
     elif "/exclude" in things[0]:
-        if not targetuser.id in MININGBLACKLIST:
-            MININGBLACKLIST.append(targetuser.id)
-            saveJson("_data/miningblacklist.json",MININGBLACKLIST)
-        update.message.reply_text("excluded")
+        if not targetuser.id in Koge48.MININGBLACKLIST:
+            Koge48.MININGBLACKLIST.append(targetuser.id)
+            saveJson("_data/miningblacklist.json",Koge48.MININGBLACKLIST)
+        delayMessageDelete(update.message,0)
+        delayMessageDelete(update.message.reply_text("excluded"),0)
     elif "/unban" in things[0] and not targetuser is None:
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
@@ -922,8 +935,8 @@ def listMiningGroup(message):
     thegroup = message.chat_id
     if message.chat.username is None:
         message.reply_text("Gossip Mining Only in Public Groups")
-    if not str(thegroup) in MININGWHITELIST:
-        MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
+    if not str(thegroup) in Koge48.MININGWHITELIST:
+        Koge48.MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
         message.reply_text("Mining Enabled")
 
 def topescrow(seller=None,buyer=None):
@@ -972,8 +985,11 @@ def topescrow(seller=None,buyer=None):
     saveJson("_data/escrowstats.json",escrowrecord)
 
 def cleanHandler(bot,update):
+    logger.warning("clean triggered")
     if update.message.from_user.id == SirIanM:
+        logger.warning("stop job...")
         updater.job_queue.stop()
+        logger.warning("done")
         for job in updater.job_queue.jobs():
             job.schedule_removal()
             logger.warning("job {} cleared".format(job.name))
@@ -1083,6 +1099,8 @@ def kogefaucetHandler(bot,update):
         except:
             update.message.reply_text(originout)
 
+def privateTextHandler(bot,update):
+    return
 def botmessagehandler(bot, update):
     #checkThresholds(update.message.chat_id,update.message.from_user.id)
 
@@ -1117,21 +1135,12 @@ def botmessagehandler(bot, update):
         if mined:
             logger.warning("{} {} 在 {} @{} {} 出矿 {}".format(user.full_name,user.id,update.message.chat.title,update.message.chat.username,update.message.chat_id,mined))
             delayMessageDelete(update.message.reply_markdown("{} 💰 {} {}".format(getusermd(user,False),mined,getkoge48md()),disable_web_page_preview=True,quote=False))
-            if "lasthint" in  MININGWHITELIST[str(update.message.chat_id)]:
-                lasthintid = MININGWHITELIST[str(update.message.chat_id)]["lasthint"]
-                del MININGWHITELIST[str(update.message.chat_id)]["lasthint"]
-                try:
-                    bot.deleteMessage(update.message.chat_id,lasthintid)
-                except:
-                    pass
-            #MININGWHITELIST[str(update.message.chat_id)]["lasthint"] = minemessage.message_id
-            #saveJson("_data/miningwhitelist.json",MININGWHITELIST)
 
 def minable(update):
     user = update.message.from_user
-    if user.id in MININGBLACKLIST:
+    if user.id in Koge48.MININGBLACKLIST:
         return False
-    if not str(update.message.chat_id) in MININGWHITELIST:
+    if not str(update.message.chat_id) in Koge48.MININGWHITELIST:
         return False
     if len(update.message.text) < 5:
         return False
@@ -1227,7 +1236,6 @@ def main():
     #dp.add_handler(CommandHandler("help", help))
 
     # on noncommand i.e message - echo the message on Telegram
-    #dp.add_handler(MessageHandler(Filters.text and Filters.private, callback=botcommandhandler))#'''处理私聊文字'''
     #dp.add_handler(MessageHandler(Filters.photo & Filters.private, callback=photoHandler))#'''处理私发的图片'''
     dp.add_handler(CallbackQueryHandler(callbackhandler))
     dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, welcome))#'''处理新成员加入'''
@@ -1244,7 +1252,7 @@ def main():
     dp.add_handler(CommandHandler(
         [
         ],
-        groupadminhandler)#只对管理员账号的命令做出响应
+        groupadminhandler)#只对管理员账号做出响应的响应
     )
     #dp.add_handler(CommandHandler(["kogefaucettestnet"],kogefaucetHandler))
     #dp.add_handler(CommandHandler(["bnbfaucettestnet"],bnbfaucetHandler))
@@ -1269,12 +1277,14 @@ def main():
     )
     dp.add_handler(CommandHandler(
         [
-            "redeem",
             "start",
+            "key",
             "send",
         ],
         pmcommandhandler)#处理仅私聊有效的命令
     )
+    dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
+    dp.add_handler(MessageHandler(Filters.text and Filters.private, callback=privateTextHandler))#'''处理私聊文字'''
 
     dp.add_handler(CommandHandler(
         [
@@ -1299,19 +1309,14 @@ def main():
         ],
         botcommandhandler))# '''处理其他命令'''
 
-    dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
     dp.add_handler(CommandHandler( [ "test" ], testHandler))
     dp.add_handler(InlineQueryHandler(inlinequeryHandler))
     dp.add_handler(ChosenInlineResultHandler(choseninlineresultHandler))
     # log all errors
     dp.add_error_handler(error)
-    Koge48.BNB48LIST = loadJson("_data/bnb48.list",[])
-
-
     #Start the schedule
-    gap = 10800 - time.time()%10800
-    logger.warning("will start airdrop in %s seconds",gap)
-    job_airdrop = j.run_repeating(periodical,interval=10800,first=gap)
+    logger.warning("will start periodical in 0 seconds")
+    job_airdrop = j.run_repeating(periodical,interval=3600,first=0)
 
     gap = 86400- time.time()%86400
     logger.warning("will start community broadcast in %s seconds",gap)
@@ -1340,7 +1345,7 @@ def getMiningDetail(groupid):
 
 def broadcastCommunity(bot,job):
     content = getCommunityContent()
-    for eachgroupid in MININGWHITELIST:
+    for eachgroupid in Koge48.MININGWHITELIST:
         try:
             thiscontent = content
             thiscontent += "\n"
@@ -1350,10 +1355,8 @@ def broadcastCommunity(bot,job):
             print(e)
 
 def periodical(bot,job):
-    bnb48list = loadJson("_data/bnb48.list",[])
-    Koge48.BNB48LIST = bnb48list
-
-    for eachuid in bnb48list:
+    Koge48.refresh()
+    for eachuid in Koge48.BNB48LIST:
         try:
             if checkThresholds(BNB48,eachuid):
                 bnb48list.remove(eachuid)
@@ -1364,10 +1367,6 @@ def periodical(bot,job):
             pass
 
     saveJson("_data/userinfomap.json",USERINFOMAP)
-    global MININGWHITELIST,MININGBLACKLIST
-    MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
-    Koge48.MININGWHITELIST = MININGWHITELIST
-    MININGBLACKLIST = loadJson("_data/miningblacklist.json",{})
     return
 if __name__ == '__main__':
     

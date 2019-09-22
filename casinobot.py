@@ -20,19 +20,10 @@ from selectBot import selectBot
 from botsapi import bots
 from koge48 import Koge48
 from casino import LonghuCasino
-
+from jsonfile import *
 
 reload(sys)  
 sys.setdefaultencoding('utf8')
-
-def loadJson(filename,default=[]):
-    try:
-        file=open(filename,"r")
-        lastData = json.load(file)
-        file.close()
-        return lastData
-    except:
-        return default
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.WARNING)
