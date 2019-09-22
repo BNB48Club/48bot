@@ -8,7 +8,7 @@ import json
 import time
 import codecs
 import random
-import ConfigParser
+import configparser
 import operator
 from threading import Thread
 import threading
@@ -24,11 +24,11 @@ from botsapi import bots
 from koge48 import Koge48
 from redpacket import RedPacket
 from ppt2img import genPNG
-from sendweibo import init_weibo, send_pic
+#from sendweibo import init_weibo, send_pic
 
 
-reload(sys)  
-sys.setdefaultencoding('utf8')
+#reload(sys)  
+#sys.setdefaultencoding('utf8')
 
 def getLang(user):
     if (not user.language_code is None) and "zh" in user.language_code:
@@ -98,7 +98,7 @@ SAY_THRESHOLDS={BNB48:200000}
 KICKINSUFFICIENT = {BNB48:True}
 SAYINSUFFICIENT = {BNB48:False}
 
-kogeconfig = ConfigParser.ConfigParser()
+kogeconfig = configparser.ConfigParser()
 kogeconfig.read("conf/koge48.conf")
 koge48core = Koge48(
   kogeconfig.get("mysql","host"),
@@ -116,7 +116,7 @@ USERPROPERTIES = {
     #"EOS":"^[1-5a-z\.]{1,12}$"
 }
 
-weiboclient = init_weibo('BNB48Club')
+#weiboclient = init_weibo('BNB48Club')
 
 def help(bot, update):
     """Send a message when the command /help is issued."""
@@ -335,7 +335,7 @@ def actualMessageDelete(message,delay):
     try:
         message.delete()
     except Exception as e:
-        print e
+        print(e)
 def delayUpdateRedpacket(redpacket_id):
     thread = Thread(target = actualUpdateRedpacket, args=[redpacket_id])
     thread.start()
@@ -581,13 +581,13 @@ def siriancommandhandler(bot,update):
     if "/kick" in things[0] and not targetuser is None:
         kick(update.message.chat_id,targetuser.id)
     elif "/kick" in things[0]:
-        kick(long(things[1],long(things[2])))
+        kick(int(things[1],int(things[2])))
     elif "/findgroup" in things[0]:
         update.message.reply_markdown("[{}]({})".format(things[1],bot.exportChatInviteLink(int(things[1]))))
     elif "/ban" in things[0] and not targetuser is None:
         ban(update.message.chat_id,targetuser.id)
     elif "/ban" in things[0]:
-        ban(long(things[1],long(things[2])))
+        ban(int(things[1],int(things[2])))
     elif "/cheque" in things[0]:
         if len(things) != 2:
             update.message.reply_text("回复他人消息: /cheque 金额")
@@ -628,7 +628,7 @@ def siriancommandhandler(bot,update):
     elif "/unban" in things[0] and not targetuser is None:
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
-        unban(long(things[1],long(things[2])))
+        unban(int(things[1],int(things[2])))
     elif "/groupid" in things[0]:
         bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
     elif "/flush" in things[0] or "/deflush" in things[0]:
@@ -646,12 +646,12 @@ def siriancommandhandler(bot,update):
             if thekeyword in FLUSHWORDS:
                 return
             FLUSHWORDS.append(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为刷屏关键词", reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text="增加\""+thekeyword+"\"为刷屏关键词", reply_to_message_id=update.message.message_id)
         else:
             if not thekeyword in FLUSHWORDS:
                 return
             FLUSHWORDS.remove(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为刷屏关键词", reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text="不再将\""+thekeyword+"\"作为刷屏关键词", reply_to_message_id=update.message.message_id)
 
         file = codecs.open("_data/flushwords.json","w","utf-8")
         file.write(json.dumps({"words":FLUSHWORDS}))
@@ -673,12 +673,12 @@ def siriancommandhandler(bot,update):
             if thekeyword in SPAMWORDS:
                 return
             SPAMWORDS.append(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"增加\""+thekeyword+u"\"为垃圾账号关键词", reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text="增加\""+thekeyword+"\"为垃圾账号关键词", reply_to_message_id=update.message.message_id)
         else:
             if not thekeyword in SPAMWORDS:
                 return
             SPAMWORDS.remove(thekeyword)
-            bot.sendMessage(update.message.chat_id, text=u"不再将\""+thekeyword+u"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id)
+            bot.sendMessage(update.message.chat_id, text="不再将\""+thekeyword+"\"作为垃圾账号关键词", reply_to_message_id=update.message.message_id)
 
         file = codecs.open("_data/blacklist_name.json","w","utf-8")
         file.write(json.dumps({"words":SPAMWORDS}))
@@ -779,19 +779,20 @@ def botcommandhandler(bot,update):
             photoid = update.message.reply_to_message.photo[-1].file_id
             bot.sendPhoto(group,photoid)
         update.message.reply_text("已转发")
-    elif "/postweibo" in things[0]:
-        if update.message.chat_id != BNB48MEDIA:
-            update.message.reply_text("该功能仅在BNB48 Media群内生效")
-            return
-        if len(things) < 2:
-            update.message.reply_text("必须提供发布标题")
-            return
-        del things[0]
-        weibotitle = " ".join(things)
-        photo = update.message.reply_to_message.photo[-1].get_file().download()
-        weibourl = send_pic(weiboclient,photo,weibotitle)
-        update.message.reply_text("已通过BNB48Club微博发送此条快讯: {}".format(weibourl))
-
+        '''
+        elif "/postweibo" in things[0]:
+            if update.message.chat_id != BNB48MEDIA:
+                update.message.reply_text("该功能仅在BNB48 Media群内生效")
+                return
+            if len(things) < 2:
+                update.message.reply_text("必须提供发布标题")
+                return
+            del things[0]
+            weibotitle = " ".join(things)
+            photo = update.message.reply_to_message.photo[-1].get_file().download()
+            weibourl = send_pic(weiboclient,photo,weibotitle)
+            update.message.reply_text("已通过BNB48Club微博发送此条快讯: {}".format(weibourl))
+        '''
     elif "/rapidnews" in things[0]:
         if update.message.chat_id != BNB48MEDIA:
             update.message.reply_text("该功能仅在BNB48 Media群内生效")
@@ -952,7 +953,7 @@ def topescrow(seller=None,buyer=None):
         else:
             escrowrecord['buyer'][buyer]=1
 
-    sorted_seller = sorted(escrowrecord['seller'].items(),key=operator.itemgetter(1))
+    sorted_seller = sorted(list(escrowrecord['seller'].items()),key=operator.itemgetter(1))
     sorted_seller.reverse()
     text = "Koge担保交易功能使用方法:\n发送方使用 `/escrow 金额` 的格式回复接受方的消息,资金转入小秘书账户保管。\n发送方确认交易成功后资金转入接收方账户；或接受方对交易发起取消则资金原路返回。\n"
     text += "--------------------\n"
@@ -967,7 +968,7 @@ def topescrow(seller=None,buyer=None):
 
     text += "--------------------\n"
 
-    sorted_buyer = sorted(escrowrecord['buyer'].items(),key=operator.itemgetter(1))
+    sorted_buyer = sorted(list(escrowrecord['buyer'].items()),key=operator.itemgetter(1))
     sorted_buyer.reverse()
     text += "Koge买家Top3\n"
     i=0
@@ -1124,7 +1125,7 @@ def botmessagehandler(bot, update):
         for FLUSHWORD in FLUSHWORDS:
             if FLUSHWORD in update.message.text:
                 restrict(bot, update,update.message.chat_id, None, update.message.from_user, 1, update.message)
-                logger.warning(update.message.from_user.full_name+u" restricted because of " + update.message.text);
+                logger.warning(update.message.from_user.full_name+" restricted because of " + update.message.text);
                 return
         user = update.message.from_user
         if minable(update):
@@ -1305,7 +1306,7 @@ def main():
             #"community",
             "rapidnews",
             "posttg",
-            "postweibo"
+            #"postweibo"
         ],
         botcommandhandler))# '''处理其他命令'''
 

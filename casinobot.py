@@ -8,7 +8,7 @@ import json
 import time
 import codecs
 import random
-import ConfigParser
+import configparser
 from threading import Thread
 import threading
 from telegram import *
@@ -22,8 +22,8 @@ from koge48 import Koge48
 from casino import LonghuCasino
 from jsonfile import *
 
-reload(sys)  
-sys.setdefaultencoding('utf8')
+#reload(sys)  
+#sys.setdefaultencoding('utf8')
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.WARNING)
@@ -40,7 +40,7 @@ BNB48CASINO=-1001319319354
 BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
 CASINO_IS_BETTING=False
 
-kogeconfig = ConfigParser.ConfigParser()
+kogeconfig = configparser.ConfigParser()
 kogeconfig.read("conf/koge48.conf")
 koge48core = Koge48(
   kogeconfig.get("mysql","host"),
@@ -116,11 +116,11 @@ def slotPlay():
         number = 250
     elif result%111 == 0:
         number = 30
-    elif result/10 ==77:
+    elif result//10 ==77:
         number = 20
-    elif result/100 ==7:
+    elif result//100 ==7:
         number = 3
-    return (number,SLOTICONS[result/100]+SLOTICONS[result/10%10]+SLOTICONS[result%10])
+    return (number,SLOTICONS[result//100]+SLOTICONS[result//10%10]+SLOTICONS[result%10])
 
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
@@ -275,8 +275,8 @@ def buildcasinomarkup(result=["",""]):
     if result[0] != "":
         keys.append(
             [
-                InlineKeyboardButton(u'🐲:'+result[0],callback_data="FULLLONG"),
-                InlineKeyboardButton(u'🐯:'+result[1],callback_data="FULLHU")
+                InlineKeyboardButton('🐲:'+result[0],callback_data="FULLLONG"),
+                InlineKeyboardButton('🐯:'+result[1],callback_data="FULLHU")
             ]
         )
     else:
@@ -421,9 +421,9 @@ def rollerMarkDownGenerator():
     top3 = koge48core.getTotalBet(last=True)
     prizepool = koge48core.getChequeBalance(Koge48.PRIZEPOOL)
     topaward=[]
-    topaward.append(prizepool/3)
-    topaward.append(prizepool/6)
-    topaward.append(prizepool/12)
+    topaward.append(prizepool//3)
+    topaward.append(prizepool//6)
+    topaward.append(prizepool//12)
     awardicons=["🥇","🥈","🥉","",""]
     try:
         index = 0
@@ -448,14 +448,14 @@ def rollerMarkDownGenerator():
     text+="\n*Total Wager (for dividend)*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
-        text+="{} Koge [{}](tg://user?id={})\n".format(each[1],fullname,each[0])
+        text+="{} Koge [{}](tg://user?id={})\n".format(round(each[1],1),fullname,each[0])
 
 
     top10 = koge48core.getTopGainer()
     text+="\n*Net Win*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
-        text+="{} Koge [{}](tg://user?id={})\n".format(each[1],fullname,each[0])
+        text+="{} Koge [{}](tg://user?id={})\n".format(round(each[1],1),fullname,each[0])
 
     text+= "\nHouse Balance:{}\n".format(koge48core.getChequeBalance(Koge48.BNB48BOT))
     '''

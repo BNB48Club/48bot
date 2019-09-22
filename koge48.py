@@ -6,7 +6,7 @@ import time
 import mysql.connector
 import logging
 import math
-import ConfigParser
+import configparser
 from jsonfile import *
 
 from binance.client import Client
@@ -45,7 +45,7 @@ class Koge48:
             try:
                 lastts = cursor.fetchall()[0][0]
             except:
-                lastts = long(time.time())
+                lastts = int(time.time())
 
             betsql = "SELECT `sid`,-sum(`number`) as `total` FROM `cheque` WHERE `id` > %s AND `source` = %s AND `memo` LIKE '%bet %on casino%' AND `number` < 0 AND unix_timestamp(ts) > %s GROUP BY `sid` ORDER BY `total` DESC"
             cursor.execute(betsql,(Koge48.STATSTART,Koge48.BNB48BOT,lastts))
@@ -301,7 +301,7 @@ class Koge48:
         else:
             return 0
 if __name__ == '__main__':
-    kogeconfig = ConfigParser.ConfigParser()
+    kogeconfig = configparser.ConfigParser()
     kogeconfig.read("conf/koge48.conf")
     koge48core = Koge48(
       kogeconfig.get("mysql","host"),
@@ -309,5 +309,5 @@ if __name__ == '__main__':
       kogeconfig.get("mysql","passwd"),
       kogeconfig.get("mysql","database")
     )
-    print(koge48core.getTotalWager(True))
-    print(koge48core.getTotalWager(False))
+    print((koge48core.getTotalWager(True)))
+    print((koge48core.getTotalWager(False)))

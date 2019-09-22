@@ -23,13 +23,13 @@ class Archive48:
         else:
             return None
     def setFilepath(self,filepath):
-        if isinstance(filepath,basestring):
+        if isinstance(filepath,str):
             self._filepath = filepath
 
     def load(self,newfilepath=None):
         if newfilepath is None:
             newfilepath = self._filepath
-        if not isinstance(newfilepath,basestring):
+        if not isinstance(newfilepath,str):
             self._data = {}
         else:
             file = codecs.open(newfilepath,"r","utf-8")

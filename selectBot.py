@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 
 def selectBot(accounts):
@@ -8,5 +8,5 @@ def selectBot(accounts):
     name = "somethingdefinitelynotexist"
     while not name in accounts:
         print(">",end="")
-        name = raw_input()
+        name = input()
     return accounts[name];

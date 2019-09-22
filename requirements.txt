@@ -1,1 +1,4 @@
 python-telegram-bot==11.1.0
+mysql-connector-python==8.0.17
+convertapi==1.1.0
+weibo==0.2.2

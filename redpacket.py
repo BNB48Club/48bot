@@ -6,7 +6,7 @@ import re
 
 def has_hanzi(line):    
     #uline = unicode(line, 'utf-8')
-    pattern = u'[\u4e00-\u9fa5]+'
+    pattern = '[\u4e00-\u9fa5]+'
     search = re.search(pattern, line)
     if search:
         return True

@@ -3,7 +3,7 @@
 import random
 
 class LonghuCasino:
-    TARGET_TEXTS={"LONG":u"🐲","HU":u"🐯","HE":u"🕊"}
+    TARGET_TEXTS={"LONG":"🐲","HU":"🐯","HE":"🕊"}
     PAYRATES={"LONG":1.05,"HU":1.05,"HE":9}
     @staticmethod
     def getRule(key=None):
@@ -47,13 +47,13 @@ class LonghuCasino:
         while hupai == longpai:
             hupai = random.randint(0,51)
 
-        huase=[u"♠️",u"♥️",u"♣️",u"♦️"]
+        huase=["♠️","♥️","♣️","♦️"]
         dianshu = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 
         longdianshu = longpai%13
         hudianshu = hupai%13
-        longhuase = longpai/13
-        huhuase = hupai/13
+        longhuase = longpai//13
+        huhuase = hupai//13
 
         if longdianshu>hudianshu and hudianshu != 0:
             result = "LONG"
@@ -75,12 +75,12 @@ class LonghuCasino:
 
         payroll={}
         for each in self._bets[result]:
-            payroll[each]=self._bets[result][each][1]*times
+            payroll[each]=round(self._bets[result][each][1]*times,1)
 
         self._released = True
         self._result =  {"result":[
-                            "{}{}".format( huase[longpai/13], dianshu[longdianshu]),
-                            "{}{}".format( huase[hupai/13], dianshu[hudianshu])
+                            "{}{}".format( huase[longpai//13], dianshu[longdianshu]),
+                            "{}{}".format( huase[hupai//13], dianshu[hudianshu])
                         ],
                 "payroll":payroll,
                 "win":win,

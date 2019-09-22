@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'BNB48'
 __reference__='https://gist.github.com/mrluanma/6000424'
-import ConfigParser
+import configparser
 import sys
 import time
 import random
@@ -12,23 +12,23 @@ def get_access_token(app_key, app_secret, callback_url):
     client = APIClient(app_key=app_key, app_secret=app_secret, redirect_uri=callback_url)
     # 获取授权页面网址
     auth_url = client.get_authorize_url()
-    print auth_url
+    print(auth_url)
 
     # 在浏览器中访问这个URL，会跳转到回调地址，回调地址后面跟着code，输入code
-    code = raw_input("Input code:")
+    code = input("Input code:")
     r = client.request_access_token(code)
     access_token = r.access_token
     # token过期的UNIX时间
     expires_in = r.expires_in
-    print 'access_token:', access_token
-    print 'expires_in:', expires_in
+    print('access_token:', access_token)
+    print('expires_in:', expires_in)
 
     return access_token, expires_in
 
 UID=""
 def init_weibo(account):
     callback_url = 'https://api.weibo.com/oauth2/default.html'
-    weiboconfig = ConfigParser.ConfigParser()
+    weiboconfig = configparser.ConfigParser()
     weiboconfig.read("conf/weibo.conf")
     app_key = weiboconfig.get(account,"app_key")
     app_secret = weiboconfig.get(account,"app_secret")
@@ -134,4 +134,4 @@ if __name__ == '__main__':
     time.sleep(600*random.random())
     client = init_weibo('BNB48Club')
     #print(send_pic(client,"temp.png","testtitle"))
-    print(send_mes(client,"币安宝什么时候出不限量的活期版本？没有我明天再问一下"))
+    print((send_mes(client,"币安宝什么时候出不限量的活期版本？没有我明天再问一下")))
