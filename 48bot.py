@@ -139,9 +139,9 @@ def getCommunityContent(activeuser=None,groupid=None):
     #markdown+= "[BNB48 GFW](https://t.me/joinchat/GRaQmkzYU3oJUphCcG4Y7Q)"
     #markdown += "\n"
     markdown = "[Koge Channel](https://t.me/bnb48club_publish)"
-    if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
-        markdown += "\n"
-        markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
+    #if not activeuser is None and str(activeuser.id) in Koge48.BNB48LIST:
+        #markdown += "\n"
+        #markdown+= "[BNB48 内部通知](https://t.me/joinchat/AAAAAFVOsQwKs4ev-pO2vg)"
         #markdown += "\n"
         #markdown+= "[BNB48 媒体宣传](https://t.me/joinchat/GRaQmkZcD-7Y4q83Nmyj4Q)"
         #markdown += "\n"
@@ -164,7 +164,7 @@ def getCommunityContent(activeuser=None,groupid=None):
         try:
             fullname = Koge48.MININGWHITELIST[each[0]]['title']
             link = 'https://t.me/{}'.format(Koge48.MININGWHITELIST[each[0]]['username'])
-            markdown+="\n[{}]({}) {}%".format(fullname,link,round(100.0*each[1]/powtotal,2))
+            markdown+="\n{}% [{}]({})".format(round(100.0*each[1]/powtotal,2),fullname,link)
             tempwhitelist.pop(each[0])
         except Exception as e:
             print(e)
@@ -173,7 +173,7 @@ def getCommunityContent(activeuser=None,groupid=None):
     for each in tempwhitelist:
         fullname = Koge48.MININGWHITELIST[each]['title']
         link = 'https://t.me/{}'.format(Koge48.MININGWHITELIST[each]['username'])
-        markdown+="\n[{}]({}) 0%".format(fullname,link)
+        markdown+="\n0% [{}]({})".format(fullname,link)
 
     if not groupid is None:
         markdown += "\n"
@@ -907,11 +907,6 @@ def botcommandhandler(bot,update):
         for each in kogechanges:
             response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
 
-        response += "\n最近的Floating Koge变动记录:\n"
-        changes=koge48core.getRecentChanges(targetuser.id)
-        for each in changes:
-            response += "        {}前,`{}`,{}\n".format(each['before'],each['diff'],each['memo'])
-        
         try:
             bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
@@ -1285,7 +1280,6 @@ def main():
         pmcommandhandler)#处理仅私聊有效的命令
     )
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
-    dp.add_handler(MessageHandler(Filters.text and Filters.private, callback=privateTextHandler))#'''处理私聊文字'''
 
     dp.add_handler(CommandHandler(
         [
@@ -1313,6 +1307,7 @@ def main():
     dp.add_handler(CommandHandler( [ "test" ], testHandler))
     dp.add_handler(InlineQueryHandler(inlinequeryHandler))
     dp.add_handler(ChosenInlineResultHandler(choseninlineresultHandler))
+    dp.add_handler(MessageHandler(Filters.text and Filters.private, callback=privateTextHandler))#'''处理私聊文字'''
     # log all errors
     dp.add_error_handler(error)
     #Start the schedule
@@ -1339,9 +1334,9 @@ def getMiningDetail(groupid):
     content=""
     top10 = koge48core.getMiningStatus(groupid)
     if len(top10) > 0:
-        content += "-----------------"
+        content += "👇👇👇👇👇👇👇👇👇👇"
         for each in top10:
-            content += "\n{} Koge, [{}](tg://user?id={})".format(each[1],userInfo(each[0],"FULLNAME"),each[0])
+            content += "\n{} Koge [{}](tg://user?id={})".format(round(each[1],2),userInfo(each[0],"FULLNAME"),each[0])
     return content
 
 def broadcastCommunity(bot,job):

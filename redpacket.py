@@ -102,7 +102,7 @@ class RedPacket:
             return 0
         elif self._amount == 1:
             self._amount = 0
-            res = self._balance
+            res = round(self._balance,2)
             self._balance = 0
             self._drawed[user.id]=[user.full_name,res]
             self._sequence.append(user.id)
