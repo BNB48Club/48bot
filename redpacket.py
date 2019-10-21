@@ -71,7 +71,7 @@ class RedPacket:
         else:
             self._needupdate = value
     def getLog(self):
-        text = "🧧*[{}]\n{}*\n*{}/{} ({}/{} {})*\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,self._balance,self._origbalance,self._currency)
+        text = "🧧*[{}]\n{}*\n*{}/{} ({}/{} {})*\n".format(self._title,self._fromuser.full_name,self._amount,self._origamount,round(self._balance,2),self._origbalance,self._currency)
         if "KOGE" != self._currency:
             if "CN"==self._lang:
                 text += "📝[填写领奖信息]"
@@ -119,4 +119,4 @@ class RedPacket:
             self._maxid = user.id
         return res
     def balance(self):
-        return self._balance
+        return round(self._balance,2)

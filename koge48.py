@@ -136,7 +136,7 @@ class Koge48:
 
     def transferChequeBalance(self,sourceid,targetid,number,memo=""):
         assert number > 0
-        assert not sourceid in Koge48.MININGBLACKLIST
+        #assert not sourceid in Koge48.MININGBLACKLIST
         if sourceid != Koge48.BNB48BOT:
             sbalance = self._getChequeBalanceFromDb(sourceid)
             assert sourceid == Koge48.BNB48BOT or sbalance - number >= 0
@@ -271,9 +271,9 @@ class Koge48:
         self._close(cursor)
         return top10
     def getChequeBalance(self,userid):
-        return self._getChequeBalanceFromDb(userid)
+        return round(self._getChequeBalanceFromDb(userid),2)
     def getTotalBalance(self,userid):
-        return self._getChequeBalanceFromDb(userid)
+        return self.getChequeBalance(userid)
     def mine(self,minerid,groupid):
         if minerid == self._lastminer:
             return 0

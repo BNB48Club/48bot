@@ -411,7 +411,7 @@ def rollerHandler(bot,update):
     #koge48core.transferChequeBalance(update.message.from_user.id,Koge48.BNB48BOT,PRICES['query'],'query roller')
     #text="本次查询费用由`{}`支付\n[点击进入KOGE虚拟赌场](https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg)\n\n".format(update.message.from_user.full_name)
 
-    update.message.reply_markdown(text+rollerMarkDownGenerator(),quote=False,disable_web_page_preview=True)
+    update.message.reply_markdown(rollerMarkDownGenerator(),quote=False,disable_web_page_preview=True)
 
 def rollerMarkDownGenerator():
     text="JackPot {} Koge\n".format(round(koge48core.getChequeBalance(Koge48.JACKPOT),2))
@@ -419,6 +419,8 @@ def rollerMarkDownGenerator():
     text+="Top5 Wager(Current Round):\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
 
     top3 = koge48core.getTotalBet(last=True)
+    if len(top3) == 0:
+        return ""
     prizepool = koge48core.getChequeBalance(Koge48.PRIZEPOOL)
     topaward=[]
     topaward.append(prizepool//3)
@@ -553,12 +555,13 @@ def main():
 
 
     #Start the schedule
-    gap = 7200 - time.time()%7200
-    rollergap = gap%3600
+    airdropinterval = 86400
+    gap = airdropinterval - time.time()%airdropinterval
+    rollergap = gap%43200
     logger.warning("will start airdrop in %s seconds",gap)
     logger.warning("will start roller in %s seconds",rollergap)
-    job_airdrop = j.run_repeating(airdropportal,interval=7200,first=gap)
-    job_airdrop = j.run_repeating(rollerbroadcast,interval=3600,first=rollergap)
+    job_airdrop = j.run_repeating(airdropportal,interval=airdropinterval,first=gap)
+    job_airdrop = j.run_repeating(rollerbroadcast,interval=43200,first=rollergap)
 
     #casino
     startcasino()
@@ -578,7 +581,9 @@ def main():
 def rollerbroadcast(bot,job):
     global USERINFOMAP
     USERINFOMAP = loadJson("_data/userinfomap.json",{})
-    announceid = bot.sendMessage(BNB48CASINO,rollerMarkDownGenerator(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
+    text = rollerMarkDownGenerator()
+    if "" != text:
+        announceid = bot.sendMessage(BNB48CASINO,rollerMarkDownGenerator(),parse_mode=ParseMode.MARKDOWN,disable_web_page_preview=True)
 
 def airdropportal(bot,job):
     global CASINO_DIVIDING

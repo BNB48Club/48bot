@@ -198,8 +198,10 @@ def callbackhandler(bot,update):
                 response += "  {} ago,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "BIND" == thedatas[1]:
-            bindstatus = koge48core.getAirDropStatus(activeuser.id)
-            response = getLocaleString("BINDINTRODUCTION",lang).format(bindstatus['api'][0],bindstatus['bnb'][1])
+            #bindstatus = koge48core.getAirDropStatus(activeuser.id)
+            #response = getLocaleString("BINDINTRODUCTION",lang).format(bindstatus['api'][0],bindstatus['bnb'][1])
+            response = getLocaleString("BINDINTRODUCTION",lang)
+
             for each in USERPROPERTIES:
                 response += "\n*{}*:".format(each)
                 value = userInfo(update.effective_user.id,each)
@@ -421,26 +423,28 @@ def builddashboardmarkup(lang="CN"):
         [
             [
                 InlineKeyboardButton(getLocaleString("MENU_KOGE",lang),callback_data="MENU#KOGE#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
+                InlineKeyboardButton(getLocaleString("MENU_COMMUNITY",lang),callback_data="MENU#COMMUNITY#"+lang),
+            ],
+            [
                 InlineKeyboardButton(getLocaleString("MENU_BALANCE",lang),callback_data="MENU#BALANCE#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_CHANGES",lang),callback_data="MENU#CHANGES#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang),
             ],
             [
-                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_COMMUNITY",lang),callback_data="MENU#COMMUNITY#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
                 InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK),
+                InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
             ],
             [
-                InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
+                #InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
+                InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang),
             ],
         ]
     )
     '''
         [
-            InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
         ],
     '''
 def buildredpacketmarkup(redpacket_id):
@@ -705,18 +709,20 @@ def choseninlineresultHandler(bot,update):
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
 
-    if "/trans" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
-        if float(things[1]) <= 0:
+    if "/trans" in things[0]:
+        if update.message.reply_to_message is None or len(things) < 2 or float(things[1]) <= 0:
+            delayMessageDelete(update.message,0)
             return
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
         if user.id == targetuser.id:
+            delayMessageDelete(update.message,0)
             return
         transamount = float(things[1])
         try:
             koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
         except:
-            delayMessageDelete(update.message)
+            delayMessageDelete(update.message,0)
             return
         try:
             bot.sendMessage(targetuser.id,"{} 💸 {} Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
@@ -752,8 +758,13 @@ def botcommandhandler(bot,update):
         delayMessageDelete(update.message.reply_markdown(content,disable_web_page_preview=True,quote=False))
     elif "/donate" in things[0] or "/juankuan" in things[0]:
         try:
-            koge48core.transferChequeBalance(update.effective_user.id,Koge48.BNB48BOT,100,"donation")
-            update.message.reply_text("🙏 100 Koge")
+            try:
+                donatevalue = float(things[1])
+            except:
+                donatevalue = 1
+
+            koge48core.transferChequeBalance(update.effective_user.id,Koge48.BNB48BOT,donatevalue,"donation")
+            update.message.reply_text("🙏 {} Koge".format(donatevalue))
         except:
             delayMessageDelete(update.message)
     elif "/burn" in things[0]:
@@ -821,8 +832,11 @@ def botcommandhandler(bot,update):
         if "KOGE" != currency and not user.id in getAdminsInThisGroup(update.message.chat_id):
             delayMessageDelete(update.message)
             return
+
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
+        elif "KOGE" == currency:
+            balance = 100
         else:
             delayMessageDelete(update.message,1)
             return
@@ -840,19 +854,25 @@ def botcommandhandler(bot,update):
             amount = 10
 
         if "KOGE" == currency and amount > 40:
+            amount = 40
+            '''
             try:
-                update.effective_user.send_message("MAX 40")
+                delayMessageDelete(update.message.reply_text("MAX 40"))
             except:
                 pass
             delayMessageDelete(update.message)
             return
+            '''
 
         if "KOGE" == currency and balance/amount < RedPacket.SINGLE_AVG:
             delayMessageDelete(update.message)
             return
 
         if "KOGE" == currency:
-            koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
+            try:
+                koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
+            except:
+                delayMessageDelete(update.message,0)
         
         if len(things) > 3:
             del things[0]
@@ -894,6 +914,7 @@ def botcommandhandler(bot,update):
             bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
             update.message.reply_markdown("为保护隐私,建议私聊机器人查询。\n"+response,disable_web_page_preview=True)
+        delayMessageDelete(update.message)
     elif "/changes" in things[0]:
         
         user = update.message.from_user
@@ -911,6 +932,8 @@ def botcommandhandler(bot,update):
             bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
             update.message.reply_markdown("为保护隐私,建议私聊机器人查询。\n"+response,disable_web_page_preview=True)
+
+        delayMessageDelete(update.message)
 
     elif ("/unrestrict" in things[0] or "/restrict" in things[0] ) and not update.message.reply_to_message is None:
         

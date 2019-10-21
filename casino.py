@@ -8,7 +8,7 @@ class LonghuCasino:
     @staticmethod
     def getRule(key=None):
         if key == "FULL" or key is None:
-            return "[Please bet]\n🐲 🆚 🐯\nOne decker,Small or Big\n🐲/🐯 ✖️{}\n🕊 ✖️{}".format(LonghuCasino.PAYRATES['HU']+1,LonghuCasino.PAYRATES['HE']+1)
+            return "[Please bet]\n🐲 🆚 🐯\nTwo cards from one decker,which is bigger?\n🐲/🐯 ✖️{}\n🕊 ✖️{}".format(LonghuCasino.PAYRATES['HU']+1,LonghuCasino.PAYRATES['HE']+1)
         return "✖️{}".format(LonghuCasino.PAYRATES[key])
             
     def __init__(self):
