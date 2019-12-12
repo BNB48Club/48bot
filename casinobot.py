@@ -415,8 +415,8 @@ def rollerHandler(bot,update):
 
 def rollerMarkDownGenerator():
     text="JackPot {} Koge\n".format(round(koge48core.getChequeBalance(Koge48.JACKPOT),2))
-    text+="PrizePool {} Koge\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
-    text+="Top5 Wager(Current Round):\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
+    text+="Wager PrizePool {} Koge\n\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
+    text+="Top5 Wager(Till Now):\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
 
     top3 = koge48core.getTotalBet(last=True)
     if len(top3) == 0:
@@ -663,7 +663,7 @@ def airdropportal(bot,job):
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.PRIZEPOOL,lasttotaldiv,"deposit prizepool")
-        updater.bot.sendMessage(BNB48CASINO,"*Last Round*\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE\nAdd to PrizePool: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,lasttotaldiv,lasttotaldiv),parse_mode=ParseMode.MARKDOWN)
+        updater.bot.sendMessage(BNB48CASINO,"*Last Round*\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE\nCurrent JackPot: {} KOGE\nAdd to PrizePool: {} KOGE\nCurrent PrizePool: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
 
     CASINO_DIVIDING = False
     return

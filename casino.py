@@ -34,7 +34,7 @@ class LonghuCasino:
                 text += "\n"
         return text
     def bet(self,user,item,amount):
-        assert item == "LONG" or item == "HU" or item == "HE"
+        assert item in ["LONG","HU","HE"]
         if user.id in self._bets[item]:
             self._bets[item][user.id][1]+=amount
         else:

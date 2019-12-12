@@ -761,7 +761,7 @@ def botcommandhandler(bot,update):
             try:
                 donatevalue = float(things[1])
             except:
-                donatevalue = 1
+                donatevalue = 100
 
             koge48core.transferChequeBalance(update.effective_user.id,Koge48.BNB48BOT,donatevalue,"donation")
             update.message.reply_text("🙏 {} Koge".format(donatevalue))
@@ -817,7 +817,7 @@ def botcommandhandler(bot,update):
         content = " ".join(things)
         update.message.reply_text("正在生成快讯图片...该操作较耗时也较耗费资源,请务必耐心,不要重复发送。")
         bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
-    elif "/hongbao" in things[0] or "/redpacket" in things[0]:
+    elif "/hongbao" in things[0] or "/rain" in things[0]:
         if update.message.chat.type == 'private':
             delayMessageDelete(update.message.reply_text("send in a group"))
             return
@@ -870,7 +870,7 @@ def botcommandhandler(bot,update):
 
         if "KOGE" == currency:
             try:
-                koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send redpacket")
+                koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send koge rain")
             except:
                 delayMessageDelete(update.message,0)
         
@@ -880,7 +880,7 @@ def botcommandhandler(bot,update):
             del things[0]
             title = " ".join(things)
         else:
-            title = "How lucky are you ?"
+            title = "Who's lucky ?"
 
         redpacket = RedPacket(update.message.from_user,balance,amount,title,currency)
         redpacket_id = str(int(time.time()))
@@ -1315,7 +1315,7 @@ def main():
             #"restrict",
             #"unrestrict",
             "hongbao",
-            "redpacket",
+            "rain",
             "burn",
             "mining",
             "donate",
