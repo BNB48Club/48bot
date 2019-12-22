@@ -873,6 +873,7 @@ def botcommandhandler(bot,update):
                 koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,balance,"send koge rain")
             except:
                 delayMessageDelete(update.message,0)
+                return
         
         if len(things) > 3:
             del things[0]
@@ -1184,6 +1185,8 @@ def welcome(bot, update):
             koge48core.transferChequeBalance(Koge48.BNB48BOT,newUser.id,Koge48.MINE_MIN_SIZE,"invited")
             koge48core.transferChequeBalance(Koge48.BNB48BOT,update.message.from_user.id,Koge48.MINE_MIN_SIZE,"inviting")
             update.message.reply_text("{}邀请{},两人各挖到{}Koge".format(update.message.from_user.full_name,newUser.full_name,Koge48.MINE_MIN_SIZE))
+        #if update.message.chat_id == BNB48CN and (newUser.username is None or len(newUser.username == 0) and newUser.get_profile_photos().total_count == 0:
+        #    update.message.reply_text("Hi",quote=False,)
         for SPAMWORD in SPAMWORDS:
             if SPAMWORD in newUser.full_name:
                 isSpam = True
