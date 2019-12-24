@@ -414,9 +414,9 @@ def rollerHandler(bot,update):
     update.message.reply_markdown(rollerMarkDownGenerator(),quote=False,disable_web_page_preview=True)
 
 def rollerMarkDownGenerator():
-    text="JackPot {} Koge\n".format(round(koge48core.getChequeBalance(Koge48.JACKPOT),2))
-    text+="Wager PrizePool {} Koge\n\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
-    text+="Top5 Wager(Till Now):\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
+    text="JackPot {} Koge\n\n".format(round(koge48core.getChequeBalance(Koge48.JACKPOT),2))
+    text+="累积奖池 {} Koge\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
+    text+="今日五大豪客(截至目前):\n".format(round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2))
 
     top3 = koge48core.getTotalBet(last=True)
     if len(top3) == 0:
@@ -435,7 +435,7 @@ def rollerMarkDownGenerator():
             fullname = userInfo(each[0],"FULLNAME")
 
             #text+="{} [{}](tg://user?id={})\t{}".format(awardicons[index],fullname,each[0],each[1])
-            text+="{} [{}](tg://user?id={})\tWager {} Koge\n".format(awardicons[index],fullname,each[0],each[1])
+            text+="{} [{}](tg://user?id={})\t{} Koge\n".format(awardicons[index],fullname,each[0],each[1])
             '''
             if index < 3:
                 text += " {} Koge\n".format(min(round(topaward[index],2),each[1]))
@@ -447,7 +447,7 @@ def rollerMarkDownGenerator():
         pass
 
     top10 = koge48core.getHisBetRecords(limit=10)
-    text+="\n*历史累计下注榜(每日分红)*:\n"
+    text+="\n*历史累计下注榜(有分红)*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
         text+="{} Koge [{}](tg://user?id={})\n".format(round(each[1],1),fullname,each[0])
