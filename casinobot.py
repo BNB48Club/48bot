@@ -447,14 +447,14 @@ def rollerMarkDownGenerator():
         pass
 
     top10 = koge48core.getHisBetRecords(limit=10)
-    text+="\n*Total Wager (for dividend)*:\n"
+    text+="\n*历史累计下注榜(每日分红)*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
         text+="{} Koge [{}](tg://user?id={})\n".format(round(each[1],1),fullname,each[0])
 
 
     top10 = koge48core.getTopGainer()
-    text+="\n*Net Win*:\n"
+    text+="\n*赌神榜(净盈利)*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
         text+="{} Koge [{}](tg://user?id={})\n".format(round(each[1],1),fullname,each[0])
@@ -484,6 +484,8 @@ def botcommandhandler(bot,update):
         except:
             #bot.sendPhoto(update.message.chat_id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
             bot.sendPhoto(update.message.chat_id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+    elif "/start" in things[0]:
+        update.message.reply_text("1. 终身分红。每日下注总额的0.7%根据历史下注总额按比例向玩家分红(精确到小数点后两位)。\n2. 下注有奖。 每日下注总额的0.7%注入累积奖池。每日下注最多的前三名获得截止前一日累积奖池金额的 三分之一、六分之一、十二分之一，且不超过其当日已下注额。\n3. JackPot 每日下注总额的0.7%注入JackPot。老虎机单次下注100押中250倍可获得JackPot的三分之一，单次下注10押中250倍可获得三十分之一。\n 历史下注/每日下注/奖池金额等信息均可通过 /roller 命令查看")
     return
 def cleanHandler(bot,update):
     if update.message.from_user.id == SirIanM:
@@ -546,6 +548,7 @@ def main():
     dp.add_handler(CommandHandler(
         [
             "slot",
+            "start"
         ],
         botcommandhandler))# '''处理其他命令'''
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
@@ -613,15 +616,15 @@ def airdropportal(bot,job):
 
             top1award = round(min(prizepool/3,lastbetrecords[0][1]),2)
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[0][0],top1award,"top1 award")
-            updater.bot.sendMessage(BNB48CASINO,"Top1 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[0][0],"FULLNAME"),lastbetrecords[0][0],top1award),parse_mode=ParseMode.MARKDOWN)
+            updater.bot.sendMessage(BNB48CASINO,"豪客榜Top1 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[0][0],"FULLNAME"),lastbetrecords[0][0],top1award),parse_mode=ParseMode.MARKDOWN)
 
             top2award = round(min(prizepool/6,lastbetrecords[1][1]),2)
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[1][0],top2award,"top2 award")
-            updater.bot.sendMessage(BNB48CASINO,"Top2 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[1][0],"FULLNAME"),lastbetrecords[1][0],top2award),parse_mode=ParseMode.MARKDOWN)
+            updater.bot.sendMessage(BNB48CASINO,"豪客榜Top2 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[1][0],"FULLNAME"),lastbetrecords[1][0],top2award),parse_mode=ParseMode.MARKDOWN)
 
             top3award = round(min(prizepool/12,lastbetrecords[2][1]),2)
             koge48core.transferChequeBalance(Koge48.PRIZEPOOL,lastbetrecords[2][0],top3award,"top3 award")
-            updater.bot.sendMessage(BNB48CASINO,"Top3 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[2][0],"FULLNAME"),lastbetrecords[2][0],top3award),parse_mode=ParseMode.MARKDOWN)
+            updater.bot.sendMessage(BNB48CASINO,"豪客榜Top3 [{}](tg://user?id={}) 💰 {} Koge".format(userInfo(lastbetrecords[2][0],"FULLNAME"),lastbetrecords[2][0],top3award),parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             print(e)
             pass
@@ -636,7 +639,7 @@ def airdropportal(bot,job):
                     continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
                 logger.warning("distribute {} to {}".format(dividend,eachuid))
-                updater.bot.sendMessage(eachuid,"💰 Dividend {}KOGE".format(dividend))
+                updater.bot.sendMessage(eachuid,"💰 今日分红 {}KOGE".format(dividend))
             except:
                 logger.warning("exception while distribute to {}".format(eachuid))
 
@@ -663,7 +666,8 @@ def airdropportal(bot,job):
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.PRIZEPOOL,lasttotaldiv,"deposit prizepool")
-        updater.bot.sendMessage(BNB48CASINO,"*Last Round*\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE\nCurrent JackPot: {} KOGE\nAdd to PrizePool: {} KOGE\nCurrent PrizePool: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
+        #updater.bot.sendMessage(BNB48CASINO,"*Last Round*\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE\nCurrent JackPot: {} KOGE\nAdd to PrizePool: {} KOGE\nCurrent PrizePool: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
+        updater.bot.sendMessage(BNB48CASINO,"*今日*\n总下注: {} Koge\n今日分红: {} Koge\n注入JackPot: {} KOGE\nJackPot最新金额: {} KOGE\n注入每日豪客榜奖池: {} KOGE\n每日豪客榜奖池最新金额: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
 
     CASINO_DIVIDING = False
     return

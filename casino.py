@@ -8,7 +8,8 @@ class LonghuCasino:
     @staticmethod
     def getRule(key=None):
         if key == "FULL" or key is None:
-            return "[Please bet]\n🐲 🆚 🐯\nTwo cards from one decker,which is bigger?\n🐲/🐯 ✖️{}\n🕊 ✖️{}".format(LonghuCasino.PAYRATES['HU']+1,LonghuCasino.PAYRATES['HE']+1)
+            #return "[Please bet]\n🐲 🆚 🐯\nTwo cards from one decker,which is bigger?\n🐲/🐯 ✖️{}\n🕊 ✖️{}".format(LonghuCasino.PAYRATES['HU']+1,LonghuCasino.PAYRATES['HE']+1)
+            return "[买定离手]\n🐲 🆚 🐯\n一副扑克牌 龙虎各抽一张牌比大小\n🐲/🐯 ✖️{}\n🕊 ✖️{}".format(LonghuCasino.PAYRATES['HU']+1,LonghuCasino.PAYRATES['HE']+1)
         return "✖️{}".format(LonghuCasino.PAYRATES[key])
             
     def __init__(self):
@@ -23,7 +24,7 @@ class LonghuCasino:
     
     def getLog(self):
         if self._released:
-            text="[Open]{}\n".format(self._result['win'])
+            text="[开牌]{}\n".format(self._result['win'])
         else:
             text=""
         for eachbet in self._bets:
