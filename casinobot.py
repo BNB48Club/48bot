@@ -435,13 +435,11 @@ def rollerMarkDownGenerator():
             fullname = userInfo(each[0],"FULLNAME")
 
             #text+="{} [{}](tg://user?id={})\t{}".format(awardicons[index],fullname,each[0],each[1])
-            text+="{} [{}](tg://user?id={})\t{} Koge\n".format(awardicons[index],fullname,each[0],each[1])
-            '''
+            text+="{} [{}](tg://user?id={})\t下注 {} Koge\n".format(awardicons[index],fullname,each[0],each[1])
             if index < 3:
-                text += " {} Koge\n".format(min(round(topaward[index],2),each[1]))
+                text += "预计奖金 {} Koge\n".format(min(round(topaward[index],2),each[1]))
             else:
                 text += "\n"
-            '''
             index += 1
     except:
         pass
@@ -454,7 +452,7 @@ def rollerMarkDownGenerator():
 
 
     top10 = koge48core.getTopGainer()
-    text+="\n*赌神榜(净盈利)*:\n"
+    text+="\n*赌神榜(净盈利榜)*:\n"
     for each in top10:
         fullname = userInfo(each[0],"FULLNAME")
         text+="{} Koge [{}](tg://user?id={})\n".format(round(each[1],1),fullname,each[0])
@@ -667,7 +665,7 @@ def airdropportal(bot,job):
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.PRIZEPOOL,lasttotaldiv,"deposit prizepool")
         #updater.bot.sendMessage(BNB48CASINO,"*Last Round*\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE\nCurrent JackPot: {} KOGE\nAdd to PrizePool: {} KOGE\nCurrent PrizePool: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
-        updater.bot.sendMessage(BNB48CASINO,"*今日*\n总下注: {} Koge\n今日分红: {} Koge\n注入JackPot: {} KOGE\nJackPot最新金额: {} KOGE\n注入每日豪客榜奖池: {} KOGE\n每日豪客榜奖池最新金额: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
+        updater.bot.sendMessage(BNB48CASINO,"*今日*\n总下注: {} Koge\n今日分红: {} Koge\n注入JackPot: {} KOGE\nJackPot最新金额: {} KOGE\n注入豪客奖池: {} KOGE\n豪客奖池最新金额: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
 
     CASINO_DIVIDING = False
     return
