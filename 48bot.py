@@ -24,6 +24,8 @@ from botsapi import bots
 from koge48 import Koge48
 from redpacket import RedPacket
 from ppt2img import genPNG
+from election import Election
+from lottery import Lottery
 #from sendweibo import init_weibo, send_pic
 
 
@@ -57,6 +59,25 @@ PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 USERINFOMAP = loadJson("_data/userinfomap.json",{})
+LOTTERYS = loadJson("_data/lotteryinfo.json",{"current":"-1"})
+
+def newLottery():
+    if "current" in LOTTERYS and LOTTERYS["current"] != "-1":
+        lastLottery = Lottery(LOTTERYS["current"])
+        ticket = lastLottery.reveal()
+        if ticket > -1:
+            updater.bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = getLotteryTitle(lastLottery),reply_markup=None,parse_mode="Markdown")
+            uid = lastLottery.who(ticket)
+            updater.bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo".format(lastLottery._id))
+        else:
+            return
+
+    lottery = Lottery()
+    LOTTERYS["current"]=lottery._id
+    saveJson("_data/lotteryinfo.json",LOTTERYS)
+    message = updater.bot.sendMessage(BNB48LOTTERY,getLotteryTitle(lottery),reply_markup=buildlottery(lottery))
+    lottery.msgId(message.message_id)
+
 def clearUserInfo(uid,key):
     realuid = str(uid)
     realkey=str(key)
@@ -81,11 +102,13 @@ SirIanM=420909210
 
 BNB48=-1001136778297
 BNB48PUBLISH=-1001180859399
+BNB48LOTTERY=-1001170996107
 BNB48CN= -1001345282090
 BNB48EN= -1001377752898
 BNB48C2C = -1001491897749
 BNB48CASINO=-1001319319354
 BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
+BNB48LOTTERYLINK="https://t.me/joinchat/AAAAAEXL-4vnQxa3gcmGvw"
 BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
@@ -109,9 +132,10 @@ koge48core = Koge48(
 
 global_redpackets = {}
 USERPROPERTIES = {
-    "BinanceEmail":"^[a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+([:,：]\d+){0,1}$",
+    #"BinanceEmail":"^[a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+([:,：]\d+){0,1}$",
     #"BinanceUID":"^\d{8}$",
-    "ETH":"^(0x)[0-9A-Fa-f]{40}$",
+    "BinanceBNBMemo":"^1\d{8}$",
+    #"ETH":"^(0x)[0-9A-Fa-f]{40}$",
     "BNB":"^(bnb1)[0-9a-z]{38}([:,：]\d+){0,1}$",
     #"EOS":"^[1-5a-z\.]{1,12}$"
 }
@@ -251,6 +275,39 @@ def callbackhandler(bot,update):
         else:
             update.callback_query.answer()
 
+    elif update.callback_query.data.startswith("LOTTERY#"):
+        thedatas = update.callback_query.data.split('#')
+        lottery_id = thedatas[1]
+        lottery_action = thedatas[2]
+        amount = int(thedatas[3])
+        lottery = Lottery(lottery_id)
+        if "BUY" == lottery_action:
+            try:
+                koge48core.transferChequeBalance(update.effective_user.id,Koge48.LOTTERY,amount*10,"lottery {}".format(lottery_id))
+            except:
+                update.callback_query.answer("余额不足 Insufficient Balance")
+                return
+            tickets = lottery.buyTicket(update.effective_user.id,amount)
+            update.effective_message.edit_text(getLotteryTitle(lottery),reply_markup=buildlottery(lottery),parse_mode="Markdown")
+            update.callback_query.answer("{}-{},{} tickets".format(tickets[0],tickets[-1],len(tickets)))
+            bot.sendMessage(update.effective_user.id,"第{}期乐透购买票证\n{}-{}\n共计{}个号码".format(lottery._id,tickets[0],tickets[-1],len(tickets)))
+    elif update.callback_query.data.startswith("ELECTION#"):
+        thedatas = update.callback_query.data.split('#')
+        election_id = thedatas[1]
+        election_action = thedatas[2]
+        election = Election(election_id)
+        if "NOMI" == election_action:
+            if election.selfNomi(update.effective_user.id):
+                votees = election.getVotees()
+                update.effective_message.edit_text(getElectionTitle(votees),reply_markup=buildelection(votees,election.getId()),parse_mode="Markdown")
+        elif "END" == election_action and update.effective_user.id == SirIanM:
+            update.effective_message.edit_reply_markup()
+        else:
+            if election.toggleVote(update.effective_user.id,election_action):
+                votees = election.getVotees()
+                update.effective_message.edit_text(getElectionTitle(votees),reply_markup=buildelection(votees,election.getId()),parse_mode="Markdown")
+
+        update.callback_query.answer()
     elif update.callback_query.data.startswith("FILLING#"):
         thedatas = update.callback_query.data.split('#')
         lang = getLang(update.effective_user)
@@ -368,6 +425,25 @@ def actualAnswer(query,content=None):
     else:
         query.answer(text=content)
 
+def buildlottery(lottery):
+    res = []
+    res.append([InlineKeyboardButton("🎟✖️1",callback_data="LOTTERY#{}#BUY#1".format(lottery._id))])
+    res.append([InlineKeyboardButton("🎟✖️10",callback_data="LOTTERY#{}#BUY#10".format(lottery._id))])
+    res.append([InlineKeyboardButton("🎟✖️100",callback_data="LOTTERY#{}#BUY#100".format(lottery._id))])
+    return InlineKeyboardMarkup(res)
+def buildelection(votees,eid):
+    res=[]
+    curline=[]
+    for eachid in votees:
+        curline.append(InlineKeyboardButton("🗳"+userInfo(eachid,"FULLNAME"),callback_data="ELECTION#{}#{}".format(eid,eachid)))
+        if len(curline) >=4 :
+            res.append(curline)
+            curline=[]
+    if len(curline) > 0:
+        res.append(curline)
+    res.append([InlineKeyboardButton("我要参选",callback_data="ELECTION#{}#NOMI".format(eid))])
+    res.append([InlineKeyboardButton("结束",callback_data="ELECTION#{}#END".format(eid))])
+    return InlineKeyboardMarkup(res)
 def buildfilling(uid,editing=None):
     res = []
     for each in USERPROPERTIES:
@@ -409,6 +485,9 @@ def buildkeyboard(lang="CN"):
                 getLocaleString("MENU_JOIN",lang),
             ],
             [
+                getLocaleString("MENU_LOTTERY",lang),
+            ],
+            [
                 getLocaleString("MENU_KOGE",lang),
                 getLocaleString("MENU_MINING",lang),
             ],
@@ -437,6 +516,7 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
             ],
             [
+                InlineKeyboardButton(getLocaleString("MENU_LOTTERY",lang),url=BNB48LOTTERYLINK),
                 #InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
                 InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang),
@@ -573,6 +653,17 @@ def getusermd(user,link=True):
     #return "`{}`".format(user.full_name)
 def getkoge48md():
     return "[Koge](https://t.me/bnb48_bot)"
+def getLotteryTitle(lottery):
+    md = "第{}期\n售出{}个号码".format(lottery._id,lottery.count())
+    if lottery.closed():
+        uid = lottery.who(lottery.reveal())
+        md+="\n中奖号码: {} 中奖者: [{}](tg://user?id={})".format(lottery.reveal(),userInfo(uid,"FULLNAME"),uid)
+    return md
+def getElectionTitle(votees):
+    md = "每人可投7票，选出9个理事席位。得票情况:\n"
+    for eachid in votees:
+        md += "[{}](tg://user?id={})\n▫️{}票\n".format(userInfo(eachid,"FULLNAME"),eachid,len(votees[eachid]))
+    return md
 def siriancommandhandler(bot,update):
     if update.message.from_user.id != SirIanM:
         return
@@ -633,8 +724,14 @@ def siriancommandhandler(bot,update):
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
         unban(int(things[1],int(things[2])))
+    elif "/lottery" in things[0]:
+        newLottery()
     elif "/groupid" in things[0]:
         bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
+    elif "/election" in things[0]:
+        election = Election()
+        votees = election.getVotees()
+        update.message.reply_markdown(getElectionTitle(votees),reply_markup=buildelection(votees,election.getId()),quote=False)
     elif "/flush" in things[0] or "/deflush" in things[0]:
         if update.message.from_user.id != SirIanM:
             return
@@ -1034,6 +1131,9 @@ def cleanHandler(bot,update):
 def bnbhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
+    if not userInfo(update.effective_user.id,"BNB") is None:
+        update.message.reply_text("⛔️");
+        return
     userInfo(update.effective_user.id,"BNB",update.message.text)
     markdown=getAssociation((update.effective_user.id))
     if not markdown is None:
@@ -1053,6 +1153,10 @@ def binanceuidhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
     userInfo(update.effective_user.id,"BinanceUID",update.message.text)
+def binancebnbmemohandler(bot,update):
+    if update.message.chat_id != update.message.from_user.id:
+        return
+    userInfo(update.effective_user.id,"BinanceBNBMemo",update.message.text)
 def binanceemailhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
@@ -1264,11 +1368,12 @@ def main():
     dp.add_handler(MessageHandler(Filters.status_update.left_chat_member, onleft))#'''处理成员离开'''
     dp.add_handler(MessageHandler(Filters.group & Filters.text & (~Filters.status_update),botmessagehandler))# '''处理大群中的直接消息'''
     dp.add_handler(RegexHandler("^\w{64}\s*#\s*\w{64}$",apihandler))
-    dp.add_handler(RegexHandler(USERPROPERTIES["ETH"],ethhandler))
+    #dp.add_handler(RegexHandler(USERPROPERTIES["ETH"],ethhandler))
     #dp.add_handler(RegexHandler(USERPROPERTIES["EOS"],eoshandler))
     dp.add_handler(RegexHandler(USERPROPERTIES["BNB"],bnbhandler))
-    dp.add_handler(RegexHandler(USERPROPERTIES["BinanceEmail"],binanceemailhandler))
+    #dp.add_handler(RegexHandler(USERPROPERTIES["BinanceEmail"],binanceemailhandler))
     #dp.add_handler(RegexHandler(USERPROPERTIES["BinanceUID"],binanceuidhandler))
+    dp.add_handler(RegexHandler(USERPROPERTIES["BinanceBNBMemo"],binancebnbmemohandler))
 
 
     dp.add_handler(CommandHandler(
@@ -1294,6 +1399,8 @@ def main():
             "list",
             "delist",
             "cheque",
+            "lottery",
+            "election"
         ],
         siriancommandhandler)#
     )
@@ -1305,6 +1412,7 @@ def main():
         ],
         pmcommandhandler)#处理仅私聊有效的命令
     )
+
     dp.add_handler(CommandHandler( [ "clean" ], cleanHandler))
 
     dp.add_handler(CommandHandler(
@@ -1343,6 +1451,10 @@ def main():
     gap = 86400- time.time()%86400
     logger.warning("will start community broadcast in %s seconds",gap)
     job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
+
+    gap = 432000- time.time()%432000
+    logger.warning("will start newLottery in %s seconds",gap)
+    job_airdrop = j.run_repeating(newLottery,interval=432000,first=gap)
 
 
     # Start the Bot

@@ -662,10 +662,12 @@ def airdropportal(bot,job):
             logger.warning("48 dividend distributed")
         '''
 
+        dailydeposit = 1000
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.JACKPOT,lasttotaldiv,"deposit jackpot")
         koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.PRIZEPOOL,lasttotaldiv,"deposit prizepool")
+        koge48core.transferChequeBalance(Koge48.BNB48BOT,Koge48.PRIZEPOOL,dailydeposit,"daily prizepool")
         #updater.bot.sendMessage(BNB48CASINO,"*Last Round*\nWager: {} Koge\nDividend distributed: {} Koge\nAdd to JackPot: {} KOGE\nCurrent JackPot: {} KOGE\nAdd to PrizePool: {} KOGE\nCurrent PrizePool: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
-        updater.bot.sendMessage(BNB48CASINO,"*今日*\n总下注: {} Koge\n今日分红: {} Koge\n注入JackPot: {} KOGE\nJackPot最新金额: {} KOGE\n注入豪客奖池: {} KOGE\n豪客奖池最新金额: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
+        updater.bot.sendMessage(BNB48CASINO,"*今日*\n总下注: {} Koge\n今日分红: {} Koge\n注入JackPot: {} KOGE\nJackPot最新金额: {} KOGE\n注入豪客奖池: {} KOGE\n豪客奖池最新金额: {} KOGE".format(lasttotalbet,lasttotaldiv,lasttotaldiv,round(koge48core.getChequeBalance(Koge48.JACKPOT),2),lasttotaldiv+dailydeposit,round(koge48core.getChequeBalance(Koge48.PRIZEPOOL),2)),parse_mode=ParseMode.MARKDOWN)
 
     CASINO_DIVIDING = False
     return

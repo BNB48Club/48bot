@@ -51,7 +51,7 @@ class RedPacket:
     def sender(self):
         return self._fromuser
     def id(self,nid=None):
-        if id is None:
+        if nid is None:
             return self._id
         else:
             self._id = nid
