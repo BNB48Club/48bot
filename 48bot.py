@@ -5,6 +5,7 @@ import sys
 import re
 import logging
 import json
+from datetime import datetime
 import time
 import codecs
 import random
@@ -61,21 +62,22 @@ SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 USERINFOMAP = loadJson("_data/userinfomap.json",{})
 LOTTERYS = loadJson("_data/lotteryinfo.json",{"current":"-1"})
 
-def newLottery():
+def newLottery(bot,job):
     if "current" in LOTTERYS and LOTTERYS["current"] != "-1":
         lastLottery = Lottery(LOTTERYS["current"])
         ticket = lastLottery.reveal()
         if ticket > -1:
-            updater.bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = getLotteryTitle(lastLottery),reply_markup=None,parse_mode="Markdown")
+            bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = getLotteryTitle(lastLottery),reply_markup=None,parse_mode="Markdown")
             uid = lastLottery.who(ticket)
-            updater.bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo".format(lastLottery._id))
+            bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo".format(lastLottery._id))
+            bot.sendMessage(SirIanM,"第{}期回购乐透中奖者 BNB充值memo:{}".format(lastLottery._id,userInfo(uid,"BinanceBNBMemo")))
         else:
             return
 
     lottery = Lottery()
     LOTTERYS["current"]=lottery._id
     saveJson("_data/lotteryinfo.json",LOTTERYS)
-    message = updater.bot.sendMessage(BNB48LOTTERY,getLotteryTitle(lottery),reply_markup=buildlottery(lottery))
+    message = bot.sendMessage(BNB48LOTTERY,getLotteryTitle(lottery),reply_markup=buildlottery(lottery))
     lottery.msgId(message.message_id)
 
 def clearUserInfo(uid,key):
@@ -134,7 +136,7 @@ global_redpackets = {}
 USERPROPERTIES = {
     #"BinanceEmail":"^[a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+([:,：]\d+){0,1}$",
     #"BinanceUID":"^\d{8}$",
-    "BinanceBNBMemo":"^1\d{8}$",
+    "BinanceBNBMemo":"^\d{9}$",
     #"ETH":"^(0x)[0-9A-Fa-f]{40}$",
     "BNB":"^(bnb1)[0-9a-z]{38}([:,：]\d+){0,1}$",
     #"EOS":"^[1-5a-z\.]{1,12}$"
@@ -654,10 +656,12 @@ def getusermd(user,link=True):
 def getkoge48md():
     return "[Koge](https://t.me/bnb48_bot)"
 def getLotteryTitle(lottery):
-    md = "第{}期\n售出{}个号码".format(lottery._id,lottery.count())
+    md = "第{}期\n本期奖金{}BNB\n已售出{}个号码".format(lottery._id,lottery._data["prize"],lottery.count())
     if lottery.closed():
         uid = lottery.who(lottery.reveal())
-        md+="\n中奖号码: {} 中奖者: [{}](tg://user?id={})".format(lottery.reveal(),userInfo(uid,"FULLNAME"),uid)
+        md+="\n中奖号码: {}\n中奖者: [{}](tg://user?id={})".format(lottery.reveal(),userInfo(uid,"FULLNAME"),uid)
+    else:
+        md+="\n预计将于香港时间{}开奖".format(datetime.utcfromtimestamp(int(lottery._id)+(5*24*3600)).strftime('%Y-%m-%d 08:00'))
     return md
 def getElectionTitle(votees):
     md = "每人可投7票，选出9个理事席位。得票情况:\n"
@@ -725,7 +729,7 @@ def siriancommandhandler(bot,update):
     elif "/unban" in things[0]:
         unban(int(things[1],int(things[2])))
     elif "/lottery" in things[0]:
-        newLottery()
+        newLottery(updater.bot,None)
     elif "/groupid" in things[0]:
         bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
     elif "/election" in things[0]:
@@ -1157,6 +1161,7 @@ def binancebnbmemohandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
     userInfo(update.effective_user.id,"BinanceBNBMemo",update.message.text)
+    update.message.reply_text("BinanceBNBMemo: {}".format(update.message.text))
 def binanceemailhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
