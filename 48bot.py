@@ -67,7 +67,10 @@ def newLottery(bot,job):
         lastLottery = Lottery(LOTTERYS["current"])
         ticket = lastLottery.reveal()
         if ticket > -1:
-            bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = getLotteryTitle(lastLottery),reply_markup=None,parse_mode="Markdown")
+            display = getLotteryTitle(lastLottery)
+            bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = display,reply_markup=None,parse_mode="Markdown")
+            bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
+            bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
             uid = lastLottery.who(ticket)
             bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo".format(lastLottery._id))
             bot.sendMessage(SirIanM,"第{}期回购乐透中奖者 BNB充值memo:{}".format(lastLottery._id,userInfo(uid,"BinanceBNBMemo")))
