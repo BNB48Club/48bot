@@ -1491,7 +1491,10 @@ def broadcastCommunity(bot,job):
         try:
             thiscontent = content
             thiscontent += "\n"
-            thiscontent += getMiningDetail(eachgroupid)
+            groupdetail = getMiningDetail(eachgroupid)
+            if groupdetail == "":
+                continue
+            thiscontent += groupdetail
             bot.sendMessage(int(eachgroupid),thiscontent,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             print(e)
