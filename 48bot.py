@@ -659,13 +659,14 @@ def getusermd(user,link=True):
 def getkoge48md():
     return "[Koge](https://t.me/bnb48_bot)"
 def getLotteryTitle(lottery):
-    md = "第{}期\n本期奖金{}BNB\n已售出{}个号码".format(lottery._id,lottery._data["prize"],lottery.count())
+    md = "回购乐透 NO. {}\n本期奖金{} BNB\n票价10Koge 已售出{}个票号".format(lottery._id,lottery._data["prize"],lottery.count())
     if lottery.closed():
         uid = lottery.who(lottery.reveal())
         md+="\n中奖号码: {}\n中奖者: [{}](tg://user?id={})".format(lottery.reveal(),userInfo(uid,"FULLNAME"),uid)
     else:
-        md+="\n预计将于香港时间{}开奖".format(datetime.utcfromtimestamp(int(lottery._id)+(5*24*3600)).strftime('%Y-%m-%d 08:00'))
+        md+="\n预计将于香港时间{}开奖".format(datetime.utcfromtimestamp(int(lottery._id)+(24*3600)).strftime('%Y-%m-%d 08:00'))
     return md
+
 def getElectionTitle(votees):
     md = "每人可投7票，选出9个理事席位。得票情况:\n"
     for eachid in votees:
@@ -1460,9 +1461,9 @@ def main():
     logger.warning("will start community broadcast in %s seconds",gap)
     job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
 
-    gap = 432000- time.time()%432000
+    gap = 86400- time.time()%86400
     logger.warning("will start newLottery in %s seconds",gap)
-    job_airdrop = j.run_repeating(newLottery,interval=432000,first=gap)
+    job_airdrop = j.run_repeating(newLottery,interval=86400,first=gap)
 
 
     # Start the Bot
