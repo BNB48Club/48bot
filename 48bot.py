@@ -72,8 +72,8 @@ def newLottery(bot,job):
             bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
             bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
             uid = lastLottery.who(ticket)
-            bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo".format(lastLottery._id))
-            bot.sendMessage(SirIanM,"第{}期回购乐透中奖者 BNB充值memo:{}".format(lastLottery._id,userInfo(uid,"BinanceBNBMemo")))
+            bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo以便领奖".format(lastLottery._id))
+            bot.sendMessage(SirIanM,"第{}期回购乐透中奖者[{}](tg://user?id={})BNB充值memo:{}".format(lastLottery._id,userInfo(uid,"FULLNAME"),uid,userInfo(uid,"BinanceBNBMemo")))
         else:
             return
 
