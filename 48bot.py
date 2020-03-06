@@ -65,15 +65,13 @@ LOTTERYS = loadJson("_data/lotteryinfo.json",{"current":"-1"})
 def newLottery(bot,job):
     if "current" in LOTTERYS and LOTTERYS["current"] != "-1":
         lastLottery = Lottery(LOTTERYS["current"])
-        if lastLottery.count() < 750:
-            return
         ticket = lastLottery.reveal()
-        if ticket > -1:
-            display = getLotteryTitle(lastLottery)
-            bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = display,reply_markup=None,parse_mode="Markdown")
-            bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
-            bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
-            uid = lastLottery.who(ticket)
+        uid = lastLottery.who(ticket)
+        display = getLotteryTitle(lastLottery)
+        bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = display,reply_markup=None,parse_mode="Markdown")
+        bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
+        bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
+        if uid > -1:
             bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo以便领奖".format(lastLottery._id))
             bot.sendMessage(SirIanM,"第{}期回购乐透中奖者[{}](tg://user?id={})\nBNB充值memo:{}".format(lastLottery._id,userInfo(uid,"FULLNAME"),uid,userInfo(uid,"BinanceBNBMemo")),parse_mode="Markdown")
         else:
@@ -301,8 +299,6 @@ def callbackhandler(bot,update):
                 bot.sendMessage(update.effective_user.id,"第{}期乐透购买票证\n{}-{}\n共计{}个号码".format(lottery._id,tickets[0],tickets[-1],len(tickets)))
             except:
                 pass
-            if lottery.count() > 1500:
-                newLottery(updater.bot,None)
 
     elif update.callback_query.data.startswith("ELECTION#"):
         thedatas = update.callback_query.data.split('#')
@@ -680,10 +676,14 @@ def getkoge48md():
     return "[Koge](https://t.me/bnb48_bot)"
 def getLotteryTitle(lottery):
     md = "回购乐透 NO. {}\n本期奖金{} BNB\n每票 10 Koge".format(lottery._id,lottery._data["prize"])
+    md += "\n已售出票数{}".format(lottery.count())
     if lottery.closed():
-        md += "\n已售出票数{}".format(lottery.count())
-        uid = lottery.who(lottery.reveal())
-        md+="\n中奖号码: {}\n中奖者: [{}](tg://user?id={})".format(lottery.reveal(),userInfo(uid,"FULLNAME"),uid)
+        uid = lottery.who(lottery.result())
+        md+="\n中奖号码: {}".format(lottery.result())
+        if uid > -1:
+            md+="\n中奖者: [{}](tg://user?id={})".format(userInfo(uid,"FULLNAME"),uid)
+        else:
+            md+="\n无人中奖"
     else:
         md+="\n预计将于香港时间{}开奖".format(datetime.utcfromtimestamp(int(time.time())+(24*3600)).strftime('%Y-%m-%d 08:00'))
     return md

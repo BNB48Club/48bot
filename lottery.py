@@ -43,15 +43,14 @@ class Lottery:
     def query(self,uid):
         return [i for i, x in enumerate(self._data["tickets"]) if x == uid]
     def who(self,index):
-        if index > -1:
+        if index > -1 and len(self._data["tickets"]) > index:
             return self._data["tickets"][index]
         else:
             return -1
-
     def reveal(self):
         index = self._data["result"]
         if not self.closed() and self.count()>0:
-            index = int(random.random()*len(self._data["tickets"]))
+            index = int(random.random()*1000)
             self._data["result"]=index
             self._save()
         return index
@@ -61,5 +60,6 @@ if __name__== "__main__":
     print(e.buyTicket(1,10))
     print(e.buyTicket(2,10))
     print(e._data)
-    print(e.getWinner())
+    print(e.reveal())
     print(e._data)
+    print(e.who(e.result()))
