@@ -74,8 +74,6 @@ def newLottery(bot,job):
         if uid > -1:
             bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo以便领奖".format(lastLottery._id))
             bot.sendMessage(SirIanM,"第{}期回购乐透中奖者[{}](tg://user?id={})\nBNB充值memo:{}".format(lastLottery._id,userInfo(uid,"FULLNAME"),uid,userInfo(uid,"BinanceBNBMemo")),parse_mode="Markdown")
-        else:
-            return
 
     lottery = Lottery()
     LOTTERYS["current"]=lottery._id
