@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import random
+from hashrandom import HashRandom
 
 class LonghuCasino:
     TARGET_TEXTS={"LONG":"🐲","HU":"🐯","HE":"🕊"}
@@ -16,6 +16,7 @@ class LonghuCasino:
         self._bets={"LONG":{},"HU":{},"HE":{}}
         self._released = False
         self._needupdate = False
+        self._random = None
     def needUpdate(self,value=None):
         if value is None:
             return self._needupdate
@@ -24,7 +25,7 @@ class LonghuCasino:
     
     def getLog(self):
         if self._released:
-            text="[开牌]{}\n".format(self._result['win'])
+            text="币安链高度{}\nBlockHash: {}\n[开牌]{}\n".format(self._random.getHeight(),self._random.getHash(),self._result['win'])
         else:
             text=""
         for eachbet in self._bets:
@@ -42,11 +43,11 @@ class LonghuCasino:
             self._bets[item][user.id]=[user.full_name,amount]
         return self._bets[item][user.id][1]
     def release(self):
-
-        longpai = random.randint(0,51)
-        hupai = random.randint(0,51)
+        self._random = HashRandom()
+        longpai = self._random.randint(0,51)
+        hupai = self._random.randint(0,51)
         while hupai == longpai:
-            hupai = random.randint(0,51)
+            hupai = self._random.randint(0,51)
 
         huase=["♠️","♥️","♣️","♦️"]
         dianshu = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]

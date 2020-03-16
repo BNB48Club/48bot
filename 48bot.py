@@ -1477,9 +1477,11 @@ def main():
         job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
     '''
 
+    '''
     gap = 86400- time.time()%86400
     logger.warning("will start newLottery in %s seconds",gap)
     job_airdrop = j.run_repeating(newLottery,interval=86400,first=gap)
+    '''
 
 
     # Start the Bot

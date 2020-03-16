@@ -110,7 +110,7 @@ def slotDesc():
     return res
 
 def slotPlay():
-    result = int(random.random()*1000)
+    result = random.randint(0,999)
     number = 0
     if result == 777:
         number = 250
@@ -632,7 +632,7 @@ def airdropportal(bot,job):
         for eachrecord in betrecords:
             eachuid = eachrecord[0]
             try:
-                dividend = round(float(lasttotaldiv*eachrecord[1]/hisbet),2)
+                dividend = int(lasttotaldiv*eachrecord[1]/hisbet)
                 if dividend <=0:
                     continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
