@@ -143,7 +143,7 @@ def callbackhandler(bot,update):
                 display += " ✖️ {}".format(slotresults[0])
                 payout += betsize*slotresults[0]
                 if slotresults[0] == 250:
-                    bot.sendMessage(BNB48CASINO,"{} \n{} ✖️{} \n/slot".format(slotresults[1],activeuser.full_name,slotresults[0]))
+                    bot.sendMessage(BNB48CASINO,"{} \n{} ✖️{} \n[Play Slot](https://t.me/bnb48_casinobot?start=slot)".format(slotresults[1],activeuser.full_name,slotresults[0]),parse_mode=ParseMode.MARKDOWN)
                     
                     jackpot = koge48core.getJackpot(activeuser.id,divideby=300/betsize)
                     if jackpot > 0:
@@ -474,7 +474,7 @@ def getkoge48md():
     return "[Koge](http://bnb48.club/html/cn/governance.html)"
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
-    if "/slot" in things[0]:
+    if "/slot" in things[0] or ( len(things) == 2 and "/start" == things[0] and "slot" == things[1]):
         try:
             #bot.sendPhoto(update.message.from_user.id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
             bot.sendPhoto(update.message.from_user.id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)

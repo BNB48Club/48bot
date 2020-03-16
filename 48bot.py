@@ -532,11 +532,14 @@ def builddashboardmarkup(lang="CN"):
             [
                 InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
                 InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK),
-                InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_LOTTERY",lang),url=BNB48LOTTERYLINK),
                 #InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
+                InlineKeyboardButton(getLocaleString("MENU_SLOT",lang),url="https://telegram.me/bnb48_casinobot?start=slot"),
+            ],
+            [
+                InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang),
             ],
