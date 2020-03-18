@@ -2,6 +2,7 @@
 import requests
 import os
 import sys
+import math
 import re
 import logging
 import json
@@ -60,25 +61,58 @@ PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 USERINFOMAP = loadJson("_data/userinfomap.json",{})
-LOTTERYS = loadJson("_data/lotteryinfo.json",{"current":"-1"})
 
 def newLottery(bot,job):
+    LOTTERYS = loadJson("_data/lotteryinfo.json",{"current":"-1"})
     if "current" in LOTTERYS and LOTTERYS["current"] != "-1":
         lastLottery = Lottery(LOTTERYS["current"])
-        ticket = lastLottery.reveal()
-        uid = lastLottery.who(ticket)
+        result = lastLottery.reveal()
+        if result == "up":
+            opresult = "down"
+        else:
+            opresult = "up"
+        winners = lastLottery.winners()
+        lenwinners = len(winners)
+        secondwinners = lastLottery.secondWinners()
         display = getLotteryTitle(lastLottery)
-        bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = display,reply_markup=None,parse_mode="Markdown")
-        bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
-        bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
-        if uid > -1:
-            bot.sendMessage(uid,"您在第{}期回购乐透中奖了，请尽快正确填写币安账户BNB充值memo以便领奖".format(lastLottery._id))
-            bot.sendMessage(SirIanM,"第{}期回购乐透中奖者[{}](tg://user?id={})\nBNB充值memo:{}".format(lastLottery._id,userInfo(uid,"FULLNAME"),uid,userInfo(uid,"BinanceBNBMemo")),parse_mode="Markdown")
+        bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = display,reply_markup=None,parse_mode="Markdown",disable_web_page_preview=True)
+        #bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
+        #bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
+
+        totaltickets = lastLottery.count()[result]
+        sirianmsg = "第{}期回购乐透中奖者{}名\n".format(lastLottery._id,lenwinners)
+        for uid in winners:
+            totaltickets -= lastLottery.count(uid)[result]
+            winnermsg = "您在第{}期回购乐透中头奖，{}人瓜分1BNB".format(lastLottery._id,lenwinners)
+            memo =  userInfo(uid,"BinanceBNBMemo")
+            if not memo is None:
+                winnermsg += "\n您当前绑定的BNB充值Memo为{}".format(memo)
+            else:
+                winnermsg += "\n请于机器人处正确绑定币安账户BNB充值memo以便领奖"
+            try:
+                bot.sendMessage(uid,winnermsg)
+            except:
+                pass
+            sirianmsg+="[{}](tg://user?id={}) BNB充值memo:{}\n".format(userInfo(uid,"FULLNAME"),uid,memo)
+
+        opkoge = lastLottery.pool()[opresult]
+        for uid in secondwinners:
+            usercount = lastLottery.count(uid)[result]
+            winkoge = opkoge*usercount//totaltickets
+            if winkoge > 0:
+                koge48core.transferChequeBalance(Koge48.LOTTERY,uid,winkoge,"lottery {} secondwinners".format(lastLottery.getId()))
+            winnermsg = "您在第{}期回购乐透中押注正确{}票，分得{} Koge\n".format(lastLottery._id,usercount,winkoge)
+            try:
+                bot.sendMessage(uid,winnermsg)
+            except:
+                pass
+
+        bot.sendMessage(SirIanM,sirianmsg,parse_mode="Markdown")
 
     lottery = Lottery()
     LOTTERYS["current"]=lottery._id
     saveJson("_data/lotteryinfo.json",LOTTERYS)
-    message = bot.sendMessage(BNB48LOTTERY,getLotteryTitle(lottery),reply_markup=buildlottery(lottery))
+    message = bot.sendMessage(BNB48LOTTERY,getLotteryTitle(lottery),reply_markup=buildlottery(lottery),disable_web_page_preview=True,parse_mode="Markdown")
     lottery.msgId(message.message_id)
 
 def clearUserInfo(uid,key):
@@ -105,7 +139,9 @@ SirIanM=420909210
 
 BNB48=-1001136778297
 BNB48PUBLISH=-1001180859399
+BNB48TEST =-1001395548149
 BNB48LOTTERY=-1001170996107
+#BNB48LOTTERY=BNB48TEST
 BNB48CN= -1001345282090
 BNB48EN= -1001377752898
 BNB48C2C = -1001491897749
@@ -132,6 +168,8 @@ koge48core = Koge48(
   kogeconfig.get("mysql","passwd"),
   kogeconfig.get("mysql","database")
 )
+
+LOTTERYICONS={"up":"📈","down":"📉"}
 
 global_redpackets = {}
 USERPROPERTIES = {
@@ -281,20 +319,31 @@ def callbackhandler(bot,update):
     elif update.callback_query.data.startswith("LOTTERY#"):
         thedatas = update.callback_query.data.split('#')
         lottery_id = thedatas[1]
-        lottery_action = thedatas[2]
-        amount = int(thedatas[3])
+        lottery_direction = thedatas[2]
+        amount = abs(int(thedatas[3]))
         lottery = Lottery(lottery_id)
-        if "BUY" == lottery_action and not lottery.closed():
+        if lottery_direction in ["up","down"]and not lottery.closed():
+            #decide the price
+            hour = int(time.strftime("%H",time.gmtime()))
+            if hour < 4:
+                price = 1
+            elif hour < 16:
+                price = 5
+            else:
+                price = 10
+
             try:
-                koge48core.transferChequeBalance(update.effective_user.id,Koge48.LOTTERY,amount*10,"lottery {}".format(lottery_id))
+                if price > 0:
+                    koge48core.transferChequeBalance(update.effective_user.id,Koge48.LOTTERY,amount*price,"lottery {}".format(lottery_id))
             except:
                 update.callback_query.answer("余额不足 Insufficient Balance")
                 return
-            tickets = lottery.buyTicket(update.effective_user.id,amount)
-            update.effective_message.edit_text(getLotteryTitle(lottery),reply_markup=buildlottery(lottery),parse_mode="Markdown")
-            update.callback_query.answer("{}-{},{} tickets".format(tickets[0],tickets[-1],len(tickets)))
+
+            tickets = lottery.buyTicket(update.effective_user.id,price,amount,lottery_direction)
+            update.effective_message.edit_text(getLotteryTitle(lottery),reply_markup=buildlottery(lottery),parse_mode="Markdown",disable_web_page_preview=True)
+            update.callback_query.answer("成功押{}{}票".format(LOTTERYICONS[lottery_direction],amount))
             try:
-                bot.sendMessage(update.effective_user.id,"第{}期乐透购买票证\n{}-{}\n共计{}个号码".format(lottery._id,tickets[0],tickets[-1],len(tickets)))
+                bot.sendMessage(update.effective_user.id,"收据\n第{}期乐透押{} {}票 每票价格{} Koge\n目前合计{}票".format(lottery._id,LOTTERYICONS[lottery_direction],amount,price,tickets))
             except:
                 pass
 
@@ -435,19 +484,16 @@ def actualAnswer(query,content=None):
 def buildlottery(lottery):
     res = []
     res.append([
-        InlineKeyboardButton("🎟✖️1",callback_data="LOTTERY#{}#BUY#1".format(lottery._id)),
-        InlineKeyboardButton("🎟✖️2",callback_data="LOTTERY#{}#BUY#2".format(lottery._id)),
-        InlineKeyboardButton("🎟✖️5",callback_data="LOTTERY#{}#BUY#5".format(lottery._id))
+        InlineKeyboardButton("📈 1",callback_data="LOTTERY#{}#up#1".format(lottery._id)),
+        InlineKeyboardButton("📈 10",callback_data="LOTTERY#{}#up#10".format(lottery._id)),
+        InlineKeyboardButton("📈 100",callback_data="LOTTERY#{}#up#100".format(lottery._id)),
+        InlineKeyboardButton("📈 1000",callback_data="LOTTERY#{}#up#1000".format(lottery._id))
         ])
     res.append([
-        InlineKeyboardButton("🎟✖️10",callback_data="LOTTERY#{}#BUY#10".format(lottery._id)),
-        InlineKeyboardButton("🎟✖️20",callback_data="LOTTERY#{}#BUY#20".format(lottery._id)),
-        InlineKeyboardButton("🎟✖️50",callback_data="LOTTERY#{}#BUY#50".format(lottery._id))
-        ])
-    res.append([
-        InlineKeyboardButton("🎟✖️100",callback_data="LOTTERY#{}#BUY#100".format(lottery._id)),
-        InlineKeyboardButton("🎟✖️200",callback_data="LOTTERY#{}#BUY#200".format(lottery._id)),
-        InlineKeyboardButton("🎟✖️500",callback_data="LOTTERY#{}#BUY#500".format(lottery._id))
+        InlineKeyboardButton("📉 1",callback_data="LOTTERY#{}#down#1".format(lottery._id)),
+        InlineKeyboardButton("📉 10",callback_data="LOTTERY#{}#down#10".format(lottery._id)),
+        InlineKeyboardButton("📉 100",callback_data="LOTTERY#{}#down#100".format(lottery._id)),
+        InlineKeyboardButton("📉 1000",callback_data="LOTTERY#{}#down#1000".format(lottery._id))
         ])
     return InlineKeyboardMarkup(res)
 def buildelection(votees,eid):
@@ -676,17 +722,22 @@ def getusermd(user,link=True):
 def getkoge48md():
     return "[Koge](https://t.me/bnb48_bot)"
 def getLotteryTitle(lottery):
-    md = "回购乐透 NO. {}\n本期奖金{} BNB\n每票 10 Koge".format(lottery._id,lottery._data["prize"])
-    md += "\n已售出票数{}".format(lottery.count())
+    lotterydate = datetime.utcfromtimestamp(int(lottery.getId())).strftime('%Y-%m-%d')
+    md = "{}\n回购乐透 NO. {}\n竞猜[BNB/BTC](https://www.binance.com/cn/trade/BNB_BTC)日涨跌\n押注正确且最多票者平分{} BNB\n其余押注正确者按票数瓜分押错Koge\n票价1/5/10 Koge不等\n[详细规则](https://tinyurl.com/vm5tdce)\n----------------".format(lotterydate,lottery._id,lottery._data["prize"])
+    count = lottery.count()
+    maxticket = lottery.max()
+    pool = lottery.pool()
+    md += "\n目前押涨共{} Koge 最多者押{}票".format(pool["up"],maxticket["up"])
+    md += "\n目前押跌共{} Koge 最多者押{}票".format(pool["down"],maxticket["down"])
     if lottery.closed():
-        uid = lottery.who(lottery.result())
-        md+="\n中奖号码: {}".format(lottery.result())
-        if uid > -1:
-            md+="\n中奖者: [{}](tg://user?id={})".format(userInfo(uid,"FULLNAME"),uid)
-        else:
-            md+="\n无人中奖"
+        winners = lottery.winners()
+        kline = lottery.kline()
+        md+="\n开盘价{}\n收盘价{}".format(kline[1],kline[4])
+        md+="\n{}".format(LOTTERYICONS[lottery.result()])
+        for uid in winners:
+            md+="\n头奖: [{}](tg://user?id={})".format(userInfo(uid,"FULLNAME"),uid)
     else:
-        md+="\n预计将于香港时间{}开奖".format(datetime.utcfromtimestamp(int(time.time())+(24*3600)).strftime('%Y-%m-%d 08:00'))
+        md+="\n预计将于香港时间{}开奖".format(datetime.utcfromtimestamp(int(time.time())+(24*3600)).strftime('%Y-%m-%d 08:01'))
     return md
 
 def getElectionTitle(votees):
@@ -1480,11 +1531,9 @@ def main():
         job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
     '''
 
-    '''
     gap = 86400- time.time()%86400
     logger.warning("will start newLottery in %s seconds",gap)
-    job_airdrop = j.run_repeating(newLottery,interval=86400,first=gap)
-    '''
+    job_airdrop = j.run_repeating(newLottery,interval=86400,first=gap+60)
 
 
     # Start the Bot
