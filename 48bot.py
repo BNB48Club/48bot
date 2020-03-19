@@ -61,7 +61,13 @@ PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 FLUSHWORDS = loadJson("_data/flushwords.json",{})["words"]
 SPAMWORDS=loadJson("_data/blacklist_names.json",{})["words"]
 USERINFOMAP = loadJson("_data/userinfomap.json",{})
-
+def updateLottery(bot,job):
+    LOTTERYS = loadJson("_data/lotteryinfo.json",{"current":"-1"})
+    if "current" in LOTTERYS and LOTTERYS["current"] != "-1":
+        lastLottery = Lottery(LOTTERYS["current"])
+        display = getLotteryTitle(lastLottery)
+        bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = display,reply_markup=None,parse_mode="Markdown",disable_web_page_preview=True)
+    
 def newLottery(bot,job):
     LOTTERYS = loadJson("_data/lotteryinfo.json",{"current":"-1"})
     if "current" in LOTTERYS and LOTTERYS["current"] != "-1":
@@ -76,8 +82,8 @@ def newLottery(bot,job):
         secondwinners = lastLottery.secondWinners()
         display = getLotteryTitle(lastLottery)
         bot.edit_message_text(chat_id=BNB48LOTTERY,message_id = lastLottery._data["msgId"],text = display,reply_markup=None,parse_mode="Markdown",disable_web_page_preview=True)
-        #bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
-        #bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
+        bot.sendMessage(BNB48PUBLISH,display,reply_markup=None,parse_mode="Markdown")
+        bot.sendMessage(BNB48,display,reply_markup=None,parse_mode="Markdown")
 
         totaltickets = lastLottery.count()[result]
         sirianmsg = "第{}期回购乐透中奖者{}名\n".format(lastLottery._id,lenwinners)
@@ -340,7 +346,7 @@ def callbackhandler(bot,update):
                 return
 
             tickets = lottery.buyTicket(update.effective_user.id,price,amount,lottery_direction)
-            update.effective_message.edit_text(getLotteryTitle(lottery),reply_markup=buildlottery(lottery),parse_mode="Markdown",disable_web_page_preview=True)
+            update.effective_message.edit_text(getLotteryTitle(lottery,hour),reply_markup=buildlottery(lottery),parse_mode="Markdown",disable_web_page_preview=True)
             update.callback_query.answer("成功押{}{}票".format(LOTTERYICONS[lottery_direction],amount))
             try:
                 bot.sendMessage(update.effective_user.id,"收据\n第{}期乐透押{} {}票 每票价格{} Koge\n目前合计{}票".format(lottery._id,LOTTERYICONS[lottery_direction],amount,price,tickets))
@@ -721,14 +727,18 @@ def getusermd(user,link=True):
     #return "`{}`".format(user.full_name)
 def getkoge48md():
     return "[Koge](https://t.me/bnb48_bot)"
-def getLotteryTitle(lottery):
+def getLotteryTitle(lottery,hour=12):
     lotterydate = datetime.utcfromtimestamp(int(lottery.getId())).strftime('%Y-%m-%d')
     md = "{}\n回购乐透 NO. {}\n竞猜[BNB/BTC](https://www.binance.com/cn/trade/BNB_BTC)日涨跌\n押注正确且最多票者平分{} BNB\n其余押注正确者按票数瓜分押错Koge\n票价1/5/10 Koge不等\n[详细规则](https://tinyurl.com/vm5tdce)\n----------------".format(lotterydate,lottery._id,lottery._data["prize"])
     count = lottery.count()
     maxticket = lottery.max()
     pool = lottery.pool()
-    md += "\n目前押涨共{} Koge 最多者押{}票".format(pool["up"],maxticket["up"])
-    md += "\n目前押跌共{} Koge 最多者押{}票".format(pool["down"],maxticket["down"])
+    md += "\n目前押涨共{} Koge ".format(pool["up"])
+    if hour >= 12:
+        md +="押最多者{}票".format(maxticket["up"])
+    md += "\n目前押跌共{} Koge ".format(pool["down"])
+    if hour >= 12:
+        md +="押最多者{}票".format(maxticket["down"])
     if lottery.closed():
         winners = lottery.winners()
         kline = lottery.kline()
@@ -1534,6 +1544,10 @@ def main():
     gap = 86400- time.time()%86400
     logger.warning("will start newLottery in %s seconds",gap)
     job_airdrop = j.run_repeating(newLottery,interval=86400,first=gap+60)
+
+    gap = 86400- time.time()%86400
+    logger.warning("will start updateLottery in %s seconds",gap)
+    job_airdrop = j.run_repeating(updateLottery,interval=86400,first=gap+43200+60)
 
 
     # Start the Bot
