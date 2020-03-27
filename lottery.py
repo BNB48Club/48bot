@@ -72,7 +72,7 @@ class Lottery:
         if self.closed():
             return self._data["winner"+self._data["result"]]
         else:
-            return []
+            return {"up":self._data["winnerup"].copy(),"down":self._data["winnerdown"].copy()}
     def secondWinners(self):
         if self.closed():
             alllist = list(self._data["tickets"+self._data["result"]].keys())
@@ -95,9 +95,16 @@ class Lottery:
 
 if __name__== "__main__":
     e = Lottery()
-    print(e.buyTicket(1001,1,101,"up"))
     print(e.buyTicket(1002,10,100,"up"))
     print(e.buyTicket(1003,10,100,"up"))
+    bwinners = e.winners()
+    print(bwinners)
+    print(e.buyTicket(1001,1,101,"up"))
+    awinners = e.winners()
+    print(bwinners)
+    print(awinners)
+    for each in list(set(bwinners["up"]) - set(awinners["up"])):
+        print("lostwinner:{}".format(each))
     print(e.buyTicket(1001,1,101,"down"))
     print(e.buyTicket(1002,10,100,"down"))
     print(e.buyTicket(1003,10,100,"down"))

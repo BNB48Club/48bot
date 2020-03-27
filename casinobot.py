@@ -637,7 +637,7 @@ def airdropportal(bot,job):
                     continue
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,eachuid,dividend,"bet dividend distribution")
                 logger.warning("distribute {} to {}".format(dividend,eachuid))
-                updater.bot.sendMessage(eachuid,"💰 今日分红 {}KOGE".format(dividend))
+                updater.bot.sendMessage(eachuid,"历史下注额越高分红权重越高 💰 今日分红 {}KOGE".format(dividend))
             except:
                 logger.warning("exception while distribute to {}".format(eachuid))
 
