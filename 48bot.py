@@ -107,7 +107,7 @@ def newLottery(bot,job):
         opkoge = lastLottery.pool()[opresult]
         for uid in secondwinners:
             usercount = lastLottery.count(uid)[result]
-            winkoge = opkoge*usercount//totaltickets
+            winkoge = max(usercount,opkoge*usercount//totaltickets)
             if winkoge > 0:
                 koge48core.transferChequeBalance(Koge48.LOTTERY,uid,winkoge,"lottery {} secondwinners".format(lastLottery.getId()))
             winnermsg = "您在第{}期回购乐透中押注正确{}票，分得{} Koge\n".format(lastLottery._id,usercount,winkoge)
@@ -264,7 +264,10 @@ def callbackhandler(bot,update):
         lang = thedatas[2]
         if "BALANCE" == thedatas[1]:
             response = "{} {} {}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id),','))
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
+            try:
+                update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
+            except Exception as e:
+                logger.warning(e)
         elif "CHANGES" == thedatas[1]:
             response = "{}:\n".format(activeuser.full_name)
             kogechanges=koge48core.getChequeRecentChanges(activeuser.id)
@@ -363,7 +366,7 @@ def callbackhandler(bot,update):
                 except:
                     pass
 
-            update.callback_query.answer("成功押{}{}票 您目前合计{}票".format(LOTTERYICONS[lottery_direction],amount,tickets))
+            update.callback_query.answer("成功押{}{}票 您目前合计{}票".format(LOTTERYICONS[lottery_direction],amount,tickets),timeout=120)
             try:
                 bot.sendMessage(update.effective_user.id,"收据\n第{}期乐透押{} {}票 每票价格{} Koge\n目前合计{}票".format(lottery._id,LOTTERYICONS[lottery_direction],amount,price,tickets))
             except:
@@ -518,13 +521,37 @@ def buildlottery(lottery):
         InlineKeyboardButton("📈 1000",callback_data="LOTTERY#{}#up#1000".format(lottery._id))
         ])
     res.append([
+        InlineKeyboardButton("📈 2",callback_data="LOTTERY#{}#up#2".format(lottery._id)),
+        InlineKeyboardButton("📈 20",callback_data="LOTTERY#{}#up#20".format(lottery._id)),
+        InlineKeyboardButton("📈 200",callback_data="LOTTERY#{}#up#200".format(lottery._id)),
+        InlineKeyboardButton("📈 2000",callback_data="LOTTERY#{}#up#2000".format(lottery._id))
+        ])
+    res.append([
+        InlineKeyboardButton("📈 5",callback_data="LOTTERY#{}#up#5".format(lottery._id)),
+        InlineKeyboardButton("📈 50",callback_data="LOTTERY#{}#up#50".format(lottery._id)),
+        InlineKeyboardButton("📈 500",callback_data="LOTTERY#{}#up#500".format(lottery._id)),
+        InlineKeyboardButton("📈 5000",callback_data="LOTTERY#{}#up#5000".format(lottery._id))
+        ])
+    res.append([
         InlineKeyboardButton("📉 1",callback_data="LOTTERY#{}#down#1".format(lottery._id)),
         InlineKeyboardButton("📉 10",callback_data="LOTTERY#{}#down#10".format(lottery._id)),
         InlineKeyboardButton("📉 100",callback_data="LOTTERY#{}#down#100".format(lottery._id)),
         InlineKeyboardButton("📉 1000",callback_data="LOTTERY#{}#down#1000".format(lottery._id))
         ])
     res.append([
-        InlineKeyboardButton("❓",callback_data="LOTTERY#{}#query".format(lottery._id))
+        InlineKeyboardButton("📉 2",callback_data="LOTTERY#{}#down#2".format(lottery._id)),
+        InlineKeyboardButton("📉 20",callback_data="LOTTERY#{}#down#20".format(lottery._id)),
+        InlineKeyboardButton("📉 200",callback_data="LOTTERY#{}#down#200".format(lottery._id)),
+        InlineKeyboardButton("📉 2000",callback_data="LOTTERY#{}#down#2000".format(lottery._id))
+        ])
+    res.append([
+        InlineKeyboardButton("📉 5",callback_data="LOTTERY#{}#down#5".format(lottery._id)),
+        InlineKeyboardButton("📉 50",callback_data="LOTTERY#{}#down#50".format(lottery._id)),
+        InlineKeyboardButton("📉 500",callback_data="LOTTERY#{}#down#500".format(lottery._id)),
+        InlineKeyboardButton("📉 5000",callback_data="LOTTERY#{}#down#5000".format(lottery._id))
+        ])
+    res.append([
+        InlineKeyboardButton("🔍",callback_data="LOTTERY#{}#query".format(lottery._id))
         ])
     return InlineKeyboardMarkup(res)
 def buildelection(votees,eid):
@@ -940,7 +967,7 @@ def choseninlineresultHandler(bot,update):
     return
 def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
-
+    logger.warning(things)
     if "/trans" in things[0]:
         if update.message.reply_to_message is None or len(things) < 2 or float(things[1]) <= 0:
             delayMessageDelete(update.message,0)
@@ -1471,7 +1498,7 @@ def error(bot, update, error):
 
 
 mytoken = selectBot(bots)
-updater = Updater(token=mytoken, request_kwargs={'read_timeout': 30, 'connect_timeout': 30})
+updater = Updater(token=mytoken, request_kwargs={'read_timeout': 60, 'connect_timeout': 60})
 j = updater.job_queue
 
 

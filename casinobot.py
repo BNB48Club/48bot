@@ -284,7 +284,7 @@ def buildcasinomarkup(result=["",""]):
         keys.append(casinobuttons(250))
         keys.append(casinobuttons(1000))
         keys.append(casinobuttons(5000))
-        keys.append(casinobuttons(20000))
+        #keys.append(casinobuttons(20000))
         #keys+=casinominings(20000)
         '''
         for buttons in casinominings(1000):
