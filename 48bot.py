@@ -92,7 +92,7 @@ def newLottery(bot,job):
         sirianmsg = "第{}期回购乐透中奖者{}名\n".format(lastLottery._id,lenwinners)
         for uid in winners:
             totaltickets -= lastLottery.count(uid)[result]
-            winnermsg = "您在第{}期回购乐透中头奖，{}人瓜分1BNB".format(lastLottery._id,lenwinners)
+            winnermsg = "您在第{}期回购乐透中头奖，奖金1 BNB".format(lastLottery._id)#lenwinners
             memo =  userInfo(uid,"BinanceBNBMemo")
             if not memo is None:
                 winnermsg += "\n您当前绑定的BNB充值Memo为{}".format(memo)
@@ -347,8 +347,7 @@ def callbackhandler(bot,update):
         elif lottery_direction in ["up","down"]and not lottery.closed():
             amount = abs(int(thedatas[3]))
             #decide the price
-            hour = int(time.strftime("%H",time.gmtime()))
-            price = 1 + hour//2
+            price = getLotteryPrice()
 
             try:
                 if price > 0:
@@ -360,11 +359,11 @@ def callbackhandler(bot,update):
             bwinners = lottery.winners()
             tickets = lottery.buyTicket(update.effective_user.id,price,amount,lottery_direction)
             awinners = lottery.winners()
-            if price > 1:
-                try:
-                    update.effective_message.edit_text(getLotteryTitle(lottery),reply_markup=buildlottery(lottery),parse_mode="Markdown",disable_web_page_preview=True)
-                except:
-                    pass
+            try:
+                update.effective_message.edit_text(getLotteryTitle(lottery),reply_markup=buildlottery(lottery),parse_mode="Markdown",disable_web_page_preview=True)
+            except Exception as e:
+                logger.warning(e)
+                pass
 
             update.callback_query.answer("成功押{}{}票 您目前合计{}票".format(LOTTERYICONS[lottery_direction],amount,tickets),timeout=120)
             try:
@@ -372,11 +371,13 @@ def callbackhandler(bot,update):
             except:
                 pass
 
+            '''
             try:
                 for loser in list(set(bwinners[lottery_direction]) - set(awinners[lottery_direction])):
                     bot.sendMessage(loser,"您在{}期乐透押{}第一名，已被{}反超".format(lottery._id,LOTTERYICONS[lottery_direction],userInfo(update.effective_user.id,"FULLNAME")))
             except Exception as e:
                 print(e)
+            '''
 
     elif update.callback_query.data.startswith("ELECTION#"):
         thedatas = update.callback_query.data.split('#')
@@ -697,7 +698,11 @@ def pmcommandhandler(bot,update):
         if not koge48core.getChequeBalance(user.id) > transamount:
             return
         koge48core.transferChequeBalance(user.id,targetuserid,transamount,"from {} send to {}".format(user.full_name,targetuserid))
-        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),targetuserid,transamount,getkoge48md()),disable_web_page_preview=True)
+        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuserid),transamount,getkoge48md()),disable_web_page_preview=True)
+        try:
+            bot.sendMessage(targetuserid,"{} 💸 {} Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
+        except:
+            pass
     elif "/start" in things[0]:
         #if 'private' == update.message.chat.type:
         lang=getLang(update.message.from_user)
@@ -768,50 +773,53 @@ def getFullname(uid):
     else:
         return name
 def getusermd(user,link=True):
-    if user.id is None:
+    if hasattr(user, 'id'):
+        res="[{}]".format(user.full_name)
+        if link:
+            res += "(tg://user?id={})".format(user.id)
+        return res
+    else:
         userid = int(user)
         res = "[{}]".format(getFullname(userid))
         if link:
             res += "(tg://user?id={})".format(userid)
         return res
-    else:
-        res="[{}]".format(user.full_name)
-        if link:
-            res += "(tg://user?id={})".format(user.id)
-        return res
     #return "`{}`".format(user.full_name)
 def getkoge48md():
     return "[Koge](https://t.me/bnb48_bot)"
+def getLotteryPrice(hour = -1):
+    if hour < 0:
+        hour = int(time.strftime("%H",time.gmtime()))
+    return  round(pow(1.15,hour//2),2)
 def getLotteryTitle(lottery):
     if lottery.closed():
-        price = 12
+        price = getLotteryPrice(24)
     else:
-        hour = int(time.strftime("%H",time.gmtime()))
-        price = 1 + hour//2
+        price = getLotteryPrice()
+
     lotterydate = datetime.utcfromtimestamp(int(lottery.getId())).strftime('%Y-%m-%d')
-    md = "回购乐透 NO. {}\n竞猜 {} [BNB/BTC](https://www.binance.com/cn/trade/BNB_BTC)涨跌\n押注正确且最多票者平分{} BNB\n其余押注正确者按票数瓜分押错Koge\n目前票价{} Koge\n票价实施浮动制 具体请看[详细规则](https://tinyurl.com/vm5tdce)\n----------------".format(lottery._id,lotterydate,lottery._data["prize"],price)
-    if price > 1:
-        count = lottery.count()
-        maxticket = lottery.max()
-        pool = lottery.pool()
+    md = "回购乐透 NO. {}\n竞猜 {} [BNB/BTC](https://www.binance.com/cn/trade/BNB_BTC)涨跌\n押注正确且最多票者每人{} BNB\n其余押注正确者按票数瓜分押错Koge\n目前票价{} Koge\n票价实施浮动制 具体请看[详细规则](https://tinyurl.com/vm5tdce)\n----------------".format(lottery._id,lotterydate,lottery._data["prize"],price)
+    #if price > pow(1.15,2):
+    count = lottery.count()
+    maxticket = lottery.max()
+    pool = lottery.pool()
+
+    if lottery.closed():
         md += "\n目前押涨共{} Koge ".format(pool["up"])
         md +="共{} 票 ".format(count["up"])
         md +="最多者{}票".format(maxticket["up"])
         md += "\n目前押跌共{} Koge ".format(pool["down"])
         md +="共{} 票 ".format(count["down"])
         md +="最多者{}票".format(maxticket["down"])
-    else:
-         md +="\n前两小时押注状况隐藏"
-
-    if lottery.closed():
         winners = lottery.winners()
         kline = lottery.kline()
         md+="\n开盘价{}\n收盘价{}".format(kline[1],kline[4])
         md+="\n{}".format(LOTTERYICONS[lottery.result()])
-        md+="\n头奖获得者:"
+        md+="\n头奖:"
         for uid in winners:
             md+="\n    [{}](tg://user?id={})".format(userInfo(uid,"FULLNAME"),uid)
     else:
+        md+="\n目前总押注{} Koge ".format(pool["up"]+pool["down"])
         md+="\n预计将于香港时间{}开奖".format(datetime.utcfromtimestamp(int(time.time())+(24*3600)).strftime('%Y-%m-%d 08:01'))
     return md
 
@@ -1611,8 +1619,8 @@ def main():
     '''
 
     gap = 86400- time.time()%86400
-    logger.warning("will start newLottery in %s seconds",gap+5)
-    job_airdrop = j.run_repeating(newLottery,interval=86400,first=gap+5)
+    logger.warning("will start newLottery in %s seconds",gap+20)
+    job_airdrop = j.run_repeating(newLottery,interval=86400,first=gap+20)
 
     gap = 7200- time.time()%7200
     logger.warning("will start updateLottery in %s seconds",gap+5)
