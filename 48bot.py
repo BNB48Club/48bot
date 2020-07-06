@@ -118,11 +118,13 @@ def newLottery(bot,job):
 
         bot.sendMessage(SirIanM,sirianmsg,parse_mode="Markdown")
 
+    '''
     lottery = Lottery()
     LOTTERYS["current"]=lottery._id
     saveJson("_data/lotteryinfo.json",LOTTERYS)
     message = bot.sendMessage(BNB48LOTTERY,getLotteryTitle(lottery),reply_markup=buildlottery(lottery),disable_web_page_preview=True,parse_mode="Markdown")
     lottery.msgId(message.message_id)
+    '''
 
 def clearUserInfo(uid,key):
     realuid = str(uid)
@@ -185,7 +187,7 @@ USERPROPERTIES = {
     #"BinanceEmail":"^[a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+([:,：]\d+){0,1}$",
     #"BinanceUID":"^\d{8}$",
     "BinanceBNBMemo":"^\d{9}$",
-    #"ETH":"^(0x)[0-9A-Fa-f]{40}$",
+    "ETH":"^(0x)[0-9A-Fa-f]{40}$",
     "BNB":"^(bnb1)[0-9a-z]{38}([:,：]\d+){0,1}$",
     #"EOS":"^[1-5a-z\.]{1,12}$"
 }
@@ -635,13 +637,9 @@ def builddashboardmarkup(lang="CN"):
                 InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang),
             ],
             [
-                InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
+                #InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
                 InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK),
-            ],
-            [
-                InlineKeyboardButton(getLocaleString("MENU_LOTTERY",lang),url=BNB48LOTTERYLINK),
-                #InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
-                InlineKeyboardButton(getLocaleString("MENU_SLOT",lang),url="https://telegram.me/bnb48_casinobot?start=slot"),
+                #InlineKeyboardButton(getLocaleString("MENU_SLOT",lang),url="https://telegram.me/bnb48_casinobot?start=slot"),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
@@ -651,6 +649,10 @@ def builddashboardmarkup(lang="CN"):
         ]
     )
     '''
+            [
+                InlineKeyboardButton(getLocaleString("MENU_LOTTERY",lang),url=BNB48LOTTERYLINK),
+                #InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
+            ],
         [
         ],
     '''
@@ -888,8 +890,8 @@ def siriancommandhandler(bot,update):
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
         unban(int(things[1],int(things[2])))
-    elif "/lottery" in things[0]:
-        newLottery(updater.bot,None)
+    #elif "/lottery" in things[0]:
+    #    newLottery(updater.bot,None)
     elif "/updatelottery" in things[0]:
         updateLottery(updater.bot,None)
     elif "/groupid" in things[0]:
@@ -1559,7 +1561,7 @@ def main():
             "list",
             "delist",
             "cheque",
-            "lottery",
+            #"lottery",
             "updatelottery",
             "burn",
             "election"
@@ -1616,7 +1618,6 @@ def main():
         gap = 86400- time.time()%86400
         logger.warning("will start community broadcast in %s seconds",gap)
         job_airdrop = j.run_repeating(broadcastCommunity,interval=86400,first=gap)
-    '''
 
     gap = 86400- time.time()%86400
     logger.warning("will start newLottery in %s seconds",gap+20)
@@ -1625,6 +1626,8 @@ def main():
     gap = 7200- time.time()%7200
     logger.warning("will start updateLottery in %s seconds",gap+5)
     job_airdrop = j.run_repeating(updateLottery,interval=7200,first=gap+5)
+
+    '''
 
 
     # Start the Bot
