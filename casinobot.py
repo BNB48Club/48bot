@@ -476,12 +476,13 @@ def botcommandhandler(bot,update):
     things = update.message.text.split(' ')
     if "/slot" in things[0] or ( len(things) == 2 and "/start" == things[0] and "slot" == things[1]):
         try:
-            #bot.sendPhoto(update.message.from_user.id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
-            bot.sendPhoto(update.message.from_user.id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+            bot.sendPhoto(update.message.from_user.id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+            #bot.sendPhoto(update.message.from_user.id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
             #update.message.delete()
-        except:
-            #bot.sendPhoto(update.message.chat_id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
-            bot.sendPhoto(update.message.chat_id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+        except Exception as e:
+            logger.warning(e)
+            bot.sendPhoto(update.message.chat_id,photo=open("slot.jpg","rb"),caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
+            #bot.sendPhoto(update.message.chat_id,photo="AgADBQAD5agxGwFryFY9A1GWuRR3Gtt8-TIABAEAAwIAA3cAAxNSAgABFgQ",caption=slotDesc(),reply_markup=buildslotmarkup(),quote=False)
     elif "/start" in things[0]:
         update.message.reply_text("1. 终身分红。每日下注总额的0.7%根据历史下注总额按比例向玩家分红(精确到小数点后两位)。\n2. 下注有奖。 每日下注总额的0.7%注入累积奖池。每日下注最多的前三名获得截止前一日累积奖池金额的 三分之一、六分之一、十二分之一，且不超过其当日已下注额。\n3. JackPot 每日下注总额的0.7%注入JackPot。老虎机单次下注100押中250倍可获得JackPot的三分之一，单次下注10押中250倍可获得三十分之一。\n 历史下注/每日下注/奖池金额等信息均可通过 /roller 命令查看")
     return
