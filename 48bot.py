@@ -1423,6 +1423,8 @@ def botmessagehandler(bot, update):
             delayMessageDelete(update.message.reply_markdown("{} 💰 {} {}".format(getusermd(user,False),mined,getkoge48md()),disable_web_page_preview=True,quote=False))
 
 def minable(update):
+    return False
+    '''
     user = update.message.from_user
     if user.id in Koge48.MININGBLACKLIST:
         return False
@@ -1434,6 +1436,7 @@ def minable(update):
         return False
     
     return True
+    '''
 
 def onleft(bot,update):
     for SPAMWORD in SPAMWORDS:
