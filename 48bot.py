@@ -186,9 +186,10 @@ global_redpackets = {}
 USERPROPERTIES = {
     #"BinanceEmail":"^[a-zA-Z0-9_\-\.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+([:,：]\d+){0,1}$",
     #"BinanceUID":"^\d{8}$",
-    "BinanceBNBMemo":"^\d{9}$",
-    "ETH":"^(0x)[0-9A-Fa-f]{40}$",
-    "BNB":"^(bnb1)[0-9a-z]{38}([:,：]\d+){0,1}$",
+    #"BinanceBNBMemo":"^\d{9}$",
+    #"ETH":"^(0x)[0-9A-Fa-f]{40}$",
+    #"BNB":"^(bnb1)[0-9a-z]{38}([:,：]\d+){0,1}$",
+    "BNB":"^(bnb1)[0-9a-z]{38}$",
     #"EOS":"^[1-5a-z\.]{1,12}$"
 }
 
@@ -628,8 +629,8 @@ def builddashboardmarkup(lang="CN"):
         [
             [
                 InlineKeyboardButton(getLocaleString("MENU_KOGE",lang),callback_data="MENU#KOGE#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_COMMUNITY",lang),callback_data="MENU#COMMUNITY#"+lang),
+                #InlineKeyboardButton(getLocaleString("MENU_MINING",lang),callback_data="MENU#MINING#"+lang),
+                #InlineKeyboardButton(getLocaleString("MENU_COMMUNITY",lang),callback_data="MENU#COMMUNITY#"+lang),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_BALANCE",lang),callback_data="MENU#BALANCE#"+lang),
@@ -1292,9 +1293,11 @@ def cleanHandler(bot,update):
 def bnbhandler(bot,update):
     if update.message.chat_id != update.message.from_user.id:
         return
+    '''
     if not userInfo(update.effective_user.id,"BNB") is None:
         update.message.reply_text("⛔️");
         return
+    '''
     userInfo(update.effective_user.id,"BNB",update.message.text)
     markdown=getAssociation((update.effective_user.id))
     if not markdown is None:
@@ -1538,7 +1541,7 @@ def main():
     dp.add_handler(RegexHandler(USERPROPERTIES["BNB"],bnbhandler))
     #dp.add_handler(RegexHandler(USERPROPERTIES["BinanceEmail"],binanceemailhandler))
     #dp.add_handler(RegexHandler(USERPROPERTIES["BinanceUID"],binanceuidhandler))
-    dp.add_handler(RegexHandler(USERPROPERTIES["BinanceBNBMemo"],binancebnbmemohandler))
+    #dp.add_handler(RegexHandler(USERPROPERTIES["BinanceBNBMemo"],binancebnbmemohandler))
 
 
     dp.add_handler(CommandHandler(
