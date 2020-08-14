@@ -55,6 +55,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+KOGEMULTIPLIER = 100000000
 BLACKLIST= set()
 PRICES={"promote":50000,"restrict":500,"unrestrict":1000,"query":10}
 
@@ -165,9 +166,9 @@ BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
 #KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB,会按比例得到Koge。\n\nBNB48还通过空投*Floating*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)Floating Koge空投,同时Floating Koge会以每天10%的速度自然衰减。\n\nKoge目前通过Telegram Bot进行中心化管理,可以使用如下命令进行操作：\nescrow - 担保交易,回复使用,`/escrow Koge金额`\ntrans - Koge转账,回复使用,`/trans Koge金额`\nhongbao - Koge红包,  `/hongbao 金额 个数 [祝福语]`\n\n注意 _Floating Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token,进行链上映射。链上映射时,Floating Koge也将进行1:1映射,映射后不再区分Floating与否。"
 BINANCE_ANNI = 1531526400
-ENTRANCE_THRESHOLDS={BNB48:100000}
-KICK_THRESHOLDS={BNB48:100000}
-SAY_THRESHOLDS={BNB48:200000}
+ENTRANCE_THRESHOLDS={BNB48:400}
+KICK_THRESHOLDS={BNB48:300}
+SAY_THRESHOLDS={BNB48:800}
 KICKINSUFFICIENT = {BNB48:True}
 SAYINSUFFICIENT = {BNB48:False}
 
@@ -266,7 +267,7 @@ def callbackhandler(bot,update):
         thedatas = update.callback_query.data.split('#')
         lang = thedatas[2]
         if "BALANCE" == thedatas[1]:
-            response = "{} {} {}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id),','))
+            response = "{} {} {}".format(getusermd(activeuser),getkoge48md(),format(koge48core.getChequeBalance(activeuser.id)/KOGEMULTIPLIER,','))
             try:
                 update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
             except Exception as e:
@@ -275,7 +276,7 @@ def callbackhandler(bot,update):
             response = "{}:\n".format(activeuser.full_name)
             kogechanges=koge48core.getChequeRecentChanges(activeuser.id)
             for each in kogechanges:
-                response += "  {} ago,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
+                response += "  {} ago,`{}`,{}\n".format(each['before'],each['number']/KOGEMULTIPLIER,each['memo'])
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "BIND" == thedatas[1]:
             #bindstatus = koge48core.getAirDropStatus(activeuser.id)
@@ -310,9 +311,9 @@ def callbackhandler(bot,update):
             markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
             '''
             top10 = koge48core.getTop(20)
-            text="Koge Total Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen(),','))
+            text="Koge Total Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen()/KOGEMULTIPLIER,','))
             for each in top10:
-                text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1])
+                text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1]/KOGEMULTIPLIER)
             update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "COMMUNITY" == thedatas[1]:
             '''
@@ -698,7 +699,7 @@ def pmcommandhandler(bot,update):
         targetuserid = int(things[2])
         transamount = float(things[1])
 
-        if not koge48core.getChequeBalance(user.id) > transamount:
+        if not koge48core.getChequeBalance(user.id)/KOGEMULTIPLIER > transamount:
             return
         koge48core.transferChequeBalance(user.id,targetuserid,transamount,"from {} send to {}".format(user.full_name,targetuserid))
         update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuserid),transamount,getkoge48md()),disable_web_page_preview=True)
@@ -1161,7 +1162,7 @@ def botcommandhandler(bot,update):
         delayMessageDelete(update.message,0)
 
     elif "/querybal" in things[0]:
-        update.message.reply_text("{}".format(koge48core.getChequeBalance(int(things[1]))))
+        update.message.reply_text("{}".format(koge48core.getChequeBalance(int(things[1]))/KOGEMULTIPLIER))
     elif "/bal" in things[0]:
         user = update.message.from_user
         if update.message.reply_to_message is None:
@@ -1169,7 +1170,7 @@ def botcommandhandler(bot,update):
         else:
             targetuser = update.message.reply_to_message.from_user
 
-        response = "{}的{}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id))
+        response = "{}的{}余额为{}".format(getusermd(targetuser),getkoge48md(),koge48core.getChequeBalance(targetuser.id)/KOGEMULTIPLIER)
         try:
             bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
         except:
@@ -1186,7 +1187,7 @@ def botcommandhandler(bot,update):
         response = "{}最近的Koge变动记录:\n".format(targetuser.full_name)
         kogechanges=koge48core.getChequeRecentChanges(targetuser.id)
         for each in kogechanges:
-            response += "        {}前,`{}`,{}\n".format(each['before'],each['number'],each['memo'])
+            response += "        {}前,`{}`,{}\n".format(each['before'],each['number']/KOGEMULTIPLIER,each['memo'])
 
         try:
             bot.sendMessage(user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
@@ -1452,6 +1453,7 @@ def welcome(bot, update):
         bot.exportChatInviteLink(update.message.chat_id)
     #筛选垃圾消息
     isSpam = False
+    '''
     for newUser in update.message.new_chat_members:
         if  update.message.chat_id == BNB48CN and update.message.from_user.id != newUser.id and not newUser.is_bot and koge48core.getChequeBalance(newUser.id) == 0:
             koge48core.transferChequeBalance(Koge48.BNB48BOT,newUser.id,Koge48.MINE_MIN_SIZE,"invited")
@@ -1463,6 +1465,7 @@ def welcome(bot, update):
             if SPAMWORD in newUser.full_name:
                 isSpam = True
                 break;
+    '''
 
     if isSpam:
         bot.deleteMessage(update.message.chat_id,update.message.message_id)
@@ -1562,14 +1565,14 @@ def main():
             "ban",
             "unban",
             "groupid",
-            "reimburse",
+            #"reimburse",
             "exclude",
             "list",
             "delist",
             "cheque",
             #"lottery",
-            "updatelottery",
-            "burn",
+            #"updatelottery",
+            #"burn",
             "election"
         ],
         siriancommandhandler)#
@@ -1579,7 +1582,7 @@ def main():
             "start",
             "dashboard",
             "key",
-            "send",
+            #"send",
         ],
         pmcommandhandler)#处理仅私聊有效的命令
     )
@@ -1588,8 +1591,8 @@ def main():
 
     dp.add_handler(CommandHandler(
         [
-            "trans",
-            "escrow",
+            #"trans",
+            #"escrow",
             "bal",
             "querybal",
             "changes",
@@ -1597,12 +1600,12 @@ def main():
             #"demote",
             #"restrict",
             #"unrestrict",
-            "hongbao",
-            "rain",
-            "burn",
+            #"hongbao",
+            #"rain",
+            #"burn",
             "mining",
-            "donate",
-            "juankuan",
+            #"donate",
+            #"juankuan",
             #"community",
             "rapidnews",
             "posttg",
