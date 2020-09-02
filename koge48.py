@@ -29,15 +29,16 @@ class Koge48:
     STATSTART = 1
     LAMDA = 1.0/600
 
-    BNB48LIST = []
-    MININGBLACKLIST = []
-    MININGWHITELIST = {}
+    #BNB48LIST = []
+    #MININGBLACKLIST = []
+    #MININGWHITELIST = {}
 
     @staticmethod
     def refresh():
-        Koge48.MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
-        Koge48.MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
-        Koge48.BNB48LIST = loadJson("_data/bnb48.list",[])
+        #Koge48.MININGBLACKLIST = loadJson("_data/miningblacklist.json",[])
+        #Koge48.MININGWHITELIST = loadJson("_data/miningwhitelist.json",{})
+        #Koge48.BNB48LIST = loadJson("_data/bnb48.list",[])
+        pass
         
     def getTotalBet(self,last=True):
         cursor = self._mycursor()
@@ -287,8 +288,8 @@ class Koge48:
             duration = currentts - self._startts
         self._minets[groupid] = currentts
 
-        if str(minerid) in Koge48.BNB48LIST:
-            duration *= 1.2
+        #if str(minerid) in Koge48.BNB48LIST:
+        #    duration *= 1.2
 
         prob = 1-(math.e**(-duration*Koge48.LAMDA))
         if random.random() < prob:

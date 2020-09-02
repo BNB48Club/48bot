@@ -150,6 +150,7 @@ ESCROWLIST = loadJson("_data/escrowlist.json",{})
 SirIanM=420909210
 
 BNB48=-1001136778297
+EARLYBIRD=-4801
 BNB48PUBLISH=-1001180859399
 BNB48TEST =-1001395548149
 BNB48LOTTERY=-1001170996107
@@ -209,6 +210,7 @@ def is_number(s):
     return False
 
 def getCommunityContent(activeuser=None,groupid=None):
+    '''
     top10 = koge48core.getGroupMiningStatus()
     powtotal = 0
     for each in top10:
@@ -236,7 +238,7 @@ def getCommunityContent(activeuser=None,groupid=None):
     markdown += "\n-----------------"
     markdown +="\n*Last 24H {} Blocks*:".format(powtotal)
 
-    tempwhitelist = Koge48.MININGWHITELIST.copy()
+    tempwhitelist = []#Koge48.MININGWHITELIST.copy()
 
     for each in top10:
         try:
@@ -258,6 +260,9 @@ def getCommunityContent(activeuser=None,groupid=None):
         markdown += getMiningDetail(groupid)
 
     return markdown
+    '''
+    return ""
+
 def callbackhandler(bot,update):
     message_id = update.callback_query.message.message_id
     activeuser = update.callback_query.from_user
@@ -300,7 +305,7 @@ def callbackhandler(bot,update):
             except:
                 pass
         elif "JOIN" == thedatas[1]:
-            if koge48core.getTotalBalance(activeuser.id) >= ENTRANCE_THRESHOLDS[BNB48]:
+            if koge48core.getTotalBalance(activeuser.id)/KOGEMULTIPLIER >= ENTRANCE_THRESHOLDS[BNB48]:
                 response = "[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48))
             else:
                 response =getLocaleString("JOININTRODUCTION",lang).format(ENTRANCE_THRESHOLDS[BNB48])
@@ -311,7 +316,7 @@ def callbackhandler(bot,update):
             markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
             '''
             top10 = koge48core.getTop(20)
-            text="Koge Total Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen()/KOGEMULTIPLIER,','))
+            text="On-Telegram Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen()/KOGEMULTIPLIER,','))
             for each in top10:
                 text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1]/KOGEMULTIPLIER)
             update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
@@ -636,7 +641,7 @@ def builddashboardmarkup(lang="CN"):
             [
                 InlineKeyboardButton(getLocaleString("MENU_BALANCE",lang),callback_data="MENU#BALANCE#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_CHANGES",lang),callback_data="MENU#CHANGES#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang),
+                #InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang),
             ],
             [
                 #InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
@@ -690,21 +695,22 @@ def pmcommandhandler(bot,update):
         return
 
     things = update.message.text.split(' ')
-    if "/send" in things[0] and len(things) >=3:
+    if "/earlybird" in things[0] and len(things) >=3:
+    #if "/send" in things[0] and len(things) >=3:
         if float(things[1]) <= 0:
             return
         if int(things[2]) <= 0:
             return
-        user = update.message.from_user
         targetuserid = int(things[2])
-        transamount = float(things[1])
+        transamount = int(float(things[1])*KOGEMULTIPLIER)
 
-        if not koge48core.getChequeBalance(user.id)/KOGEMULTIPLIER > transamount:
+        if koge48core.getChequeBalance(EARLYBIRD) < transamount:
             return
-        koge48core.transferChequeBalance(user.id,targetuserid,transamount,"from {} send to {}".format(user.full_name,targetuserid))
-        update.message.reply_markdown("{}向{}转账{} {}".format(getusermd(user),getusermd(targetuserid),transamount,getkoge48md()),disable_web_page_preview=True)
+        koge48core.transferChequeBalance(EARLYBIRD,targetuserid,transamount,"Earlybird to {}".format(targetuserid))
+
+        update.message.reply_markdown("向{}发放早鸟轮{} Koge".format(getusermd(targetuserid),transamount/KOGEMULTIPLIER,disable_web_page_preview=True))
         try:
-            bot.sendMessage(targetuserid,"{} 💸 {} Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(targetuserid,"Early Bird {} Koge Received".format(transamount/KOGEMULTIPLIER))
         except:
             pass
     elif "/start" in things[0]:
@@ -720,6 +726,8 @@ def pmcommandhandler(bot,update):
             else:
                 response = getLocaleString("ASSOCIATION",lang)
                 update.message.reply_markdown(response,disable_web_page_preview=True,reply_markup=buildfilling(update.effective_user.id,update.effective_message.message_id))
+        elif len(things) > 1 and things[1].startswith("myid"):
+            update.message.reply_text("Your UID is {}".format(update.effective_user.id))
         else:
             update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
     elif "/dashboard" in things[0]:
@@ -845,6 +853,12 @@ def siriancommandhandler(bot,update):
         kick(update.message.chat_id,targetuser.id)
     elif "/kick" in things[0]:
         kick(int(things[1],int(things[2])))
+    elif "/rich" in things[0]:
+        top10 = koge48core.getTop(100)
+        text="On-Telegram Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen()/KOGEMULTIPLIER,','))
+        for each in top10:
+            text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1]/KOGEMULTIPLIER)
+        update.message.reply_markdown(text,disable_web_page_preview=True)
     elif "/findgroup" in things[0]:
         update.message.reply_markdown("[{}]({})".format(things[1],bot.exportChatInviteLink(int(things[1]))))
     elif "/ban" in things[0] and not targetuser is None:
@@ -871,23 +885,25 @@ def siriancommandhandler(bot,update):
 
         koge48core.transferChequeBalance(Koge48.BNB48BOT,targetuser.id,transamount,"Koge reimburse")
         update.message.reply_markdown("向{}发放{} {}".format(getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
-    elif "/list" in things[0] or "/delist" in things[0]:
-        thegroup = update.message.chat_id
-        if "/list" in things[0] and not update.message.chat.username is None:
-            if not str(thegroup) in Koge48.MININGWHITELIST:
-                Koge48.MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
-            bot.sendMessage(update.message.chat_id, text="Mining Enabled")
-        elif "/delist" in things[0]:
-            if str(thegroup) in Koge48.MININGWHITELIST:
-                del Koge48.MININGWHITELIST[str(thegroup)]
-            bot.sendMessage(update.message.chat_id, text="Mining Disabled")
-        saveJson("_data/miningwhitelist.json",Koge48.MININGWHITELIST)
-    elif "/exclude" in things[0]:
-        if not targetuser.id in Koge48.MININGBLACKLIST:
-            Koge48.MININGBLACKLIST.append(targetuser.id)
-            saveJson("_data/miningblacklist.json",Koge48.MININGBLACKLIST)
-        delayMessageDelete(update.message,0)
-        delayMessageDelete(update.message.reply_text("excluded"),0)
+        '''
+        elif "/list" in things[0] or "/delist" in things[0]:
+            thegroup = update.message.chat_id
+            if "/list" in things[0] and not update.message.chat.username is None:
+                if not str(thegroup) in Koge48.MININGWHITELIST:
+                    Koge48.MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
+                bot.sendMessage(update.message.chat_id, text="Mining Enabled")
+            elif "/delist" in things[0]:
+                if str(thegroup) in Koge48.MININGWHITELIST:
+                    del Koge48.MININGWHITELIST[str(thegroup)]
+                bot.sendMessage(update.message.chat_id, text="Mining Disabled")
+            saveJson("_data/miningwhitelist.json",Koge48.MININGWHITELIST)
+        elif "/exclude" in things[0]:
+            if not targetuser.id in Koge48.MININGBLACKLIST:
+                Koge48.MININGBLACKLIST.append(targetuser.id)
+                saveJson("_data/miningblacklist.json",Koge48.MININGBLACKLIST)
+            delayMessageDelete(update.message,0)
+            delayMessageDelete(update.message.reply_text("excluded"),0)
+        '''
     elif "/unban" in things[0] and not targetuser is None:
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
@@ -1215,9 +1231,11 @@ def listMiningGroup(message):
     thegroup = message.chat_id
     if message.chat.username is None:
         message.reply_text("Gossip Mining Only in Public Groups")
+    '''
     if not str(thegroup) in Koge48.MININGWHITELIST:
         Koge48.MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
         message.reply_text("Mining Enabled")
+    '''
 
 def topescrow(seller=None,buyer=None):
     escrowrecord = loadJson("_data/escrowstats.json",{})
@@ -1449,6 +1467,7 @@ def onleft(bot,update):
 
 def welcome(bot, update):
     userInfo(update.message.from_user.id,"FULLNAME",update.message.from_user.full_name)
+    checkThresholds(update.message.chat_id,update.message.from_user.id)
     if update.message.chat_id == BNB48 or update.message.chat_id == BNB48CASINO:
         bot.exportChatInviteLink(update.message.chat_id)
     #筛选垃圾消息
@@ -1570,6 +1589,7 @@ def main():
             "list",
             "delist",
             "cheque",
+            "rich",
             #"lottery",
             #"updatelottery",
             #"burn",
@@ -1583,6 +1603,7 @@ def main():
             "dashboard",
             "key",
             #"send",
+            "earlybird",
         ],
         pmcommandhandler)#处理仅私聊有效的命令
     )
@@ -1661,7 +1682,7 @@ def getMiningDetail(groupid):
 
 def broadcastCommunity(bot,job):
     content = getCommunityContent()
-    for eachgroupid in Koge48.MININGWHITELIST:
+    for eachgroupid in []: #Koge48.MININGWHITELIST:
         try:
             thiscontent = content
             thiscontent += "\n"
@@ -1674,7 +1695,8 @@ def broadcastCommunity(bot,job):
             print(e)
 
 def periodical(bot,job):
-    Koge48.refresh()
+    #Koge48.refresh()
+    '''
     for eachuid in Koge48.BNB48LIST:
         try:
             if checkThresholds(BNB48,eachuid):
@@ -1684,6 +1706,7 @@ def periodical(bot,job):
             print(e)
             print(eachuid)
             pass
+    '''
 
     saveJson("_data/userinfomap.json",USERINFOMAP)
     return
