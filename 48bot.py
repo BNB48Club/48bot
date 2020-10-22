@@ -25,7 +25,6 @@ from jsonfile import *
 from botsapi import bots
 from koge48 import Koge48
 from redpacket import RedPacket
-from ppt2img import genPNG
 from election import Election
 #from sendweibo import init_weibo, send_pic
 
@@ -84,29 +83,25 @@ ESCROWLIST = loadJson("_data/escrowlist.json",{})
 
 SirIanM=420909210
 
-BNB48=-1001136778297
+BNB48PLATINUMCN=-1001136778297
+BNB48PLATINUMEN=-1001314822059
 EARLYBIRD=-4801
 BNB48PUBLISH=-1001180859399
 BNB48TEST =-1001395548149
-BNB48LOTTERY=-1001170996107
-#BNB48LOTTERY=BNB48TEST
 BNB48CN= -1001345282090
 BNB48EN= -1001377752898
 BNB48C2C = -1001491897749
-BNB48CASINO=-1001319319354
-BNB48CASINOLINK="https://t.me/joinchat/GRaQmk6jNzpHjsRCbRN8kg"
-BNB48LOTTERYLINK="https://t.me/joinchat/AAAAAEXL-4vnQxa3gcmGvw"
 BNB48MEDIA=-1001180438510
 BinanceCN=-1001136071376
 BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
-#KOGEINTRODUCTION="Koge是BNB48俱乐部管理/发行的Token。\n\n向俱乐部[捐赠](http://bnb48club.mikecrm.com/c3iNLGn)BNB,会按比例得到Koge。\n\nBNB48还通过空投*Floating*Koge作为在币安交易所长期持有BNB者的鼓励。持有BNB每天可以获得等量的(包含现货与杠杆余额)Floating Koge空投,同时Floating Koge会以每天10%的速度自然衰减。\n\nKoge目前通过Telegram Bot进行中心化管理,可以使用如下命令进行操作：\nescrow - 担保交易,回复使用,`/escrow Koge金额`\ntrans - Koge转账,回复使用,`/trans Koge金额`\nhongbao - Koge红包,  `/hongbao 金额 个数 [祝福语]`\n\n注意 _Floating Koge不能通过机器人进行转账等任何形式的操作。_\n\n适当的时候Koge会在币安链发行token,进行链上映射。链上映射时,Floating Koge也将进行1:1映射,映射后不再区分Floating与否。"
 BINANCE_ANNI = 1531526400
-ENTRANCE_THRESHOLDS={BNB48:400}
-KICK_THRESHOLDS={BNB48:300}
-SAY_THRESHOLDS={BNB48:800}
-KICKINSUFFICIENT = {BNB48:True}
-SAYINSUFFICIENT = {BNB48:False}
+
+ENTRANCE_THRESHOLDS={BNB48PLATINUMCN:1000,BNB48PLATINUMEN:1000}
+KICK_THRESHOLDS={BNB48PLATINUMCN:400,BNB48PLATINUMEN:400}
+SAY_THRESHOLDS={BNB48PLATINUMCN:800,BNB48PLATINUMEN:400}
+KICKINSUFFICIENT = {BNB48PLATINUMCN:True}
+SAYINSUFFICIENT = {BNB48PLATINUMCN:False}
 
 kogeconfig = configparser.ConfigParser()
 kogeconfig.read("conf/koge48.conf")
@@ -117,7 +112,6 @@ koge48core = Koge48(
   kogeconfig.get("mysql","database")
 )
 
-LOTTERYICONS={"up":"📈","down":"📉"}
 
 global_redpackets = {}
 USERPROPERTIES = {
@@ -240,26 +234,24 @@ def callbackhandler(bot,update):
             except:
                 pass
         elif "JOIN" == thedatas[1]:
-            if koge48core.getTotalBalance(activeuser.id)/KOGEMULTIPLIER >= ENTRANCE_THRESHOLDS[BNB48]:
-                response = "[BNB48Club]({})".format(bot.exportChatInviteLink(BNB48))
-            else:
-                response =getLocaleString("JOININTRODUCTION",lang).format(ENTRANCE_THRESHOLDS[BNB48])
+            response=""
+            if koge48core.getTotalBalance(activeuser.id)/KOGEMULTIPLIER >= ENTRANCE_THRESHOLDS[BNB48PLATINUMEN]:
+                response += "[BNB48 Platinum]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
+            if koge48core.getTotalBalance(activeuser.id)/KOGEMULTIPLIER >= ENTRANCE_THRESHOLDS[BNB48PLATINUMCN]:
+                response += "[BNB48 铂金会]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
+            response += "[BNB48 Club®️ En](https://t.me/bnb48club_en)\n"
+            response += "[BNB48 Club®️ 中文](https://t.me/bnb48club_cn)\n"
+            #response =getLocaleString("JOININTRODUCTION",lang).format(ENTRANCE_THRESHOLDS[BNB48])
             update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(update.effective_user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            update.callback_query.answer()
         elif "RICH" == thedatas[1]:
-            '''
-            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query rich')
-            markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
-            '''
             top10 = koge48core.getTop(20)
             text="On-Telegram Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen()/KOGEMULTIPLIER,','))
             for each in top10:
                 text+="[{}](tg://user?id={})\t{}\n".format(getFullname(each[0]),each[0],each[1]/KOGEMULTIPLIER)
             update.callback_query.message.edit_text(text,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "COMMUNITY" == thedatas[1]:
-            '''
-            koge48core.transferChequeBalance(activeuser.id,Koge48.BNB48BOT,PRICES['query'],'query rich')
-            markdown="{}Koge 💸 `{}`\n\n".format(PRICES['query'],activeuser.full_name)
-            '''
             markdown=getCommunityContent(activeuser)
             update.callback_query.message.edit_text(markdown,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
         elif "LANG" == thedatas[1]:
@@ -455,12 +447,8 @@ def buildkeyboard(lang="CN"):
                 getLocaleString("MENU_COMMUNITY",lang),
             ],
             [
-                getLocaleString("MENU_CASINO",lang),
                 getLocaleString("MENU_C2C",lang),
                 getLocaleString("MENU_JOIN",lang),
-            ],
-            [
-                getLocaleString("MENU_LOTTERY",lang),
             ],
             [
                 getLocaleString("MENU_KOGE",lang),
@@ -486,20 +474,17 @@ def builddashboardmarkup(lang="CN"):
                 #InlineKeyboardButton(getLocaleString("MENU_RICH",lang),callback_data="MENU#RICH#"+lang),
             ],
             [
-                #InlineKeyboardButton(getLocaleString("MENU_CASINO",lang),url=BNB48CASINOLINK),
                 InlineKeyboardButton(getLocaleString("MENU_C2C",lang),url=BNB48C2CLINK),
-                #InlineKeyboardButton(getLocaleString("MENU_SLOT",lang),url="https://telegram.me/bnb48_casinobot?start=slot"),
             ],
             [
                 InlineKeyboardButton(getLocaleString("MENU_JOIN",lang),callback_data="MENU#JOIN#"+lang),
-                InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
+                #InlineKeyboardButton(getLocaleString("MENU_BIND",lang),callback_data="MENU#BIND#"+lang),
                 InlineKeyboardButton(getLocaleString("MENU_LANG",lang),callback_data="MENU#LANG#"+lang),
             ],
         ]
     )
     '''
             [
-                InlineKeyboardButton(getLocaleString("MENU_LOTTERY",lang),url=BNB48LOTTERYLINK),
                 #InlineKeyboardButton(getLocaleString("MENU_ADDROBOT",lang),url="https://telegram.me/bnb48_bot?startgroup=join"),
             ],
         [
@@ -533,28 +518,39 @@ def testHandler(bot,update):
     update.message.reply_text(bot.exportChatInviteLink(update.message.chat_id))
 def pmcommandhandler(bot,update):
     if update.message.chat.type != 'private':
-        delayMessageDelete(update.message.reply_text('pm'))
+        delayMessageDelete(update.message.reply_text('Talk to me in private'))
+        delayMessageDelete(update.message,0)
         return
 
     things = update.message.text.split(' ')
-    if "/earlybird" in things[0] and len(things) >=3:
-    #if "/send" in things[0] and len(things) >=3:
-        if float(things[1]) <= 0:
+    if "/transfer" == things[0]:
+        if len(things)<3 or float(things[1]) <= 0 or int(things[2]) <= 0:
+            update.message.reply_markdown("`/transfer <amount> <target uid> [memo]`")
             return
-        if int(things[2]) <= 0:
-            return
+        sourceuserid = update.effective_user.id
         targetuserid = int(things[2])
         transamount = int(float(things[1])*KOGEMULTIPLIER)
+        if len(things) > 3:
+            del things[0]
+            del things[0]
+            del things[0]
+            memo = " ".join(things)
+        else:
+            memo = ""
 
-        if koge48core.getChequeBalance(EARLYBIRD) < transamount:
-            return
-        koge48core.transferChequeBalance(EARLYBIRD,targetuserid,transamount,"Earlybird to {}".format(targetuserid))
-
-        update.message.reply_markdown("向{}发放早鸟轮{} Koge".format(getusermd(targetuserid),transamount/KOGEMULTIPLIER,disable_web_page_preview=True))
         try:
-            bot.sendMessage(targetuserid,"Early Bird {} Koge Received".format(transamount/KOGEMULTIPLIER))
+            koge48core.transferChequeBalance(sourceuserid,targetuserid,transamount,"{} send to {}, memo: {}".format(sourceuserid,targetuserid,memo))
+        except:
+            delayMessageDelete(update.message,0)
+            return
+
+        update.message.reply_markdown("Sent {} {}Koge,memo: {}".format(getusermd(targetuserid),transamount/KOGEMULTIPLIER,memo),disable_web_page_preview=True)
+        try:
+            bot.sendMessage(targetuserid,"{} Send you {} Koge,memo: {}".format(getusermd(sourceuserid),transamount/KOGEMULTIPLIER,memo),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
+    elif "/myid" in things[0]:
+        update.message.reply_text(update.effective_user.id)
     elif "/start" in things[0]:
         #if 'private' == update.message.chat.type:
         lang=getLang(update.message.from_user)
@@ -680,37 +676,28 @@ def siriancommandhandler(bot,update):
         latest = koge48core.signCheque(targetuser.id,number,"signed by SirIanM")
         update.message.reply_markdown("添加成功,目前最新余额{}".format(latest))
 
-    elif "/reimburse" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
-        if float(things[1]) <= 0:
+    elif "/reimburse" in things[0]:
+        if len(things)<4 or float(things[1]) <= 0 or int(things[2]) <= 0:
+            update.message.reply_markdown("`/reimburse <amount> <target uid> <memo>`")
             return
-        targetuser = update.message.reply_to_message.from_user
-        transamount = float(things[1])
-
-        #if not koge48core.getChequeBalance(Koge48.BNB48BOT) >= transamount:
-        #    update.message.reply_text('小秘书Koge余额不足')
-        #    return
-
-        koge48core.transferChequeBalance(Koge48.BNB48BOT,targetuser.id,transamount,"Koge reimburse")
-        update.message.reply_markdown("向{}发放{} {}".format(getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True)
-        '''
-        elif "/list" in things[0] or "/delist" in things[0]:
-            thegroup = update.message.chat_id
-            if "/list" in things[0] and not update.message.chat.username is None:
-                if not str(thegroup) in Koge48.MININGWHITELIST:
-                    Koge48.MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
-                bot.sendMessage(update.message.chat_id, text="Mining Enabled")
-            elif "/delist" in things[0]:
-                if str(thegroup) in Koge48.MININGWHITELIST:
-                    del Koge48.MININGWHITELIST[str(thegroup)]
-                bot.sendMessage(update.message.chat_id, text="Mining Disabled")
-            saveJson("_data/miningwhitelist.json",Koge48.MININGWHITELIST)
-        elif "/exclude" in things[0]:
-            if not targetuser.id in Koge48.MININGBLACKLIST:
-                Koge48.MININGBLACKLIST.append(targetuser.id)
-                saveJson("_data/miningblacklist.json",Koge48.MININGBLACKLIST)
+        sourceuserid = Koge48.BNB48BOT
+        targetuserid = int(things[2])
+        transamount = int(float(things[1])*KOGEMULTIPLIER)
+        del things[0]
+        del things[0]
+        del things[0]
+        memo = " ".join(things)
+        try:
+            koge48core.transferChequeBalance(sourceuserid,targetuserid,transamount,"reimburse to {}, memo: {}".format(targetuserid,memo))
+        except:
             delayMessageDelete(update.message,0)
-            delayMessageDelete(update.message.reply_text("excluded"),0)
-        '''
+            return
+        update.message.reply_markdown("Reimburse {} {}Koge,memo: {}".format(getusermd(targetuserid),transamount/KOGEMULTIPLIER,memo),disable_web_page_preview=True)
+        try:
+            bot.sendMessage(targetuserid,"Received reimbursement {} Koge,memo: {}".format(transamount/KOGEMULTIPLIER,memo),parse_mode=ParseMode.MARKDOWN)
+        except:
+            pass
+
     elif "/unban" in things[0] and not targetuser is None:
         unban(update.message.chat_id,targetuser.id)
     elif "/unban" in things[0]:
@@ -719,7 +706,7 @@ def siriancommandhandler(bot,update):
         bot.sendMessage(SirIanM,"{}".format(update.message.chat_id))
     elif "/burn" in things[0]:
         number = float(things[1])
-        koge48core.burn(Koge48.LOTTERY,number)
+        #koge48core.burn(Koge48.LOTTERY,number)
         update.message.reply_markdown("销毁成功")
     elif "/election" in things[0]:
         election = Election()
@@ -803,22 +790,26 @@ def botcommandhandler(bot,update):
         if update.message.reply_to_message is None or len(things) < 2 or float(things[1]) <= 0:
             delayMessageDelete(update.message,0)
             return
-        user = update.message.from_user
+        if len(things)>2:
+            memo=things[2]
+        else:
+            memo=""
+        user = update.effective_user
         targetuser = update.message.reply_to_message.from_user
         if user.id == targetuser.id:
             delayMessageDelete(update.message,0)
             return
-        transamount = float(things[1])
+        transamount = int(float(things[1])*KOGEMULTIPLIER)
         try:
-            koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"trans")
+            koge48core.transferChequeBalance(user.id,targetuser.id,transamount,"{} send to {}, memo:{}".format(user.id,targetuser.id,memo))
         except:
             delayMessageDelete(update.message,0)
             return
         try:
-            bot.sendMessage(targetuser.id,"{} 💸 {} Koge".format(getusermd(user),transamount),parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(targetuser.id,"{} 💸 {} Koge,memo: {}".format(getusermd(user),transamount/KOGEMULTIPLIER,memo),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
-        update.message.reply_markdown("{} 💸 {} {} Koge".format(getusermd(user),getusermd(targetuser),transamount),disable_web_page_preview=True)
+        update.message.reply_markdown("{} 💸 {} {} Koge,memo: {}".format(getusermd(user),getusermd(targetuser),transamount/KOGEMULTIPLIER,memo),disable_web_page_preview=True)
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
@@ -862,38 +853,11 @@ def botcommandhandler(bot,update):
             photoid = update.message.reply_to_message.photo[-1].file_id
             update.message.reply_text(photoid)
             return
-        for group in [BNB48,BNB48PUBLISH]:
+        for group in [BNB48PLATINUM,BNB48PUBLISH]:
             #bot.forwardMessage(group,update.message.chat_id,update.message.reply_to_message.message_id)
             photoid = update.message.reply_to_message.photo[-1].file_id
             bot.sendPhoto(group,photoid)
         update.message.reply_text("已转发")
-        '''
-        elif "/postweibo" in things[0]:
-            if update.message.chat_id != BNB48MEDIA:
-                update.message.reply_text("该功能仅在BNB48 Media群内生效")
-                return
-            if len(things) < 2:
-                update.message.reply_text("必须提供发布标题")
-                return
-            del things[0]
-            weibotitle = " ".join(things)
-            photo = update.message.reply_to_message.photo[-1].get_file().download()
-            weibourl = send_pic(weiboclient,photo,weibotitle)
-            update.message.reply_text("已通过BNB48Club微博发送此条快讯: {}".format(weibourl))
-        '''
-    elif "/rapidnews" in things[0]:
-        if update.message.chat_id != BNB48MEDIA:
-            update.message.reply_text("该功能仅在BNB48 Media群内生效")
-            return
-        if len(things) < 3:
-            update.message.reply_text("必须提供 标题 与 内容")
-            return
-        title = things[1]
-        del things[0]
-        del things[0]
-        content = " ".join(things)
-        update.message.reply_text("正在生成快讯图片...该操作较耗时也较耗费资源,请务必耐心,不要重复发送。")
-        bot.sendPhoto(chat_id=update.message.chat_id,photo=open(genPNG(title,content), 'rb'),reply_to_message_id = update.message.message_id)
     elif "/hongbao" in things[0] or "/rain" in things[0]:
         if update.message.chat.type == 'private':
             delayMessageDelete(update.message.reply_text("send in a group"))
@@ -971,7 +935,7 @@ def botcommandhandler(bot,update):
 
         if not message.chat.username is None:
             #bot.sendMessage(BNB48,"https://t.me/{}/{}".format(message.chat.username,message.message_id))
-            bot.sendMessage(BNB48,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            bot.sendMessage(BNB48PLATINUMCN,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             '''
             if message.chat_id != BNB48CN:
                 bot.sendMessage(BNB48CN,"有人发红包 👉 [{}](https://t.me/{}/{})".format(message.chat.title,message.chat.username,message.message_id),disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
@@ -1271,7 +1235,7 @@ def onleft(bot,update):
 def welcome(bot, update):
     userInfo(update.message.from_user.id,"FULLNAME",update.message.from_user.full_name)
     checkThresholds(update.message.chat_id,update.message.from_user.id)
-    if update.message.chat_id == BNB48 or update.message.chat_id == BNB48CASINO:
+    if update.message.chat_id == BNB48PLATINUMCN or  update.message.chat_id == BNB48PLATINUMEN:
         bot.exportChatInviteLink(update.message.chat_id)
     #筛选垃圾消息
     isSpam = False
@@ -1324,7 +1288,7 @@ def ban(chatid,userid):
 def unban(chatid,userid):
     updater.bot.unbanChatMember(chatid,userid)
 def kick(chatid,userid):
-    if BNB48 == chatid:
+    if BNB48PLATINUMCN == chatid:
         try:
             updater.bot.promoteChatMember(chatid, userid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
         except:
@@ -1387,7 +1351,7 @@ def main():
             "ban",
             "unban",
             "groupid",
-            #"reimburse",
+            "reimburse",
             "exclude",
             "list",
             "delist",
@@ -1402,9 +1366,9 @@ def main():
         [
             "start",
             "dashboard",
-            "key",
-            #"send",
-            "earlybird",
+            #"key",
+            "myid",
+            "transfer",
         ],
         pmcommandhandler)#处理仅私聊有效的命令
     )
@@ -1425,13 +1389,11 @@ def main():
             #"hongbao",
             #"rain",
             #"burn",
-            "mining",
+            #"mining",
             #"donate",
             #"juankuan",
             #"community",
-            "rapidnews",
-            "posttg",
-            #"postweibo"
+            #"posttg",
         ],
         botcommandhandler))# '''处理其他命令'''
 

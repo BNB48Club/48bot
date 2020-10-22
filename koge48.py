@@ -141,7 +141,7 @@ class Koge48:
         #assert not sourceid in Koge48.MININGBLACKLIST
         if sourceid != Koge48.BNB48BOT:
             sbalance = self._getChequeBalanceFromDb(sourceid)
-            assert sourceid == Koge48.BNB48BOT or sbalance - number >= 0
+            assert sbalance - number >= 0
         else:
             sbalance = number
         newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
