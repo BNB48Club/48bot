@@ -303,38 +303,37 @@ def callbackhandler(bot,update):
         update.effective_message.edit_text(genDistList(export),reply_markup=buildfillselection(export),parse_mode=ParseMode.MARKDOWN)
     elif update.callback_query.data.startswith("escrow#"):
         thedatas = update.callback_query.data.split('#')
+        escrow_id = str(update.callback_query.message.chat_id)+str(update.callback_query.message.message_id)
         if thedatas[1] == "confirm":
             if activeuser.id != float(thedatas[2]):
-                update.callback_query.answer("只有发起者才能确认",show_alert=True)
+                update.callback_query.answer("Only the sender/只有发起者才能确认",show_alert=True)
                 return
-            if ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
-                ESCROWLIST[str(update.callback_query.message.message_id)]="confirm"
+            if ESCROWLIST[escrow_id]=="start":
+                ESCROWLIST[escrow_id]="confirm"
                 saveJson("_data/escrowlist.json",ESCROWLIST)
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
-                if float(thedatas[4]) > 100:
-                    topescrow(thedatas[2],thedatas[3])
                 try:
-                    bot.sendMessage(int(thedatas[3]),"{}向您发起的担保付款{}Koge已确认支付".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+                    bot.sendMessage(int(thedatas[3]),"{} just approved the escrow transfer of {} Koge to you".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
                 except:
                     pass
-            update.callback_query.answer("{}已确认".format(activeuser.full_name),show_alert=True)
-            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已确认'))
+            update.callback_query.answer("{} just approved".format(activeuser.full_name),show_alert=True)
+            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('Approved'))
 
         elif thedatas[1] == "cancel":
             if activeuser.id != float(thedatas[3]):
-                update.callback_query.answer("只有接受者才能取消",show_alert=True)
+                update.callback_query.answer("Only the receiver/只有接受者才能取消",show_alert=True)
                 return
-            if ESCROWLIST[str(update.callback_query.message.message_id)]=="start":
-                ESCROWLIST[str(update.callback_query.message.message_id)]="cancel"
+            if ESCROWLIST[escrow_id]=="start":
+                ESCROWLIST[escrow_id]="cancel"
                 saveJson("_data/escrowlist.json",ESCROWLIST)
                 koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
                 try:
-                    bot.sendMessage(int(thedatas[2]),"您向{}发起的担保付款{}Koge已被取消".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+                    bot.sendMessage(int(thedatas[2]),"Your escrowed transfer to {} of {} Koge was just aborted by peer".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
                 except Exception as e:
                     logger.warning(e)
                     pass
-            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('已取消'))
-            update.callback_query.answer("{}已取消".format(activeuser.full_name),show_alert=True)
+            update.callback_query.message.edit_reply_markup(reply_markup=buildtextmarkup('Aborted'))
+            update.callback_query.answer("{} Aborted".format(activeuser.full_name),show_alert=True)
             
     elif update.callback_query.data.startswith("HONGBAO#"):
         thedatas = update.callback_query.data.split('#')
@@ -813,15 +812,17 @@ def botcommandhandler(bot,update):
     elif "/escrow" in things[0] and len(things) >=2 and not update.message.reply_to_message is None:
         if float(things[1]) <= 0:
             return
+        '''
         if update.message.chat_id != BNB48C2C:
-            delayMessageDelete(update.message.reply_markdown("[BNB48 Trade]({})".format(BNB48C2CLINK)))
+            delayMessageDelete(update.message.reply_markdown("[BNB48 C2C]({})".format(BNB48C2CLINK)))
             return
+        '''
         user = update.message.from_user
         targetuser = update.message.reply_to_message.from_user
 
         if targetuser.id == Koge48.BNB48BOT or targetuser.id == user.id:
             return
-        transamount = float(things[1])
+        transamount = int(float(things[1])*KOGEMULTIPLIER)
 
         try:
             koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
@@ -829,8 +830,8 @@ def botcommandhandler(bot,update):
             delayMessageDelete(update.message)
             return
 
-        message = update.message.reply_markdown("{}向{}发起担保转账{}{},由小秘书保管资金居间担保。\n发起者点击✅按钮,小秘书完成转账至接受者。\n接受者点击❌按钮,小秘书原路返还资金。\n如产生纠纷可请BNB48仲裁,如存在故意过错方,该过错方将终身无权参与BNB48一切活动。".format(getusermd(user),getusermd(targetuser),transamount,getkoge48md()),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
-        ESCROWLIST[str(message.message_id)]="start"
+        message = update.message.reply_markdown("{} --escrowed--> {}\n{} Koge\nClick ✅to approve or click ❌ to abort".format(getusermd(user),getusermd(targetuser),transamount),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
+        ESCROWLIST[str(message.chat_id) + str(message.message_id)]="start"
         saveJson("_data/escrowlist.json",ESCROWLIST)
             
     elif "/mining" in things[0]:
@@ -1003,51 +1004,6 @@ def listMiningGroup(message):
         Koge48.MININGWHITELIST[str(thegroup)]={"id":thegroup,"title":update.message.chat.title,"username":update.message.chat.username}
         message.reply_text("Mining Enabled")
     '''
-
-def topescrow(seller=None,buyer=None):
-    escrowrecord = loadJson("_data/escrowstats.json",{})
-    if not seller is None:
-        if seller in escrowrecord['seller']:
-            escrowrecord['seller'][seller]+=1
-        else:
-            escrowrecord['seller'][seller]=1
-    if not buyer is None:
-        if buyer in escrowrecord['buyer']:
-            escrowrecord['buyer'][buyer]+=1
-        else:
-            escrowrecord['buyer'][buyer]=1
-
-    sorted_seller = sorted(list(escrowrecord['seller'].items()),key=operator.itemgetter(1))
-    sorted_seller.reverse()
-    text = "Koge担保交易功能使用方法:\n发送方使用 `/escrow 金额` 的格式回复接受方的消息,资金转入小秘书账户保管。\n发送方确认交易成功后资金转入接收方账户；或接受方对交易发起取消则资金原路返回。\n"
-    text += "--------------------\n"
-    text += "Koge卖家Top3(仅统计单笔100Koge以上,下同)\n"
-    i=0
-    for each in sorted_seller:
-        i+=1
-        if i>3:
-            break
-        fullname = getFullname(each[0])
-        text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
-
-    text += "--------------------\n"
-
-    sorted_buyer = sorted(list(escrowrecord['buyer'].items()),key=operator.itemgetter(1))
-    sorted_buyer.reverse()
-    text += "Koge买家Top3\n"
-    i=0
-    for each in sorted_buyer:
-        i+=1
-        if i>3:
-            break
-        fullname = getFullname(each[0])
-        text += "[{}](tg://user?id={}) 成交{}笔\n".format(fullname,each[0],each[1])
-    if "pinid" in escrowrecord:
-        updater.bot.editMessageText(text,BNB48C2C,escrowrecord['pinid'],parse_mode="Markdown")
-    else:
-        message = updater.bot.sendMessage(BNB48C2C,text,parse_mode="Markdown")
-        escrowrecord['pinid']=message.message_id
-    saveJson("_data/escrowstats.json",escrowrecord)
 
 def cleanHandler(bot,update):
     logger.warning("clean triggered")
@@ -1378,7 +1334,7 @@ def main():
     dp.add_handler(CommandHandler(
         [
             #"trans",
-            #"escrow",
+            "escrow",
             "bal",
             "querybal",
             "changes",

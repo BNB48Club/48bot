@@ -14,7 +14,7 @@ def isLocaleString(key,text):
 
 BNB48_LOCALES={
     "CN":{
-        "KOGEINTRODUCTION":"Koge 是BNB48俱乐部的DAO治理Token。\n\n机器人可以使用的命令:\n`/myid` - 查询自己的Telegram UID\n\n`/transfer <金额> <他人UID> [memo]` - 进行转账。仅支持私聊机器人时使用",
+        "KOGEINTRODUCTION":"Koge 是BNB48俱乐部的DAO治理Token。\n\n机器人可以使用的命令:\n\n`/myid` - 查询自己的Telegram UID\n`/transfer <金额> <他人UID> [memo]` - 进行转账。仅支持私聊机器人时使用\n`/escrow <金额>` - 向他人发起担保转账，必须回复(引用)对方消息才生效",
         "BINDINTRODUCTION":"直接输入格式正确的内容即可更新资料",
         "MININGINTRODUCTION":"在Koge机器人入驻并开通了功能的Telegram公开群中聊天,有几率获得Koge奖励。即*聊天挖矿*。\n\n聊天挖矿出矿的概率服从以聊天消息间隔为变量的泊松分布,距离上条消息发出的时间越长则本条消息挖出矿的概率越大。\n\n群与群之间出矿独立，您可以查看社区排名,选择热度较低的群发言以更高效地挖矿。\n\n每次出矿的金额大小服从一定范围内的平均分布。\n\n如果需要在您的Telegram公开群引入聊天挖矿,请先将本机器人加入您的群,然后联系[BNB48](https://t.me/bnb48club_cn)了解费用与优惠。",
         "JOININTRODUCTION":"持仓Koge大于等于{}可自助加入白金群",
@@ -39,7 +39,7 @@ BNB48_LOCALES={
 
     },
     "EN":{
-        "KOGEINTRODUCTION":"Koge is the governance token of BNB48 Club DAO.\n\nCommands: \n`/myid` - Find out your Telegram UID.\n\n`/transfer <Number of Koge> <Target User UID> [memo]` - transfer Koge to someone else. Only works in this private chat",
+        "KOGEINTRODUCTION":"Koge is the governance token of BNB48 Club DAO.\n\nCommands: \n\n`/myid` - Find out your Telegram UID.\n`/transfer <Amount of Koge> <Target User UID> [memo]` - transfer Koge to someone else. Only works in this private chat\n`/escrow <Amount of Koge>` - escrowed transfer to the sender of the message you replied",
         "BINDINTRODUCTION":"Input corresponding content to associate.",
         "MININGINTRODUCTION":"Gossip Mining, refers to the process of chat in Telegram groups while one acquires KOGE airdrop randomly.\n\n Probability of finding a new BLOCK subjects to Poission distribution, which means, the longer time between your message and the last message in this group, the high possibility you are going to find a new BLOCK. \n\nMining pricesses of different groups are independent. In another word, chat in groups with fewer members is more likely to bring you some KOGE. You can view `Community Rank` to make your smart choice.\n\n KOGE in each block differs in a small range. \n\n If you would like to introduce Gossip Mining in your group, simply introduce this bot and contact [BNB48](https://t.me/bnb48club_en) to consult on price and discount.",
         "JOININTRODUCTION":"You need a balance of {} Koge to join",
