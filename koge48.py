@@ -17,14 +17,17 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 class Koge48:
-    SEQUENCE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789o'
-    DAY_DECREASE = 0.9
     MINE_MIN_SIZE = 1
     MINE_DIFFER_SIZE = 2
     BNB48BOT = 571331274
-    LOTTERY = 999000
     JACKPOT = 777000
     PRIZEPOOL = 888000
+    LOTTERY = 999000
+    BNB48PLATINUM = 666000
+    BNB48ESCROW = 555000
+    
+    PermitBase = 30000000000
+    PermitStep = 0#100000000
     #STATSTART = 430820
     STATSTART = 1
     LAMDA = 1.0/600
@@ -136,21 +139,66 @@ class Koge48:
             self.transferChequeBalance(Koge48.JACKPOT,targetid,todivide,"extract jackpot")
         return todivide
 
-    def transferChequeBalance(self,sourceid,targetid,number,memo=""):
-        assert number > 0
-        #assert not sourceid in Koge48.MININGBLACKLIST
-        if sourceid != Koge48.BNB48BOT:
-            sbalance = self._getChequeBalanceFromDb(sourceid)
-            assert sbalance - number >= 0
-        else:
-            sbalance = number
-        newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
+    
+    def permitCount(self):
         cursor = self._mycursor()
-        cursor.execute(newblocksql,(sourceid,-number,memo,targetid))
-        cursor.execute(newblocksql,(targetid,number,memo,sourceid))
+        sql = "SELECT count(*) as countpermit FROM `platinum` WHERE lockedkoge > 0"
+        cursor.execute(sql)
+        countresult = cursor.fetchall()
+        self._close(cursor)
+        return int(countresult[0][0])
+    def permitQuery(self,userid):
+        cursor = self._mycursor()
+        sql = "SELECT `lockedkoge` FROM `platinum` WHERE `uid` = %s"
+        cursor.execute(sql,(userid,))
+        queryresult = cursor.fetchall()
+        self._close(cursor)
+        if len(queryresult) >0:
+            return int(queryresult[0][0])
+        else:
+            return -1
+    def permitPrice(self):
+        return Koge48.PermitBase + self.permitCount() * Koge48.PermitStep
+    def permitMint(self,userid,advisor=False):
+        #Only one (minted) permit for each
+        if self.permitQuery(userid)>0:
+            return -1
+        if self.permitQuery(userid)==0 and advisor == True:
+            return -1
+
+        if advisor:
+            price = 0
+        else:
+            price = Koge48.PermitBase + self.permitCount() * Koge48.PermitStep
+            try:
+                self.transferChequeBalance(userid,Koge48.BNB48PLATINUM,price,"platinum permit mint")
+            except:
+                return -1
+
+        newpermitsql = "INSERT INTO `platinum` (uid,lockedkoge) VALUES (%s,%s) ON DUPLICATE KEY UPDATE lockedkoge=%s"
+        cursor = self._mycursor()
+        cursor.execute(newpermitsql,(userid,price,price))
         self._commit(cursor)
         self._close(cursor)
-        return sbalance - number
+        return price
+        
+    def transferChequeBalance(self,sourceid,targetid,number,memo=""):
+        realnumber = int(number)
+        assert realnumber > 0
+        #assert not sourceid in Koge48.MININGBLACKLIST
+        #if sourceid != Koge48.BNB48BOT:
+        sbalance = int(self._getChequeBalanceFromDb(sourceid))
+        leftover = sbalance - realnumber
+        assert leftover >= 0
+        #else:
+        #    sbalance = number
+        newblocksql = "INSERT INTO cheque (sid,number,memo,source) VALUES (%s,%s,%s,%s)"
+        cursor = self._mycursor()
+        cursor.execute(newblocksql,(sourceid,-realnumber,memo,targetid))
+        cursor.execute(newblocksql,(targetid,realnumber,memo,sourceid))
+        self._commit(cursor)
+        self._close(cursor)
+        return leftover
         
     def signCheque(self,userid,number,memo="",source=0):
         assert number > 0

@@ -235,15 +235,18 @@ def callbackhandler(bot,update):
                 pass
         elif "JOIN" == thedatas[1]:
             response=""
-            if koge48core.getTotalBalance(activeuser.id)/KOGEMULTIPLIER >= ENTRANCE_THRESHOLDS[BNB48PLATINUMEN]:
-                response += "[BNB48 Platinum]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
-            if koge48core.getTotalBalance(activeuser.id)/KOGEMULTIPLIER >= ENTRANCE_THRESHOLDS[BNB48PLATINUMCN]:
-                response += "[BNB48 铂金会]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
-            response += "[BNB48 Club®️ En](https://t.me/bnb48club_en)\n"
-            response += "[BNB48 Club®️ 中文](https://t.me/bnb48club_cn)\n"
-            #response =getLocaleString("JOININTRODUCTION",lang).format(ENTRANCE_THRESHOLDS[BNB48])
-            update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
-            bot.sendMessage(update.effective_user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
+            if koge48core.permitQuery(activeuser.id)>=0:
+                response += getLocaleString("PLATINUMWELCOME",lang)
+                response += "\n"
+                response += "[BNB48 Platinum (English)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
+                response += "[BNB48 铂金会 (中文)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
+                update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
+            else:
+                #response += "[BNB48 Club®️ En](https://t.me/bnb48club_en)\n"
+                #response += "[BNB48 Club®️ 中文](https://t.me/bnb48club_cn)\n"
+                response =getLocaleString("JOININTRODUCTION",lang).format(koge48core.permitPrice()/KOGEMULTIPLIER,koge48core.getChequeBalance(activeuser.id)/KOGEMULTIPLIER)
+                #update.callback_query.message.edit_text(response,disable_web_page_preview=True,reply_markup=builddashboardmarkup(lang),parse_mode=ParseMode.MARKDOWN)
+                bot.sendMessage(update.effective_user.id,response,disable_web_page_preview=True,parse_mode=ParseMode.MARKDOWN)
             update.callback_query.answer()
         elif "RICH" == thedatas[1]:
             top10 = koge48core.getTop(20)
@@ -311,9 +314,9 @@ def callbackhandler(bot,update):
             if ESCROWLIST[escrow_id]=="start":
                 ESCROWLIST[escrow_id]="confirm"
                 saveJson("_data/escrowlist.json",ESCROWLIST)
-                koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
+                koge48core.transferChequeBalance(Koge48.BNB48ESCROW,int(thedatas[3]),float(thedatas[4]),"escrow confirm, from {} to {}".format(thedatas[2],thedatas[3]))
                 try:
-                    bot.sendMessage(int(thedatas[3]),"{} just approved the escrow transfer of {} Koge to you".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+                    bot.sendMessage(int(thedatas[3]),"{} just approved the escrow transfer of {} Koge to you".format(getusermd(activeuser),int(thedatas[4])/KOGEMULTIPLIER),parse_mode=ParseMode.MARKDOWN)
                 except:
                     pass
             update.callback_query.answer("{} just approved".format(activeuser.full_name),show_alert=True)
@@ -326,9 +329,9 @@ def callbackhandler(bot,update):
             if ESCROWLIST[escrow_id]=="start":
                 ESCROWLIST[escrow_id]="cancel"
                 saveJson("_data/escrowlist.json",ESCROWLIST)
-                koge48core.transferChequeBalance(Koge48.BNB48BOT,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
+                koge48core.transferChequeBalance(Koge48.BNB48ESCROW,int(thedatas[2]),float(thedatas[4]),"escrow cancel, from {} to {}".format(thedatas[2],thedatas[3]))
                 try:
-                    bot.sendMessage(int(thedatas[2]),"Your escrowed transfer to {} of {} Koge was just aborted by peer".format(getusermd(activeuser),thedatas[4]),parse_mode=ParseMode.MARKDOWN)
+                    bot.sendMessage(int(thedatas[2]),"Your escrowed transfer to {} of {} Koge was just aborted by peer".format(getusermd(activeuser),int(thedatas[4])/KOGEMULTIPLIER),parse_mode=ParseMode.MARKDOWN)
                 except Exception as e:
                     logger.warning(e)
                     pass
@@ -548,6 +551,15 @@ def pmcommandhandler(bot,update):
             bot.sendMessage(targetuserid,"{} Send you {} Koge,memo: {}".format(getusermd(sourceuserid),transamount/KOGEMULTIPLIER,memo),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
+    elif "/mintplatinum" in things[0]:
+        if koge48core.permitMint(update.effective_user.id,advisor=False) >=0:
+            response = getLocaleString("PLATINUMWELCOME",getLang(update.effective_user))
+            response += "\n"
+            response += "[BNB48 Platinum (English)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
+            response += "[BNB48 铂金会 (中文)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
+            update.message.reply_markdown(response)
+        else:
+            update.message.reply_text("insufficient balance")
     elif "/myid" in things[0]:
         update.message.reply_text(update.effective_user.id)
     elif "/start" in things[0]:
@@ -566,7 +578,15 @@ def pmcommandhandler(bot,update):
         elif len(things) > 1 and things[1].startswith("myid"):
             update.message.reply_text("Your UID is {}".format(update.effective_user.id))
         else:
-            update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
+            if koge48core.permitQuery(update.effective_user.id) >=0:
+                response = getLocaleString("PLATINUMWELCOME","EN")
+                response += "\n"
+                response += "[BNB48 Platinum (English)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
+                response += "[BNB48 铂金会 (中文)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
+            else:
+                response = getLocaleString("KOGEINTRODUCTION",lang)
+
+            update.message.reply_markdown(response,reply_markup=builddashboardmarkup(lang))
     elif "/dashboard" in things[0]:
         lang=getLang(update.message.from_user)
         update.message.reply_markdown(getLocaleString("KOGEINTRODUCTION",lang),reply_markup=builddashboardmarkup(lang))
@@ -655,6 +675,9 @@ def siriancommandhandler(bot,update):
         kick(update.message.chat_id,targetuser.id)
     elif "/kick" in things[0]:
         kick(int(things[1],int(things[2])))
+    elif "/markdown" in things[0]:
+        del things[0]
+        update.message.reply_markdown(" ".join(things))
     elif "/rich" in things[0]:
         top10 = koge48core.getTop(100)
         text="On-Telegram Supply:{}\n---\nKoge Forbes:\n\n".format(format(koge48core.getTotalFrozen()/KOGEMULTIPLIER,','))
@@ -665,8 +688,14 @@ def siriancommandhandler(bot,update):
         update.message.reply_markdown("[{}]({})".format(things[1],bot.exportChatInviteLink(int(things[1]))))
     elif "/ban" in things[0] and not targetuser is None:
         ban(update.message.chat_id,targetuser.id)
-    elif "/ban" in things[0]:
+    elif "/ban" in things[0] and len(things) >2:
         ban(int(things[1],int(things[2])))
+    elif "/platinum_advisor" in things[0] and not targetuser is None:
+        koge48core.permitMint(targetuser.id,advisor=True)
+        update.message.reply_markdown("Platinum Badge Awarded.")
+    elif "/platinum_advisor" in things[0] and len(things) > 1:
+        koge48core.permitMint(int(things[1]),advisor=True)
+        update.message.reply_markdown("Platinum Badge Awarded to {}.".format(getusermd(int(things[1]))))
     elif "/cheque" in things[0]:
         if len(things) != 2:
             update.message.reply_text("回复他人消息: /cheque 金额")
@@ -822,15 +851,16 @@ def botcommandhandler(bot,update):
 
         if targetuser.id == Koge48.BNB48BOT or targetuser.id == user.id:
             return
+        humanamount = float(things[1])
         transamount = int(float(things[1])*KOGEMULTIPLIER)
 
         try:
-            koge48core.transferChequeBalance(user.id,Koge48.BNB48BOT,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
+            koge48core.transferChequeBalance(user.id,Koge48.BNB48ESCROW,transamount,"escrow start, from {} to {}".format(user.id,targetuser.id))
         except:
             delayMessageDelete(update.message)
             return
 
-        message = update.message.reply_markdown("{} --escrowed--> {}\n{} Koge\nClick ✅to approve or click ❌ to abort".format(getusermd(user),getusermd(targetuser),transamount),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
+        message = update.message.reply_markdown("{} --escrowed--> {}\n{} Koge\nClick ✅to approve or click ❌ to abort".format(getusermd(user),getusermd(targetuser),humanamount),disable_web_page_preview=True,reply_markup=buildescrowmarkup(user.id,targetuser.id,transamount))
         ESCROWLIST[str(message.chat_id) + str(message.message_id)]="start"
         saveJson("_data/escrowlist.json",ESCROWLIST)
             
@@ -867,6 +897,7 @@ def botcommandhandler(bot,update):
         
         currency = "KOGE"
 
+        '''
         if len(things) >1 and not is_number(things[1]):
             currency = things[1]
             del things[1]
@@ -874,16 +905,20 @@ def botcommandhandler(bot,update):
         if "KOGE" != currency and not user.id in getAdminsInThisGroup(update.message.chat_id):
             delayMessageDelete(update.message)
             return
+        '''
 
         if len(things) >1 and is_number(things[1]):
             balance = float(things[1])
-        elif "KOGE" == currency:
-            balance = 100
+        #elif "KOGE" == currency:
+        #    balance = 100
         else:
             delayMessageDelete(update.message,1)
             return
 
         if balance <= 0:
+            delayMessageDelete(update.message,1)
+            return
+        if balance*KOGEMULTIPLIER <= koge48core.getChequeBalance(user.id):
             delayMessageDelete(update.message,1)
             return
 
@@ -893,7 +928,8 @@ def botcommandhandler(bot,update):
             if amount < 1:
                 amount = 1
         else:
-            amount = 10
+            delayMessageDelete(update.message,1)
+            return
 
         if "KOGE" == currency and amount > 40:
             amount = 40
@@ -1220,23 +1256,24 @@ def checkThresholds(chatid,userid):
     if not chatid in ENTRANCE_THRESHOLDS:
         return
     chatmember = updater.bot.getChatMember(chatid,userid)
-    balance = koge48core.getTotalBalance(userid)
+    qualify=koge48core.permitQuery(userid)>=0
     if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted']:
-        if KICKINSUFFICIENT[chatid] and balance < KICK_THRESHOLDS[chatid]:
+        if chatid in KICKINSUFFICIENT and KICKINSUFFICIENT[chatid] and not qualify:
             try:
                 kick(chatid,userid)
-                #updater.bot.sendMessage(userid,"Koge持仓{}不足{},被移除出群。".format(balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-                updater.bot.sendMessage(chatid,"{}持仓{},不足{},移除出群。".format(getFullname(userid),balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-                logger.warning("{}Koge持仓{}不足{},被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
+                #updater.bot.sendMessage(chatid,"{}持仓{},不足{},移除出群。".format(getFullname(userid),balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
+                #logger.warning("{}Koge持仓{}不足{},被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
                 return True
             except:
                 pass
             return
+        '''
         if SAYINSUFFICIENT[chatid] and balance < SAY_THRESHOLDS[chatid]:
             try:
                 updater.bot.sendMessage(userid,"Koge持仓不足{},此消息将持续出现。不足{}将被移除出群。".format(SAY_THRESHOLDS[chatid],KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
             except:
                 pass
+        '''
         
 
 def ban(chatid,userid):
@@ -1313,6 +1350,8 @@ def main():
             "delist",
             "cheque",
             "rich",
+            "platinum_advisor",
+            "markdown",
             #"burn",
             "election"
         ],
@@ -1324,6 +1363,7 @@ def main():
             "dashboard",
             #"key",
             "myid",
+            "mintplatinum",
             "transfer",
         ],
         pmcommandhandler)#处理仅私聊有效的命令
