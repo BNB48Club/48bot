@@ -159,6 +159,20 @@ class Koge48:
             return -1
     def permitPrice(self):
         return Koge48.PermitBase + self.permitCount() * Koge48.PermitStep
+    def permitMelt(self,userid):
+        permitStaked = self.permitQuery(userid)
+        if permitStaked <=0:
+            return -1
+        delpermitsql = "DELETE FROM `platinum` WHERE `uid` = %s"
+        cursor = self._mycursor()
+        cursor.execute(delpermitsql,(userid,))
+        self._commit(cursor)
+        self._close(cursor)
+        try:
+            self.transferChequeBalance(Koge48.BNB48PLATINUM,userid,permitStaked,"platinum permit melt")
+        except:
+            return -1
+        return permitStaked
     def permitMint(self,userid,advisor=False):
         #Only one (minted) permit for each
         if self.permitQuery(userid)>0:

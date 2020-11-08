@@ -83,8 +83,6 @@ ESCROWLIST = loadJson("_data/escrowlist.json",{})
 
 SirIanM=420909210
 
-BNB48PLATINUMCN=-1001136778297
-BNB48PLATINUMEN=-1001314822059
 EARLYBIRD=-4801
 BNB48PUBLISH=-1001180859399
 BNB48TEST =-1001395548149
@@ -97,11 +95,12 @@ BNB48C2CLINK="https://t.me/joinchat/GRaQmljsjZVAcaDOKqpAKQ"
 #BNB48PUBLISH=SirIanM
 BINANCE_ANNI = 1531526400
 
-ENTRANCE_THRESHOLDS={BNB48PLATINUMCN:1000,BNB48PLATINUMEN:1000}
-KICK_THRESHOLDS={BNB48PLATINUMCN:400,BNB48PLATINUMEN:400}
-SAY_THRESHOLDS={BNB48PLATINUMCN:800,BNB48PLATINUMEN:400}
-KICKINSUFFICIENT = {BNB48PLATINUMCN:True}
-SAYINSUFFICIENT = {BNB48PLATINUMCN:False}
+
+
+
+BNB48PLATINUMCN=-1001136778297
+BNB48PLATINUMEN=-1001314822059
+ENTRANCE_THRESHOLDS={BNB48PLATINUMCN:"BNB48铂金会",BNB48PLATINUMEN:"BNB48 Platinum"}
 
 kogeconfig = configparser.ConfigParser()
 kogeconfig.read("conf/koge48.conf")
@@ -235,8 +234,9 @@ def callbackhandler(bot,update):
                 pass
         elif "JOIN" == thedatas[1]:
             response=""
-            if koge48core.permitQuery(activeuser.id)>=0:
-                response += getLocaleString("PLATINUMWELCOME",lang)
+            permitStaked = koge48core.permitQuery(activeuser.id)
+            if permitStaked >=0:
+                response += getLocaleString("PLATINUMWELCOME",lang).format(permitStaked)
                 response += "\n"
                 response += "[BNB48 Platinum (English)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
                 response += "[BNB48 铂金会 (中文)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
@@ -551,12 +551,23 @@ def pmcommandhandler(bot,update):
             bot.sendMessage(targetuserid,"{} Send you {} Koge,memo: {}".format(getusermd(sourceuserid),transamount/KOGEMULTIPLIER,memo),parse_mode=ParseMode.MARKDOWN)
         except:
             pass
+    elif "/meltplatinum" in things[0]:
+        if koge48core.permitMelt(update.effective_user.id) >= 0:
+            response = getLocaleString("PLATINUMFAREWELL",getLang(update.effective_user))
+            for eachchatid in ENTRANCE_THRESHOLDS:
+                try:
+                    kick(eachchatid,update.effective_user.id)
+                except:
+                    pass
+            update.message.reply_markdown(response)
+        else:
+            update.message.reply_text("no badge with Koge staked")
     elif "/mintplatinum" in things[0]:
         if koge48core.permitMint(update.effective_user.id,advisor=False) >=0:
             response = getLocaleString("PLATINUMWELCOME",getLang(update.effective_user))
             response += "\n"
-            response += "[BNB48 Platinum (English)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
-            response += "[BNB48 铂金会 (中文)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
+            for eachchatid in ENTRANCE_THRESHOLDS:
+                response += "[{}]({})\n".format(ENTRANCE_THRESHOLDS[eachchatid],bot.exportChatInviteLink(eachchatid))
             update.message.reply_markdown(response)
         else:
             update.message.reply_text("insufficient balance")
@@ -578,8 +589,9 @@ def pmcommandhandler(bot,update):
         elif len(things) > 1 and things[1].startswith("myid"):
             update.message.reply_text("Your UID is {}".format(update.effective_user.id))
         else:
-            if koge48core.permitQuery(update.effective_user.id) >=0:
-                response = getLocaleString("PLATINUMWELCOME","EN")
+            permitStaked = koge48core.permitQuery(update.effective_user.id)
+            if permitStaked >=0:
+                response = getLocaleString("PLATINUMWELCOME","EN").format(permitStaked)
                 response += "\n"
                 response += "[BNB48 Platinum (English)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMEN))
                 response += "[BNB48 铂金会 (中文)]({})\n".format(bot.exportChatInviteLink(BNB48PLATINUMCN))
@@ -1257,23 +1269,13 @@ def checkThresholds(chatid,userid):
         return
     chatmember = updater.bot.getChatMember(chatid,userid)
     qualify=koge48core.permitQuery(userid)>=0
-    if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted']:
-        if chatid in KICKINSUFFICIENT and KICKINSUFFICIENT[chatid] and not qualify:
-            try:
-                kick(chatid,userid)
-                #updater.bot.sendMessage(chatid,"{}持仓{},不足{},移除出群。".format(getFullname(userid),balance,KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-                #logger.warning("{}Koge持仓{}不足{},被移除出群。".format(userid,balance,KICK_THRESHOLDS[chatid]))
-                return True
-            except:
-                pass
-            return
-        '''
-        if SAYINSUFFICIENT[chatid] and balance < SAY_THRESHOLDS[chatid]:
-            try:
-                updater.bot.sendMessage(userid,"Koge持仓不足{},此消息将持续出现。不足{}将被移除出群。".format(SAY_THRESHOLDS[chatid],KICK_THRESHOLDS[chatid]),disable_web_page_preview=True)
-            except:
-                pass
-        '''
+    if not chatmember.user.is_bot and chatmember.status in ['administrator','member','restricted'] and not qualify:
+        try:
+            kick(chatid,userid)
+            return True
+        except:
+            pass
+        return
         
 
 def ban(chatid,userid):
@@ -1281,11 +1283,13 @@ def ban(chatid,userid):
 def unban(chatid,userid):
     updater.bot.unbanChatMember(chatid,userid)
 def kick(chatid,userid):
+    '''
     if BNB48PLATINUMCN == chatid:
         try:
             updater.bot.promoteChatMember(chatid, userid, can_change_info=False,can_delete_messages=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False)
         except:
             pass
+    '''
     updater.bot.kickChatMember(chatid,userid)
     updater.bot.unbanChatMember(chatid,userid)
 
@@ -1364,6 +1368,7 @@ def main():
             #"key",
             "myid",
             "mintplatinum",
+            "meltplatinum",
             "transfer",
         ],
         pmcommandhandler)#处理仅私聊有效的命令
